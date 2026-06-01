@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOT — Explore screen mockup</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+:root{
+  --color-background-primary:#ffffff;--color-background-secondary:#f4f3ee;--color-background-tertiary:#eceae3;
+  --color-background-info:#e6f1fb;
+  --color-text-primary:#1a1a18;--color-text-secondary:#6b6a63;--color-text-tertiary:#9a988f;
+  --color-text-info:#185fa5;--color-text-success:#3b6d11;
+  --color-border-tertiary:rgba(0,0,0,.15);--color-border-secondary:rgba(0,0,0,.30);--color-border-info:#378add;
+  --border-radius-md:8px;--border-radius-lg:12px;
+  --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--color-background-tertiary);font-family:var(--font-sans);color:var(--color-text-primary);line-height:1.5;}
+.wrap{max-width:720px;margin:0 auto;padding:24px 20px 48px;}
+button{font-family:inherit;background:transparent;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:8px 12px;cursor:pointer;color:var(--color-text-primary);}
+button:hover{background:var(--color-background-secondary);}
+.lot-pin{position:absolute;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;border:.5px solid var(--color-border-secondary)}
+.bar-track{height:7px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);overflow:hidden}
+.chip{font-size:12px;padding:3px 9px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-secondary)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div style="display:flex;flex-direction:column;gap:14px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+    <div style="display:flex;align-items:center;gap:9px;">
+      <div style="width:28px;height:28px;border-radius:var(--border-radius-md);background:var(--color-text-primary);color:var(--color-background-primary);display:flex;align-items:center;justify-content:center;font-weight:500;font-size:13px;">L</div>
+      <span style="font-size:16px;font-weight:500;">LOT</span>
+      <span style="font-size:13px;color:var(--color-text-secondary);"><i class="ti ti-map-pin" style="vertical-align:-2px;"></i> Charlottesville, VA</span>
+    </div>
+    <span class="chip" style="background:var(--color-background-info);color:var(--color-text-info);">Thesis: by-room · all-cash · ≥8% CoC</span>
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center;">
+    <div style="flex:1;display:flex;align-items:center;gap:8px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:0 12px;height:38px;background:var(--color-background-primary);">
+      <i class="ti ti-search" style="color:var(--color-text-tertiary);"></i>
+      <span style="font-size:14px;color:var(--color-text-secondary);">4+ beds · walk to UVA · by-room legal · owner held 10+ yrs</span>
+    </div>
+    <button aria-label="filters" style="height:38px;"><i class="ti ti-adjustments-horizontal"></i></button>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:-4px;">
+    <span class="chip"><i class="ti ti-bed" style="vertical-align:-2px;"></i> 4+ beds</span>
+    <span class="chip"><i class="ti ti-walk" style="vertical-align:-2px;"></i> ≤0.5 mi to grounds</span>
+    <span class="chip"><i class="ti ti-scale" style="vertical-align:-2px;"></i> by-room legal</span>
+    <span class="chip"><i class="ti ti-clock" style="vertical-align:-2px;"></i> tenure ≥10 yr</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+    <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;"><div style="font-size:12px;color:var(--color-text-secondary);">matches</div><div style="font-size:22px;font-weight:500;">23</div></div>
+    <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;"><div style="font-size:12px;color:var(--color-text-secondary);">median CoC</div><div style="font-size:22px;font-weight:500;">4.6%</div></div>
+    <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;"><div style="font-size:12px;color:var(--color-text-secondary);">by-room legal</div><div style="font-size:22px;font-weight:500;">91%</div></div>
+  </div>
+
+  <div style="position:relative;height:210px;border-radius:var(--border-radius-lg);border:.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);overflow:hidden;">
+    <div style="position:absolute;top:8px;left:10px;font-size:11px;color:var(--color-text-tertiary);"><i class="ti ti-school" style="vertical-align:-2px;"></i> UVA grounds</div>
+    <div style="position:absolute;left:12%;top:62%;width:46%;height:5px;background:var(--color-border-tertiary);transform:rotate(-8deg);border-radius:3px;"></div>
+    <div style="position:absolute;left:30%;top:20%;width:5px;height:55%;background:var(--color-border-tertiary);transform:rotate(6deg);border-radius:3px;"></div>
+    <div class="lot-pin" style="left:34%;top:42%;background:#C0DD97;color:#173404;">71</div>
+    <div class="lot-pin" style="left:52%;top:33%;background:#FAC775;color:#412402;">64</div>
+    <div class="lot-pin" style="left:62%;top:58%;background:#D3D1C7;color:#2C2C2A;">38</div>
+    <div class="lot-pin" style="left:22%;top:66%;background:#C0DD97;color:#173404;">78</div>
+    <div class="lot-pin" style="left:44%;top:72%;background:#C0DD97;color:#173404;">75</div>
+    <div style="position:absolute;bottom:8px;right:10px;display:flex;gap:10px;font-size:11px;background:var(--color-background-primary);padding:4px 8px;border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);">
+      <span style="color:#3B6D11;">● strong</span><span style="color:#854F0B;">● moderate</span><span style="color:#5F5E5A;">● weak</span>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:9px;align-items:flex-start;background:var(--color-background-info);border-radius:var(--border-radius-md);padding:10px 12px;">
+    <i class="ti ti-bulb" style="font-size:18px;color:var(--color-text-info);"></i>
+    <div style="flex:1;font-size:13px;color:var(--color-text-info);line-height:1.55;">Prime-block trophies (Wertland) are priced like institutional multifamily — low cap. 4 off-prime by-room single-family homes nearby pencil ~5%+.</div>
+    <button style="font-size:12px;white-space:nowrap;">Surface them</button>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;background:var(--color-background-primary);">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;color:var(--color-text-tertiary);">#2</span><div><div style="font-size:14px;font-weight:500;">1215 Wertland St (condo)</div><div style="font-size:12px;color:var(--color-text-secondary);">$235,900 · 2 bd · RX-5 · by-room ✓ · condo risk</div></div></div>
+      <span style="font-size:13px;font-weight:500;padding:2px 8px;border-radius:var(--border-radius-md);background:#FAC775;color:#412402;">64</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;background:var(--color-background-primary);">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;color:var(--color-text-tertiary);">#3</span><div><div style="font-size:14px;font-weight:500;">1207-11 Wertland St</div><div style="font-size:12px;color:var(--color-text-secondary);">$9.88M · multi-family · 1.7% cap · out of lane</div></div></div>
+      <span style="font-size:13px;font-weight:500;padding:2px 8px;border-radius:var(--border-radius-md);background:#D3D1C7;color:#2C2C2A;">38</span>
+    </div>
+  </div>
+
+  <div style="border:2px solid var(--color-border-info);border-radius:var(--border-radius-lg);padding:14px 16px;background:var(--color-background-primary);">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+      <div>
+        <div style="font-size:12px;color:var(--color-text-tertiary);">#1 selected</div>
+        <div style="font-size:16px;font-weight:500;">1301 Wertland St</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px;">$1,077,800 assessed · 0.40 ac · multi-family · RX-5 · sold $1.0M (May 2024)</div>
+      </div>
+      <span style="font-size:15px;font-weight:500;padding:4px 11px;border-radius:var(--border-radius-md);background:#C0DD97;color:#173404;">71</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:9px 11px;"><div style="font-size:12px;color:var(--color-text-secondary);">by-room CoC (8 bd)</div><div style="font-size:18px;font-weight:500;">4.0%</div></div>
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:9px 11px;"><div style="font-size:12px;color:var(--color-text-secondary);">whole-building CoC</div><div style="font-size:18px;font-weight:500;">3.1%</div></div>
+    </div>
+
+    <div style="margin-top:14px;font-size:13px;font-weight:500;">Why this score <span style="font-size:11px;color:var(--color-text-tertiary);font-weight:400;">(vs your thesis)</span></div>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-top:8px;">
+      <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;color:var(--color-text-secondary);width:120px;">campus proximity</span><div class="bar-track" style="flex:1;"><div style="width:92%;height:100%;background:#639922;"></div></div></div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;color:var(--color-text-secondary);width:120px;">by-room legal</span><div class="bar-track" style="flex:1;"><div style="width:100%;height:100%;background:#639922;"></div></div></div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;color:var(--color-text-secondary);width:120px;">cash-on-cash</span><div class="bar-track" style="flex:1;"><div style="width:48%;height:100%;background:#BA7517;"></div></div></div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;color:var(--color-text-secondary);width:120px;">risk penalty</span><div class="bar-track" style="flex:1;"><div style="width:22%;height:100%;background:#E24B4A;"></div></div></div>
+    </div>
+
+    <div style="margin-top:14px;border-top:.5px solid var(--color-border-tertiary);padding-top:12px;">
+      <div style="display:flex;align-items:center;gap:7px;"><i class="ti ti-cash" style="font-size:17px;color:var(--color-text-success);"></i><span style="font-size:13px;font-weight:500;">Recommended financing: Cash / conventional</span></div>
+      <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.55;margin-top:5px;">Bought $1.0M in 2024 → low capital-gains exposure and a near-market-rate loan, so no seller-finance or rate-gap edge. All-cash gives you the negotiating leverage here.</div>
+      <div style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 10px;">
+        <i class="ti ti-circle-x" style="font-size:15px;color:var(--color-text-tertiary);margin-top:1px;"></i>
+        <span style="font-size:12px;color:var(--color-text-secondary);"><span style="color:var(--color-text-primary);">Subject-To suppressed</span> — recent arm's-length purchase, mortgage balance unverified, no rate gap. Engine won't force creative finance where it doesn't fit.</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:13px;">
+      <button style="flex:1;">Full dossier</button>
+      <button style="flex:1;">Add to pipeline</button>
+    </div>
+  </div>
+
+</div>
+</div>
+</body>
+</html>

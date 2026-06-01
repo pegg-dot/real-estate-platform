@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+.pnp/
+.venv/
+__pycache__/
+*.pyc
+
+# env / secrets
+.env
+.env.*
+!.env.example
+*.key
+service-account*.json
+
+# build / framework
+.next/
+out/
+dist/
+build/
+.vercel/
+
+# data (don't commit pulled county datasets / caches)
+/data/
+*.sqlite
+*.duckdb
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+*.log

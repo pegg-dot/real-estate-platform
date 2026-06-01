@@ -1,0 +1,25 @@
+{
+  "$comment": "Rename to .mcp.json in your local repo. Secrets come from env vars, never literals. MCP servers for Claude Code.",
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
+      "$comment": "Read/write repo files."
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${SUPABASE_DB_URL}"],
+      "$comment": "Query the Supabase Postgres directly (read-mostly during dev)."
+    },
+    "fetch": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch"],
+      "$comment": "Fetch county ArcGIS REST endpoints and other public data."
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "$comment": "Knowledge-graph persistent memory for the judgment layer + deal history."
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "$comment": "Nate's Investor Thesis — the profile the scoring + financing engines reason against. Seeded with sensible defaults from what we know; the Thesis Compiler (spec 001) refines these by asking Nate. Versioned over time.",
+  "version": 1,
+  "investor": {
+    "name": "Nate",
+    "capital_source": "family_trust",
+    "capital_posture": "all_cash_default",
+    "leverage_appetite": "optional_creative_finance",
+    "horizon": "long_term_hold",
+    "role": "active_operator_early",
+    "experience": "learning",
+    "monthly_time_budget_hours": 8
+  },
+  "goal": {
+    "primary": "forever_money",
+    "type": "buy_and_hold_cashflow_plus_appreciation",
+    "target_doors_5yr": 15,
+    "min_cash_on_cash": 0.08,
+    "preferred_cash_on_cash": 0.12,
+    "appreciation_weight_vs_cashflow": 0.4
+  },
+  "markets": [
+    {
+      "name": "Charlottesville",
+      "state": "VA",
+      "priority": 1,
+      "thesis": "By-the-room student rentals near UVA; zoning removed unrelated-occupant caps (2024 code, contested 2025 — confirm currency).",
+      "rental_model_default": "by_the_room"
+    },
+    {
+      "name": "Miami-Dade",
+      "state": "FL",
+      "priority": 2,
+      "thesis": "Multifamily/duplex near FIU; by-the-room NOT legal in single-family zones; appreciation play with heavy carry-cost (insurance/condo/flood) scrutiny.",
+      "rental_model_default": "whole_unit_multifamily"
+    }
+  ],
+  "rental_model": {
+    "evaluate_both_per_bedroom_and_whole_house": true,
+    "prefer_higher_legal_yield": true,
+    "by_room_requires_legal_clearance": true
+  },
+  "scoring_weights": {
+    "cash_on_cash": 0.30,
+    "by_room_upside": 0.15,
+    "appreciation_potential": 0.15,
+    "campus_proximity": 0.10,
+    "occupancy_legal_clearance": 0.10,
+    "management_simplicity": 0.05,
+    "owner_motivation": 0.05,
+    "risk_penalty_insurance_flood_condo": 0.10
+  },
+  "hard_constraints": {
+    "by_room_legal_or_whole_house_must_pencil": true,
+    "max_flood_risk": "no_VE_zone_without_explicit_override",
+    "exclude_condos_without_sirs_clearance": true,
+    "min_assessed_to_price_sanity_check": true
+  },
+  "financing": {
+    "default": "cash",
+    "consider_seller_finance_when": "owner_high_equity_long_tenure_or_capital_gains_exposure",
+    "consider_subject_to_when": "low_equity_distress_and_attractive_existing_rate",
+    "always_surface_legal_guardrails": true,
+    "attorney_review_required_for": ["subject_to", "wraparound", "seller_finance_to_consumer"]
+  },
+  "risk_tolerance": {
+    "regulatory": "stress_test_against_zoning_reversal",
+    "concentration": "cap_single_market_exposure",
+    "vacancy": "budget_summer_gap_for_student_rentals"
+  },
+  "outreach": {
+    "default_channel": "direct_mail",
+    "sms_calls_require": ["dnc_scrub", "consent_or_purchase_call_framing"],
+    "target_segments": ["tired_landlord_near_campus", "high_equity_long_tenure", "absentee"]
+  }
+}
