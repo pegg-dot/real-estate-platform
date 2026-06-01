@@ -115,6 +115,21 @@ def normalize_assessment(raw: dict, property_id: str) -> dict:
     }
 
 
+def normalize_all_assessment(raw: dict, property_id: str) -> dict:
+    """Map an All-Assessments (layer 2) history row to an `assessment` record. Unlike the
+    current-only layer 1, this carries a real land/improvement split AND a TaxYear."""
+    return {
+        "property_id": property_id,
+        "year": _int_or_none(raw.get("TaxYear")),
+        "assessed_land": raw.get("LandValue"),
+        "assessed_improvement": raw.get("ImprovementValue"),
+        "assessed_total": raw.get("TotalValue"),
+        "source": "layer 2",
+        "source_object_id": raw.get("RecordID_Int"),
+        "provenance": {"assessed_total": _real("layer 2")},
+    }
+
+
 def normalize_sale(raw: dict, property_id: str) -> dict:
     """Map a Sales (layer 3) row to a `sale` record."""
     price = raw.get("SaleAmount")
@@ -142,7 +157,8 @@ def _years_between(iso_date: str, as_of: datetime.date) -> float:
 
 def assemble_properties(base_rows, assess_rows, sale_rows, market_id,
                         as_of: datetime.date | None = None,
-                        residential_rows=None) -> list[dict]:
+                        residential_rows=None, all_assessment_rows=None,
+                        owner_rows=None) -> list[dict]:
     """Join base + assessments + sales (+ optional residential details) by ParcelNumber
     into one record per parcel.
 
@@ -156,6 +172,10 @@ def assemble_properties(base_rows, assess_rows, sale_rows, market_id,
     as_of = as_of or datetime.date.today()
     assess_by_pn = {r.get("ParcelNumber"): r for r in assess_rows}
     res_by_pn = {r.get("ParcelNumber"): r for r in (residential_rows or [])}
+    owner_by_pn = {r.get("ParcelNumber"): r for r in (owner_rows or [])}
+    hist_by_pn: dict[str, list] = defaultdict(list)
+    for r in (all_assessment_rows or []):
+        hist_by_pn[r.get("ParcelNumber")].append(r)
     sales_by_pn: dict[str, list] = defaultdict(list)
     for r in sale_rows:
         sales_by_pn[r.get("ParcelNumber")].append(r)
@@ -165,8 +185,18 @@ def assemble_properties(base_rows, assess_rows, sale_rows, market_id,
         pn = raw.get("ParcelNumber")
         prop = normalize_property(raw, market_id)
 
-        araw = assess_by_pn.get(pn)
-        assessment = normalize_assessment(araw, None) if araw else None
+        # Prefer the All-Assessments history (layer 2: real land/improvement split + years);
+        # fall back to the current-only layer 1 when history isn't supplied.
+        hist = hist_by_pn.get(pn)
+        if hist:
+            assessments = sorted(
+                (normalize_all_assessment(h, None) for h in hist),
+                key=lambda a: (a["year"] is None, a["year"]))
+            assessment = assessments[-1] if assessments else None
+        else:
+            araw = assess_by_pn.get(pn)
+            assessment = normalize_assessment(araw, None) if araw else None
+            assessments = [assessment] if assessment else []
 
         sales = [normalize_sale(s, None) for s in sales_by_pn.get(pn, [])]
         sales = sorted((s for s in sales if s["sale_date"]), key=lambda s: s["sale_date"])
@@ -179,7 +209,8 @@ def assemble_properties(base_rows, assess_rows, sale_rows, market_id,
         est_mv = assessment["assessed_total"] if assessment else None
 
         prop.update({
-            "assessment": assessment,
+            "assessment": assessment,      # the latest/current year
+            "assessments": assessments,    # full history (one per year) when available
             "sales": sales,
             "last_sale": last_sale,
             "est_market_value": est_mv,
@@ -194,10 +225,20 @@ def assemble_properties(base_rows, assess_rows, sale_rows, market_id,
             prop["sqft"] = res["sqft"]
             prop["year_built"] = res["year_built"]
             prop["provenance"].update(res["provenance"])
+
+        oraw = owner_by_pn.get(pn)
+        if oraw is not None:
+            from ingestion import owner as owner_mod
+            o = owner_mod.normalize_owner(oraw)
+            prop["owner"] = o
+            prop["is_absentee"] = o["is_absentee"]   # surfaced for the off-market leads layer
+            prop["provenance"].update(o["provenance"])
         as_of_iso = as_of.isoformat()
         if est_mv is not None:
+            src = assessment["source"]                      # 'layer 2' history or 'layer 1'
+            yr = assessment.get("year")
             prop["provenance"]["est_market_value"] = {
-                "source": "baseline = current assessed_total",
+                "source": f"baseline = latest assessed_total ({src}, year {yr})",
                 "confidence": "estimated", "as_of": as_of_iso}
         if tenure is not None:
             prop["provenance"]["tenure_years"] = {

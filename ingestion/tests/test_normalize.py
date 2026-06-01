@@ -72,6 +72,19 @@ def test_normalize_assessment_current_snapshot():
     assert a["provenance"]["assessed_total"]["source"] == "layer 1"
 
 
+def test_normalize_all_assessment_history_row():
+    raw = {"ParcelNumber": "010006000", "TaxYear": "2026", "LandValue": 492400,
+           "ImprovementValue": 1276900, "TotalValue": 1769300, "RecordID_Int": 449}
+    a = normalize.normalize_all_assessment(raw, PROP_ID)
+    assert a["year"] == 2026                 # TaxYear string -> int
+    assert a["assessed_land"] == 492400
+    assert a["assessed_improvement"] == 1276900
+    assert a["assessed_total"] == 1769300
+    assert a["source"] == "layer 2"
+    assert a["source_object_id"] == 449
+    assert a["provenance"]["assessed_total"]["source"] == "layer 2"
+
+
 # --- normalize_sale ---------------------------------------------------------
 
 def test_normalize_sale_core_fields():

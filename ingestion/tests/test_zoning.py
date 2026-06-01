@@ -20,14 +20,29 @@ def test_shipped_charlottesville_config_is_cited_and_caveated():
     assert "White v. City of Charlottesville" in rules["stability_flag"]
 
 
-def test_attach_uses_market_default_for_a_residential_zone():
+def test_attach_uses_market_default_for_an_unlisted_zone():
     rules = zoning.load_zoning_rules(CVILLE)
-    prop = {"zone_code": "RX-5", "provenance": {}}
+    prop = {"zone_code": "NX-5", "provenance": {}}   # not explicitly seeded -> market default
     out = zoning.attach_zoning(prop, rules)
     assert out["by_room_legal"] is True
     assert out["max_unrelated_occupants"] is None
     assert out["zoning"]["stability_flag"]          # caveat always present
     assert out["provenance"]["by_room_legal"]["confidence"] == "modeled"  # never 'real'
+
+
+def test_shipped_config_seeds_explicit_byroom_zones():
+    rules = zoning.load_zoning_rules(CVILLE)
+    for z in ("RN-A", "R-A", "RX-5"):
+        assert rules["zones"][z]["by_room_legal"] is True
+        assert rules["zones"][z]["max_unrelated_occupants"] is None
+
+
+def test_attach_prefers_explicit_residential_zone_entry():
+    rules = zoning.load_zoning_rules(CVILLE)
+    out = zoning.attach_zoning({"zone_code": "RN-A", "provenance": {}}, rules)
+    assert out["by_room_legal"] is True
+    assert "RN-A" in out["zoning"]["note"]           # the explicit entry was used, not the default
+    assert out["zoning"]["stability_flag"]
 
 
 def test_attach_prefers_explicit_zone_override_over_default():

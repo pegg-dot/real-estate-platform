@@ -44,3 +44,14 @@ yield. This is the "is this a good deal for me?" engine.
 ## Future hooks
 - The **Deal Genome** feature vector (architecture) is produced here.
 - Outcome loop retunes weights from Nate's realized results.
+
+---
+## Implementation status (2026-06-01) — BUILT (TypeScript)
+- `lib/scoring/underwrite.ts` — all-cash pro-forma; reproduces both dossiers to the dollar
+  (1301 Wertland NOI 43,301/cap 4.0%; 1305 Grady 28,210/CoC 5.8%). Decomposable expense breakdown.
+- `lib/scoring/score.ts` — underwrites BOTH per-bedroom + whole-house, surfaces the higher
+  *legal* yield, scores vs `thesis.scoring_weights` (uses real lat/lng for campus proximity),
+  decomposable components, `lowConfidence` when beds unknown (no fabrication). by-room
+  suppressed unless `byRoomLegal===true`. Golden test: off-prime SFR ranks ABOVE the prime
+  trophy block (the core judgment). 10 Vitest tests; verified by the `underwriter` subagent.
+- Deferred: real rent comps (rents still modeled); ±rate/vacancy sensitivity surface.

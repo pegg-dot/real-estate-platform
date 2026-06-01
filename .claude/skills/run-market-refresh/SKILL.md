@@ -7,7 +7,21 @@ description: Refresh a market's property data from county open data, re-score, a
 
 Refreshes one market end-to-end and reports what changed.
 
-## Steps
+## The runnable command (this is now wired, not manual)
+```bash
+# full loop: ingest county data -> score + finance -> digest of top opportunities
+SUPABASE_DB_URL=... npm run refresh -- --market Charlottesville --limit 200 [--geocode] \
+  [--where "StreetName LIKE '%GRADY%'"]
+
+# render one cited dossier from the DB (reachable output)
+SUPABASE_DB_URL=... npm run dossier -- --market Charlottesville --dossier 040005000
+```
+`scripts/refresh-market.ts` orchestrates: (1) `ingestion/load_supabase.py` → Postgres,
+(2) `lib/pipeline/scoreMarket.ts` (scoring + financing) → `property_score`, (3) a digest
+from the `deal_genome` view. Institutions are skipped; low-confidence (no-beds) parcels are
+hidden from the headline ranking. Requires `SUPABASE_DB_URL`.
+
+## Steps (what the command does)
 1. **Pull** the market's county data via the ingestion adapter
    (`ingestion/charlottesville.py` for Charlottesville; the Miami-Dade adapter for MDC).
    Use `--all` for a full refresh or `--where` for a targeted slice.

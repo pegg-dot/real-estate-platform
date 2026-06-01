@@ -73,3 +73,17 @@ engine the podcast describes, made real.
 - Auto-draft the LOI / offer memo per structure (generative).
 - Counterfactuals: "if rates drop 1%, does cash beat sub2 here?"
 - Learn from which structures Nate actually closes → refine the mapping.
+
+---
+## Implementation status (2026-06-01) — BUILT (TypeScript), the moat
+- `lib/financing/recommend.ts` — NEED/GREED constraint solver per docs/financing-engine-design.md:
+  equity/balance estimate (amortization), structure mapping (cash/seller-finance/sub2/hybrid),
+  cap-gains seller-win modeler (installment-sale PV → quantified "here's what you save"),
+  ranked offers. **Legal guardrail is enforced by `assertGuardrail()` — the engine THROWS
+  rather than emit a creative structure without its guardrail + attorney trigger** (golden rule #4).
+- Golden tests reproduce the dossiers: 1301 Wertland → CASH #1, subject-to SUPPRESSED with a
+  stated reason (recent purchase, no rate gap); tired landlord (high equity/long tenure) →
+  SELLER FINANCE with a quantified cap-gains deferral; sub2 (NEED + 3%-vs-7% gap) carries the
+  due-on-sale guardrail + refutes the land-trust/Garn-St.-Germain myth; consumer-occupant buyer
+  → attorney review required. 5 Vitest tests; math verified by `underwriter`, APPROVED by `code-reviewer`.
+- Deferred: LOI/offer-memo generation; counterfactuals ("if rates drop 1%").

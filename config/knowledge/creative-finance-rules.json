@@ -1,0 +1,54 @@
+{
+  "$comment": "Seed for the knowledge_rule table — the curated, conflict-resolved judgment rules the financing engine CITES. Every slug emitted by lib/financing/recommend.ts must exist here (guaranteed by knowledge.coverage.test.ts), so a recommendation's citation always resolves to real, auditable text. Sourced from docs/knowledge-base/Concepts/creative-finance.md + RESEARCH-FINDINGS.md Stream 3. Informational, not legal advice.",
+  "rules": [
+    {
+      "slug": "creative-finance#need-subject-to",
+      "condition": "Seller has little/no equity or is distressed (NEED), and holds a below-market-rate loan.",
+      "recommendation": "Subject-To: take over the existing low-rate mortgage with no money down. From the seller's side you effectively wrote the ~check they'd otherwise owe at closing.",
+      "confidence": "modeled",
+      "source": "Concepts/creative-finance.md#need-vs-greed (Pace Morby)"
+    },
+    {
+      "slug": "creative-finance#greed-seller-finance",
+      "condition": "Seller has high equity and wants top dollar + to defer capital gains (GREED); long-held appreciated asset.",
+      "recommendation": "Seller Finance: they carry the note over time → higher price + monthly income + capital-gains deferral; you skip the bank and preserve trust capital for more doors.",
+      "confidence": "modeled",
+      "source": "Concepts/creative-finance.md#need-vs-greed (Pace Morby)"
+    },
+    {
+      "slug": "creative-finance#hybrid",
+      "condition": "Mixed equity: some assumable low-rate debt plus a meaningful equity gap.",
+      "recommendation": "Hybrid: subject-to the existing loan + a seller carry on the equity gap. Carries BOTH the due-on-sale and seller-finance constraints.",
+      "confidence": "modeled",
+      "source": "Concepts/creative-finance.md#hybrids"
+    },
+    {
+      "slug": "creative-finance#wraparound",
+      "condition": "Seller-financed deal layered over an existing underlying loan.",
+      "recommendation": "Wraparound: a seller-finance note that 'wraps' the underlying mortgage. Combines seller-finance economics with due-on-sale exposure; some states require specific disclosures.",
+      "confidence": "modeled",
+      "source": "Concepts/creative-finance.md#strategies"
+    },
+    {
+      "slug": "research#due-on-sale",
+      "condition": "Any transfer of a property whose mortgage stays in the seller's name (subject-to / wrap).",
+      "recommendation": "Due-on-sale (12 U.S.C. §1701j-3) lets the lender CALL the loan on transfer — historically rare on a performing loan, but the rate gap (3% vs 7%) now gives lenders a real incentive. Insurance changes are the most common way the transfer is discovered.",
+      "confidence": "modeled",
+      "source": "RESEARCH-FINDINGS.md Stream 3; law.cornell.edu/uscode/text/12/1701j-3"
+    },
+    {
+      "slug": "research#garn-st-germain",
+      "condition": "Claim that a land trust + Garn-St.-Germain exempts a subject-to transfer from due-on-sale.",
+      "recommendation": "FALSE for an investor acquisition. The §1701j-3(d)(8) trust exception protects a borrower moving THEIR OWN property into a trust in which they remain beneficiary; once beneficial interest is assigned to the investor/their LLC, the protection evaporates. A land trust may hide the transfer; it does not legally exempt it. → attorney.",
+      "confidence": "modeled",
+      "source": "RESEARCH-FINDINGS.md Stream 3; royallegalsolutions.com"
+    },
+    {
+      "slug": "research#dodd-frank-investor",
+      "condition": "Seller financing where the buyer is a non-occupant investor (vs a consumer-occupant).",
+      "recommendation": "Investor/non-occupant buyers are generally OUTSIDE the consumer loan-originator + ability-to-repay rules. A consumer-occupant must fit the 1-property exclusion (natural person/TRUST only — an LLC cannot) or 3-property exclusion (entities OK, ATR required). State SAFE Act can be stricter.",
+      "confidence": "modeled",
+      "source": "RESEARCH-FINDINGS.md Stream 3; consumerfinance.gov §1026.36"
+    }
+  ]
+}

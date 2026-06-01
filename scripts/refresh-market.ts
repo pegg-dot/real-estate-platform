@@ -1,0 +1,100 @@
+#!/usr/bin/env -S tsx
+/**
+ * refresh-market — the orchestrated weekly loop (spec 006, first real cut).
+ *
+ * SENSE -> REASON -> SHOW in one command:
+ *   1. ingest county data (Python loader) into Postgres
+ *   2. score + recommend financing for every property (the TS bridge)
+ *   3. print a digest: top opportunities for Nate's thesis
+ *
+ * Usage:
+ *   SUPABASE_DB_URL=postgres://... npx tsx scripts/refresh-market.ts --market Charlottesville --limit 50 [--geocode] [--skip-ingest]
+ *
+ * This is what the `run-market-refresh` skill invokes. Cron/Edge-Function scheduling later.
+ */
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import { getSql } from "../lib/db/client.js";
+import { seedKnowledgeRules } from "../lib/db/knowledge.js";
+import { scoreMarket, type Thesis } from "../lib/pipeline/scoreMarket.js";
+import { renderDossierForApn } from "../lib/dossier/fromDb.js";
+
+function arg(name: string, fallback?: string): string | undefined {
+  const i = process.argv.indexOf(`--${name}`);
+  const next = i >= 0 ? process.argv[i + 1] : undefined;
+  // a value that looks like another flag means the value was omitted (don't misparse it)
+  return next && !next.startsWith("--") ? next : fallback;
+}
+const flag = (name: string) => process.argv.includes(`--${name}`);
+
+function loadThesis(): Thesis {
+  const path = fs.existsSync("config/thesis.json") ? "config/thesis.json" : "config/thesis.example.json";
+  const t = JSON.parse(fs.readFileSync(path, "utf8"));
+  return { version: t.version, goal: { preferred_cash_on_cash: t.goal.preferred_cash_on_cash },
+           scoring_weights: t.scoring_weights };
+}
+
+async function main() {
+  const market = arg("market", "Charlottesville")!;
+  const limit = arg("limit", "50")!;
+  const dsn = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
+  if (!dsn) throw new Error("SUPABASE_DB_URL not set — cannot refresh.");
+
+  // --dossier <apn>: render one cited dossier from the DB and exit (no ingest/score)
+  const dossierApn = arg("dossier");
+  if (dossierApn) {
+    const sql = getSql(dsn);
+    await seedKnowledgeRules(sql);
+    console.log(await renderDossierForApn(sql, market, dossierApn, loadThesis()));
+    await sql.end();
+    return;
+  }
+
+  // 1. SENSE — ingest (skip with --skip-ingest if the DB is already fresh)
+  if (!flag("skip-ingest")) {
+    const where = arg("where", "IsActive=1")!;
+    console.log(`[1/3] ingesting ${market} (where "${where}", limit ${limit})…`);
+    const pyArgs = ["-m", "ingestion.load_supabase", "--where", where, "--limit", limit];
+    if (flag("geocode")) pyArgs.push("--geocode");
+    if (flag("flood")) pyArgs.push("--flood");
+    const py = fs.existsSync(".venv/bin/python") ? ".venv/bin/python" : "python3";
+    execFileSync(py, pyArgs, { stdio: "inherit", env: { ...process.env, SUPABASE_DB_URL: dsn } });
+  }
+
+  // 2. REASON — seed the cited knowledge rules, then score + finance
+  console.log(`[2/3] scoring ${market}…`);
+  const sql = getSql(dsn);
+  const thesis = loadThesis();
+  await seedKnowledgeRules(sql);   // so every financing citation resolves to real text
+  const res = await scoreMarket(sql, { market, thesis });
+  console.log(`      scored ${res.scored} · non-target(institution) ${res.nonTarget} · ` +
+    `no-value ${res.skipped} · low-confidence(no beds) ${res.lowConfidence}`);
+
+  // 3. SHOW — only CONFIDENT opportunities (low-confidence pro-formas are a guess, not ranked here)
+  const top = await sql<{ apn: string; address: string | null; score: number; headline_coc: number;
+                          by_room_legal: boolean | null; recommended_structure: string;
+                          owner_entity_type: string | null; is_absentee: boolean | null }[]>`
+    select apn, address, score, headline_coc, by_room_legal, recommended_structure,
+           owner_entity_type, is_absentee
+    from deal_genome where market = ${market} and score is not null and low_confidence = false
+    order by score desc limit 10`;
+  const lowCount = res.lowConfidence;
+  if (top.length === 0) {
+    console.log(`[3/3] no confident opportunities in this slice (${lowCount} low-confidence — need beds/rent data).`);
+    console.log(`      tip: target residential parcels, e.g. --where "StreetName LIKE '%GRADY%'"`);
+  } else {
+    console.log(`[3/3] top opportunities (confident pro-formas; ${lowCount} low-confidence hidden):\n`);
+  }
+  for (const r of top) {
+    const coc = r.headline_coc != null ? `${(Number(r.headline_coc) * 100).toFixed(1)}%` : "—";
+    console.log(
+      `  ${String(r.score).padStart(5)}  ${(r.address ?? r.apn).slice(0, 26).padEnd(26)} ` +
+      `CoC ${coc.padStart(6)}  byroom=${r.by_room_legal ? "Y" : r.by_room_legal === false ? "N" : "?"}  ` +
+      `fin=${(r.recommended_structure ?? "—").padEnd(14)} ` +
+      `owner=${r.owner_entity_type ?? "?"}${r.is_absentee ? " (absentee)" : ""}`);
+  }
+  await sql.end();
+  console.log(`\n✓ refresh complete.`);
+}
+
+main().catch((e) => { console.error(e); process.exit(1); });

@@ -1,0 +1,81 @@
+{
+  "spatialReference": {
+    "wkid": 4326,
+    "latestWkid": 4326
+  },
+  "candidates": [
+    {
+      "address": "1305 GRADY AVE",
+      "location": {
+        "x": -78.49554366205685,
+        "y": 38.03995216586688
+      },
+      "score": 100,
+      "attributes": {
+        "Status": "M",
+        "Score": 100,
+        "Match_addr": "1305 GRADY AVE",
+        "LongLabel": "1305 GRADY AVE",
+        "ShortLabel": "1305 GRADY AVE",
+        "Addr_type": "StreetAddress",
+        "Type": "",
+        "PlaceName": "",
+        "Place_addr": "1305 GRADY AVE",
+        "Phone": "",
+        "URL": "",
+        "Rank": 20,
+        "AddBldg": "",
+        "AddNum": "1305",
+        "AddNumFrom": "1301",
+        "AddNumTo": "1315",
+        "AddRange": "1301-1315",
+        "Side": "R",
+        "StPreDir": "",
+        "StPreType": "",
+        "StName": "GRADY",
+        "StType": "AVE",
+        "StDir": "",
+        "BldgType": "",
+        "BldgName": "",
+        "LevelType": "",
+        "LevelName": "",
+        "UnitType": "",
+        "UnitName": "",
+        "SubAddr": "",
+        "StAddr": "1305 GRADY AVE",
+        "Block": "",
+        "Sector": "",
+        "Nbrhd": "",
+        "District": "",
+        "City": "",
+        "MetroArea": "",
+        "Subregion": "",
+        "Region": "",
+        "RegionAbbr": "",
+        "Territory": "",
+        "Zone": "",
+        "Postal": "",
+        "PostalExt": "",
+        "Country": "",
+        "CntryName": "USA",
+        "LangCode": "ENG",
+        "Distance": 0,
+        "X": -8738083.95000134,
+        "Y": 4585071.252352796,
+        "DisplayX": -8738083.95000134,
+        "DisplayY": 4585071.252352796,
+        "Xmin": -8738195.269492134,
+        "Xmax": -8737972.630510548,
+        "Ymin": 4584929.909819739,
+        "Ymax": 4585212.596815985,
+        "ExInfo": ""
+      },
+      "extent": {
+        "xmin": -78.49654366205685,
+        "ymin": 38.038952165866874,
+        "xmax": -78.49454366205684,
+        "ymax": 38.04095216586688
+      }
+    }
+  ]
+}

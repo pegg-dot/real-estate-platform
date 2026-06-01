@@ -1,0 +1,19 @@
+{
+  "$comment": "MODELED pro-forma assumptions for scoring/financing (spec 003/004). These are NOT real comps. Rents especially are modeled until a rent-comp source is wired (PropStream/Rentometer). Real inputs (assessed value, zoning, beds, owner, coordinates) come from the ingested DB; THESE fill the gaps and are flagged 'modeled' in every output. Per-market so the engine works for all markets, not one. Sources: examples/*.md hand-runs + RESEARCH-FINDINGS Stream 4.",
+  "market": "Charlottesville",
+  "state": "VA",
+  "perBedroomRent": 825,
+  "wholeHouseMonthlyRentPerBed": 520,
+  "taxRate": 0.0096,
+  "insuranceAnnual": { "sfr": 2000, "multifamily": 4000 },
+  "maintenanceAnnual": { "sfr": 3700, "multifamily": 6000 },
+  "multifamilyBedThreshold": 7,
+  "wholeHouseFallbackMonthlyRentToPrice": 0.005,
+  "mgmtRate": 0.10,
+  "vacancyRate": 0.12,
+  "capGainsRate": 0.20,
+  "currentMarketRate": 0.07,
+  "appreciation": 0.55,
+  "campus": { "name": "UVA", "lat": 38.0356, "lng": -78.5036 },
+  "confidence": "modeled"
+}

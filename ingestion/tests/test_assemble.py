@@ -20,14 +20,18 @@ BASE = load("base_sample.json")
 ASSESS = load("assessments_sample.json")
 SALES = load("sales_sample.json")
 RESIDENTIAL = load("residential_sample.json")
+ALL_ASSESS = load("all_assessments_sample.json")
+OWNERS = load("owner_sample.json")
 MARKET_ID = "11111111-1111-1111-1111-111111111111"
 AS_OF = datetime.date(2025, 1, 1)
 
 
-def assemble(residential=None):
+def assemble(residential=None, all_assessments=None, owners=None):
     return {p["apn"]: p for p in
             normalize.assemble_properties(BASE, ASSESS, SALES, MARKET_ID, as_of=AS_OF,
-                                          residential_rows=residential)}
+                                          residential_rows=residential,
+                                          all_assessment_rows=all_assessments,
+                                          owner_rows=owners)}
 
 
 def test_assemble_returns_one_record_per_base_parcel():
@@ -85,4 +89,43 @@ def test_assemble_attaches_real_beds_from_residential_details():
 def test_assemble_without_residential_leaves_beds_null():
     p = assemble()["010006000"]
     assert p.get("beds") is None
+
+
+# --- assessment history (layer 2) -------------------------------------------
+
+def test_history_attaches_all_years_and_latest_is_current():
+    p = assemble(all_assessments=ALL_ASSESS)["010006000"]
+    assert len(p["assessments"]) == 30                       # 1997..2026
+    years = [a["year"] for a in p["assessments"]]
+    assert years == sorted(years)                            # ascending
+    assert p["assessment"]["year"] == 2026                   # 'assessment' = latest year
+    assert p["assessment"]["assessed_total"] == 1769300
+
+
+def test_est_market_value_uses_latest_history_year():
+    p = assemble(all_assessments=ALL_ASSESS)["010006000"]
+    assert p["est_market_value"] == 1769300
+
+
+def test_history_supersedes_current_only_layer1():
+    # with history, the assessment carries a real land/improvement split (layer 1 can't)
+    p = assemble(all_assessments=ALL_ASSESS)["010006000"]
+    assert p["assessment"]["assessed_land"] == 492400
+    assert p["assessment"]["assessed_improvement"] == 1276900
+
+
+# --- owner attach -----------------------------------------------------------
+
+def test_assemble_attaches_owner_and_absentee():
+    p = assemble(owners=OWNERS)["010001200"]   # Millmont Limited Partnership (absentee LLC)
+    assert "MILLMONT" in p["owner"]["name"]
+    assert p["owner"]["entity_type"] == "llc"
+    assert p["owner"]["is_absentee"] is True
+    assert p["is_absentee"] is True            # surfaced on the property for the leads layer
+
+
+def test_assemble_without_owners_leaves_owner_none():
+    p = assemble()["010001200"]
+    assert p.get("owner") is None
+    assert p.get("is_absentee") is None
 

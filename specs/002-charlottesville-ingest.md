@@ -42,6 +42,34 @@ prints live field metadata (connectivity smoke test).
 - API slow/large: page at 1000, retry with backoff (already implemented).
 
 ## Implementation status (2026-06-01)
+**Increment 4 — owner + leads signals** (built + tested):
+- **Owner source FOUND** (was "blocked"): `NDS_parcel_relate/MapServer/1`
+  (`VW_NDSMOBILE_PIN_DETAILS`) carries OwnerName + mailing + property address, keyed by
+  ParcelNumber. `ingestion/owner.py` normalizes it.
+- **`is_absentee`** (Behavior #1–3): owner mailing street vs property street, compared on
+  an abbreviation-normalized key (ST/STREET, RD/ROAD, unit tokens dropped) so formatting
+  drift isn't a false lead. Default when unknown = not-absentee (conservative).
+- **`entity_type`** (person/llc/trust/estate/**institution**/unknown) inferred from name
+  tokens — feeds the financing engine's trust/LLC/Garn-St.-Germain logic. Known limits:
+  `llc` is a single commercial-entity bucket (LLC/LP/INC/CORP not distinguished — the
+  engine keys person-vs-trust-vs-entity, not LP-vs-LLC); `institution` (UVA/City) is split
+  out so it can be excluded from leads; a blank name is `unknown`, never asserted `person`.
+- Loader upserts `owner` (dedupe on market+name+mailing), links `property.owner_id`
+  (idempotent; multi-parcel owners → one row). `tenure_years` already comes from sales.
+- `owner.portfolio_size` is **deferred** (a market-wide count, naturally a second pass) — NULL for now.
+- Verified live (12 parcels: Federal Realty TR→trust, Millmont LP→llc, all absentee) + 9 integration tests.
+
+**Increment 3 — assessment history + geometry** (built + tested):
+- **All Assessments history (layer 2)** is now the live assessment source: real
+  land/improvement/total + ~30 years of `TaxYear` history per parcel; `assemble` builds the
+  full `assessments` list, the latest year is the current value, and `est_market_value` =
+  latest assessed_total. Layer 1 (current-only) remains a fallback.
+- **Real lat/lng** via the city geocoder (`composite_locator_WGS`, WGS84) — opt-in
+  `--geocode`; `ingestion/geocode.py` (pure parser + injected geocoder); a non-geocode
+  refresh preserves a prior coordinate (`coalesce`). Systematizes co-work's manual shortlist
+  geocode (verified: 1305 Grady → 38.03995/-78.49554, exact match).
+- Verified by a live `--geocode` end-to-end run + 7 integration tests (45 offline total).
+
 **Increment 2 — legality + real physical data** (built + tested):
 - **By-the-room legality attach** (Behavior #4 — the make-or-break field): curated, cited
   `config/zoning/charlottesville.json` (citywide default by_room_legal=true + the
@@ -68,13 +96,12 @@ prints live field metadata (connectivity smoke test).
   (ParcelNumber), not `gpin`** — condo units share a GPIN (verified: 1136 Emmet St N A/B).
 
 **Deferred (tracked, not done):**
-- **Owner + `is_absentee`** (Behavior #1–3) — BLOCKED ON SOURCE: there is no owner/mailing
-  layer in Charlottesville's OpenData_2 ArcGIS service (probed all layers). Needs a separate
-  owner service or a skip-trace vendor before absentee detection is possible.
-- **All Assessments history ingest** (layer 2 is registered; wire `normalize`/load to store
-  real land/improvement/total + year history — fixtures already captured).
-- Geometry / lat-lng (`returnGeometry=true`) for map pins + campus-distance.
-- Per-zone zoning overrides + per-parcel determination (zoning-analyst subagent).
+- **`owner.portfolio_size`** — count of parcels per owner in the market (a second-pass
+  SQL derivation); currently NULL. Powers "how big is this landlord."
+- **entity_type granularity** — split `llc` into LP/LLC/corp only if the financing engine
+  (spec 004) ever branches on it; today they share one bucket by design.
+- Campus-distance compute from the now-real lat/lng.
+- Per-parcel zoning determination for high-bed deals (zoning-analyst subagent).
 
 ## Future hooks
 - Same adapter pattern for **Miami-Dade** (`gis-mdc.opendata.arcgis.com`) — spec 00X.

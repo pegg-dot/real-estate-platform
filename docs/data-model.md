@@ -18,7 +18,7 @@ names (verified live) so it's not hypothetical.
 | `apn` | text | Cville `ParcelNumber` / MDC folio | **unique parcel id + upsert key** (condo units have distinct APNs) |
 | `gpin` | text | Cville `GPIN` | geo-parcel id; layer join key, but **shared by condo units** so NOT unique |
 | `address` | text | `StreetNumber`+`StreetName`+`Unit` | normalized via USPS later |
-| `lat` / `lng` | float | ArcGIS geometry | for the map |
+| `lat` / `lng` | float | city geocoder (composite_locator_WGS, WGS84) | for the map; parcel layers are non-spatial so coords come from the locator (opt-in `--geocode`) |
 | `acreage` | float | Cville `Acreage` | lot size |
 | `zone_code` | text | Cville `Zone` | **drives occupancy legality** |
 | `legal_desc` | text | Cville `Legal` | |

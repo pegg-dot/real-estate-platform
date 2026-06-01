@@ -33,7 +33,11 @@ end $$;
 create type confidence_level as enum ('real', 'modeled', 'estimated', 'low', 'unknown');
 
 -- Owner entity type — powers the trust/LLC financing + Garn-St.-Germain logic (spec 004).
-create type owner_entity_type as enum ('person', 'llc', 'trust', 'estate', 'unknown');
+-- `llc` is the generic commercial-entity bucket (LLC/LP/INC/CORP) — the financing engine
+-- distinguishes person vs trust vs entity, not LP-vs-LLC. `institution` (UVA/City/etc.) is
+-- a non-target, kept distinct so it can be excluded from the lead pool.
+create type owner_entity_type as enum
+  ('person', 'llc', 'trust', 'estate', 'institution', 'unknown');
 
 -- Pipeline stage for a deal Nate is tracking.
 create type deal_stage as enum ('watch', 'analyzing', 'offer', 'under_contract', 'owned', 'passed');
@@ -148,8 +152,11 @@ alter table property
   add constraint property_owner_fk foreign key (owner_id) references owner(id) on delete set null;
 
 -- ===========================================================================
--- assessment — assessed value per property (Cville layer 1)
--- NOTE (verified live): the "Current Assessments" layer is CURRENT-ONLY — it exposes
+-- assessment — assessed value history per property
+-- LIVE SOURCE: layer 2 "All Assessments" (real land/improvement/total + TaxYear, ~30 yrs).
+-- The live pipeline (load_supabase.run) loads layer 2; the latest year is the current value.
+-- Layer 1 below remains a current-only FALLBACK when history is unavailable.
+-- NOTE (verified live): the layer-1 "Current Assessments" layer is CURRENT-ONLY — it exposes
 --   ParcelNumber, CurrentAssessedValue, OBJECTID, LOTSQFT, LEGALDESCR. It has no
 --   land/improvement split and no assessment year. So from this layer `assessed_total`
 --   = CurrentAssessedValue, `year` is NULL (a current snapshot), and land/improvement
