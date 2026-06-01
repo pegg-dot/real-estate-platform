@@ -41,8 +41,12 @@ async function resolveThesis(sql: Sql): Promise<Thesis> {
   }
   return {
     version: active.version,
-    goal: { preferred_cash_on_cash: active.goal.preferred_cash_on_cash },
+    goal: {
+      preferred_cash_on_cash: active.goal.preferred_cash_on_cash,
+      min_cash_on_cash: active.goal.min_cash_on_cash,
+    },
     scoring_weights: { ...active.scoring_weights },
+    hard_constraints: active.hard_constraints,
   };
 }
 
@@ -69,6 +73,7 @@ async function main() {
     const pyArgs = ["-m", "ingestion.load_supabase", "--where", where, "--limit", limit];
     if (flag("geocode")) pyArgs.push("--geocode");
     if (flag("flood")) pyArgs.push("--flood");
+    if (flag("no-history")) pyArgs.push("--no-history");
     const py = fs.existsSync(".venv/bin/python") ? ".venv/bin/python" : "python3";
     execFileSync(py, pyArgs, { stdio: "inherit", env: { ...process.env, SUPABASE_DB_URL: dsn } });
   }
@@ -84,26 +89,36 @@ async function main() {
 
   // 3. SHOW — only CONFIDENT opportunities (low-confidence pro-formas are a guess, not ranked here)
   const top = await sql<{ apn: string; address: string | null; score: number; headline_coc: number;
+                          coc_low: number | null; coc_high: number | null; data_confidence: number | null;
                           by_room_legal: boolean | null; recommended_structure: string;
                           owner_entity_type: string | null; is_absentee: boolean | null }[]>`
-    select apn, address, score, headline_coc, by_room_legal, recommended_structure,
-           owner_entity_type, is_absentee
-    from deal_genome where market = ${market} and score is not null and low_confidence = false
+    select apn, address, score, headline_coc, coc_low, coc_high, data_confidence,
+           by_room_legal, recommended_structure, owner_entity_type, is_absentee
+    from deal_genome
+    where market = ${market} and score is not null and low_confidence = false and gate_passed
     order by score desc limit 10`;
+  // deals hidden SOLELY by a hard-constraint gate (exclude the low-confidence ones already
+  // counted, so the two tallies don't double-count the same row)
+  const [gd] = await sql<{ n: number }[]>`
+    select count(*)::int n from deal_genome
+    where market = ${market} and gate_passed = false and low_confidence = false`;
   const lowCount = res.lowConfidence;
   if (top.length === 0) {
     console.log(`[3/3] no confident opportunities in this slice (${lowCount} low-confidence — need beds/rent data).`);
     console.log(`      tip: target residential parcels, e.g. --where "StreetName LIKE '%GRADY%'"`);
   } else {
-    console.log(`[3/3] top opportunities (confident pro-formas; ${lowCount} low-confidence hidden):\n`);
+    console.log(`[3/3] top opportunities (${lowCount} low-confidence + ${gd?.n ?? 0} gate-failed hidden):\n`);
   }
+  const pct = (x: number | null) => (x != null ? `${(Number(x) * 100).toFixed(1)}%` : "—");
   for (const r of top) {
-    const coc = r.headline_coc != null ? `${(Number(r.headline_coc) * 100).toFixed(1)}%` : "—";
+    const range = r.coc_low != null ? `(${pct(r.coc_low)}–${pct(r.coc_high)})` : "";
     console.log(
-      `  ${String(r.score).padStart(5)}  ${(r.address ?? r.apn).slice(0, 26).padEnd(26)} ` +
-      `CoC ${coc.padStart(6)}  byroom=${r.by_room_legal ? "Y" : r.by_room_legal === false ? "N" : "?"}  ` +
+      `  ${String(r.score).padStart(5)}  ${(r.address ?? r.apn).slice(0, 22).padEnd(22)} ` +
+      `CoC ${pct(r.headline_coc).padStart(6)} ${range.padEnd(16)} ` +
+      `conf ${r.data_confidence != null ? Number(r.data_confidence).toFixed(2) : "—"}  ` +
+      `byroom=${r.by_room_legal ? "Y" : r.by_room_legal === false ? "N" : "?"}  ` +
       `fin=${(r.recommended_structure ?? "—").padEnd(14)} ` +
-      `owner=${r.owner_entity_type ?? "?"}${r.is_absentee ? " (absentee)" : ""}`);
+      `owner=${r.owner_entity_type ?? "?"}${r.is_absentee ? " (abs)" : ""}`);
   }
   await sql.end();
   console.log(`\n✓ refresh complete.`);

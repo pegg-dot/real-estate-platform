@@ -4,6 +4,13 @@
   "state": "VA",
   "perBedroomRent": 825,
   "wholeHouseMonthlyRentPerBed": 520,
+  "rentModel": {
+    "$comment": "MODELED, spatially-aware: per-bed rent decays with distance to campus. Calibrated so ~0.5mi off-prime ≈ $825/bed and stays within the $735-900 research band. Replace with a real rent-comp source when available.",
+    "baseRent": 800,
+    "factorMax": 1.14,
+    "perMileDecay": 0.22,
+    "factorMin": 0.72
+  },
   "taxRate": 0.0096,
   "insuranceAnnual": { "sfr": 2000, "multifamily": 4000 },
   "maintenanceAnnual": { "sfr": 3700, "multifamily": 6000 },

@@ -25,6 +25,7 @@ d("scoreMarket — the ingest -> score bridge (integration)", () => {
     await sql.unsafe("drop schema public cascade; create schema public;");
     await sql.unsafe(migration("supabase/migrations/0001_core_schema.sql"));
     await sql.unsafe(migration("supabase/migrations/0002_score_and_genome.sql"));
+    await sql.unsafe(migration("supabase/migrations/0003_scoring_depth.sql"));
     const [m] = await sql<{ id: string }[]>`
       insert into market (name, state) values ('Charlottesville','VA') returning id`;
     // 1305 Grady — off-prime SFR, long-tenure owner (seller-finance candidate)
@@ -62,6 +63,17 @@ d("scoreMarket — the ingest -> score bridge (integration)", () => {
     await scoreMarket(sql, { market: "Charlottesville", thesis, asOf: "2026-06-01" });
     const [c] = await sql<{ n: number }[]>`select count(*)::int as n from property_score`;
     expect(c!.n).toBe(2);
+  });
+
+  it("persists the Phase-2 depth: sensitivity range, gate, and data confidence", async () => {
+    const [r] = await sql<{ coc_low: number; coc_high: number; headline_coc: number;
+                            gate_passed: boolean; data_confidence: number }[]>`
+      select coc_low, coc_high, headline_coc, gate_passed, data_confidence
+      from deal_genome where apn = '040005000'`;
+    expect(Number(r!.coc_low)).toBeLessThan(Number(r!.headline_coc));   // range brackets the base
+    expect(Number(r!.coc_high)).toBeGreaterThan(Number(r!.headline_coc));
+    expect(r!.gate_passed).toBe(true);                                  // clean Grady deal passes
+    expect(Number(r!.data_confidence)).toBeGreaterThan(0);
   });
 
   it("every property_score carries the decomposable components + financing guardrails", async () => {

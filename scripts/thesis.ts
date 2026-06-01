@@ -16,6 +16,7 @@ import { saveThesis, listTheses, setActiveThesis, getThesis, loadActiveThesis } 
 import { genericThesis, compileGuided, type GuidedAnswers } from "../lib/thesis/compile.js";
 import { compileConversational, claudeExtractor } from "../lib/thesis/conversational.js";
 import { scoreMarket, type Thesis } from "../lib/pipeline/scoreMarket.js";
+import { type Thesis as FullThesis } from "../lib/thesis/schema.js";
 
 const argv = process.argv;
 const has = (f: string) => argv.includes(`--${f}`);
@@ -25,10 +26,11 @@ const val = (f: string, d?: string) => {
 };
 const market = val("market", "Charlottesville")!;
 
-const toScoring = (t: Thesis): Thesis => ({
+const toScoring = (t: FullThesis): Thesis => ({
   version: t.version,
-  goal: { preferred_cash_on_cash: t.goal.preferred_cash_on_cash },
+  goal: { preferred_cash_on_cash: t.goal.preferred_cash_on_cash, min_cash_on_cash: t.goal.min_cash_on_cash },
   scoring_weights: { ...t.scoring_weights },
+  hard_constraints: t.hard_constraints,
 });
 
 async function announceSaved(sql: Sql, version: number, conflicts: string[]) {

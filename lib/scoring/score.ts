@@ -37,7 +37,7 @@ export interface ScoreResult {
 const UVA = { lat: 38.0356, lng: -78.5036 };
 const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
 
-function haversineMiles(aLat: number, aLng: number, bLat: number, bLng: number): number {
+export function haversineMiles(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const R = 3958.8, toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(bLat - aLat), dLng = toRad(bLng - aLng);
   const s = Math.sin(dLat / 2) ** 2 +

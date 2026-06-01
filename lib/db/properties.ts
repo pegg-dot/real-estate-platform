@@ -59,6 +59,12 @@ export interface ScoreRecord {
   headlineModel: string;
   headlineCapRate: number;
   headlineCoc: number;
+  cocLow: number;
+  cocHigh: number;
+  dataConfidence: number;
+  gatePassed: boolean;
+  gateFailures: string[];
+  sensitivity: unknown;
   components: unknown;
   proformas: unknown;
   recommendedStructure: string;
@@ -71,15 +77,21 @@ export async function upsertScore(sql: Sql, s: ScoreRecord): Promise<void> {
   await sql`
     insert into property_score (
       property_id, thesis_version, score, headline_model, headline_cap_rate, headline_coc,
+      coc_low, coc_high, data_confidence, gate_passed, gate_failures, sensitivity,
       components, proformas, recommended_structure, financing, low_confidence, computed_at)
     values (
       ${s.propertyId}, ${s.thesisVersion}, ${s.score}, ${s.headlineModel},
-      ${s.headlineCapRate}, ${s.headlineCoc}, ${sql.json(s.components as Json)},
+      ${s.headlineCapRate}, ${s.headlineCoc}, ${s.cocLow}, ${s.cocHigh}, ${s.dataConfidence},
+      ${s.gatePassed}, ${sql.json(s.gateFailures as Json)}, ${sql.json(s.sensitivity as Json)},
+      ${sql.json(s.components as Json)},
       ${sql.json(s.proformas as Json)}, ${s.recommendedStructure},
       ${sql.json(s.financing as Json)}, ${s.lowConfidence}, now())
     on conflict (property_id, thesis_version) do update set
       score = excluded.score, headline_model = excluded.headline_model,
       headline_cap_rate = excluded.headline_cap_rate, headline_coc = excluded.headline_coc,
+      coc_low = excluded.coc_low, coc_high = excluded.coc_high,
+      data_confidence = excluded.data_confidence, gate_passed = excluded.gate_passed,
+      gate_failures = excluded.gate_failures, sensitivity = excluded.sensitivity,
       components = excluded.components, proformas = excluded.proformas,
       recommended_structure = excluded.recommended_structure, financing = excluded.financing,
       low_confidence = excluded.low_confidence, computed_at = now()

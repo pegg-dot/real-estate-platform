@@ -236,7 +236,7 @@ def load_properties(conn, market_id: str, properties: list[dict]) -> dict:
 
 
 def run(dsn: str | None = None, where: str = "IsActive=1", limit: int | None = None,
-        geocode: bool = False, flood: bool = False) -> dict:
+        geocode: bool = False, flood: bool = False, history: bool = True) -> dict:
     """Full live pipeline: pull -> assemble -> upsert. Reads SUPABASE_DB_URL if dsn unset.
     When geocode=True, also resolve real lat/lng per address via the city locator (opt-in;
     one network call per property)."""
@@ -255,12 +255,18 @@ def run(dsn: str | None = None, where: str = "IsActive=1", limit: int | None = N
 
     base = cv.query_layer("base", where=where, limit=limit)
     parcels = [r["ParcelNumber"] for r in base if r.get("ParcelNumber")]
-    # injection-safe, chunked filters (parcel ids are external county-API input)
-    sales, residential, history = [], [], []
+    # injection-safe, chunked filters (parcel ids are external county-API input).
+    # history=True pulls 30 yrs of assessments (layer 2); history=False pulls only the
+    # current value (layer 1) — ~30x fewer rows, the fast path for bulk city loads since
+    # scoring only needs the latest value.
+    sales, residential, assess_hist, assess_current = [], [], [], []
     for clause in cv.build_parcel_filters(parcels):
         sales.extend(cv.query_layer("sales", where=clause))
         residential.extend(cv.query_layer("residential", where=clause))
-        history.extend(cv.query_layer("all_assessments", where=clause))   # real values + history
+        if history:
+            assess_hist.extend(cv.query_layer("all_assessments", where=clause))
+        else:
+            assess_current.extend(cv.query_layer("assessments", where=clause))
 
     owners = owner_mod.fetch_owners(parcels)   # owner name/mailing -> is_absentee + entity_type
 
@@ -282,10 +288,10 @@ def run(dsn: str | None = None, where: str = "IsActive=1", limit: int | None = N
         upsert_zoning_rules(conn, market_id, rules)
         # assess_rows=[] is deliberate: layer 2 (All Assessments history) supersedes the
         # layer-1 current-only snapshot, so we use `all_assessment_rows` as the source.
-        props = normalize.assemble_properties(base, [], sales, market_id,
+        props = normalize.assemble_properties(base, assess_current, sales, market_id,
                                               as_of=datetime.date.today(),
                                               residential_rows=residential,
-                                              all_assessment_rows=history,
+                                              all_assessment_rows=(assess_hist or None),
                                               owner_rows=owners)
         for p in props:
             zoning.attach_zoning(p, rules)            # surface by-room legality on each record
@@ -307,8 +313,11 @@ def main(argv=None) -> int:
                    help="resolve real lat/lng per address via the city locator (one call each)")
     p.add_argument("--flood", action="store_true",
                    help="enrich risk_profile with the FEMA flood zone per parcel (one call each)")
+    p.add_argument("--no-history", action="store_true",
+                   help="pull only the current assessed value (fast path for bulk city loads)")
     args = p.parse_args(argv)
-    counts = run(where=args.where, limit=args.limit, geocode=args.geocode, flood=args.flood)
+    counts = run(where=args.where, limit=args.limit, geocode=args.geocode, flood=args.flood,
+                 history=not args.no_history)
     print(f"Loaded: {counts}", file=sys.stderr)
     return 0
 

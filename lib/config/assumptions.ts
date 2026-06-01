@@ -7,6 +7,7 @@
  * value is flagged 'modeled' in the output rather than presented as real.
  */
 import type { ProFormaAssumptions } from "../scoring/underwrite.js";
+import type { RentModel } from "../scoring/rent.js";
 
 import charlottesville from "../../config/market-assumptions/charlottesville.json" with { type: "json" };
 
@@ -15,6 +16,7 @@ export interface MarketAssumptions {
   state: string;
   perBedroomRent: number;
   wholeHouseMonthlyRentPerBed: number;
+  rentModel: RentModel;
   taxRate: number;
   insuranceAnnual: { sfr: number; multifamily: number };
   maintenanceAnnual: { sfr: number; multifamily: number };

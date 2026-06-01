@@ -10,7 +10,9 @@ import { getSql } from "../lib/db/client.js";
 
 async function main() {
   const dir = "supabase/migrations";
-  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  // optional arg: apply just one migration (e.g. when earlier ones are already applied)
+  const only = process.argv[2];
+  const files = (only ? [only] : fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort());
   const sql = getSql();
   try {
     // sanity: confirm we can talk to the DB before touching schema
