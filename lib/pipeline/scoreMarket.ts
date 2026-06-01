@@ -8,7 +8,7 @@
  * ingested parcel -> scored, financed, queryable dossier.
  */
 import type { Sql } from "../db/client.js";
-import { readScorableProperties, upsertScore, type ScorableRow } from "../db/properties.js";
+import { readScorableProperties, upsertScore, type ScorableRow, type ScoreRecord } from "../db/properties.js";
 import { loadMarketAssumptions, proFormaFor, type MarketAssumptions } from "../config/assumptions.js";
 import { scoreProperty, type ScoreInput, type ScoreResult } from "../scoring/score.js";
 import { recommendFinancing, type FinancingInput, type FinancingResult, type Structure } from "../financing/recommend.js";
@@ -70,6 +70,7 @@ export async function scoreMarket(
   const rows = await readScorableProperties(sql, opts.market);
 
   let scored = 0, skipped = 0, nonTarget = 0, lowConfidence = 0;
+  const records: ScoreRecord[] = [];
 
   for (const row of rows) {
     if (row.estMarketValue == null) { skipped++; continue; }
@@ -79,7 +80,7 @@ export async function scoreMarket(
     const { score: scoredRes, financing } = scoreRow(row, a, opts.thesis, asOf, cash);
     const top: Structure = financing.recommended[0]?.structure ?? "cash";
 
-    await upsertScore(sql, {
+    records.push({
       propertyId: row.id,
       thesisVersion: opts.thesis.version,
       score: Number(scoredRes.score.toFixed(2)),
@@ -92,9 +93,15 @@ export async function scoreMarket(
       financing,
       lowConfidence: scoredRes.lowConfidence,
     });
-
     scored++;
     if (scoredRes.lowConfidence) lowConfidence++;
+  }
+
+  // persist in pipelined batches (the postgres pool pipelines concurrent upserts) — turns
+  // thousands of serial round trips over the pooler into a handful of concurrent waves
+  const CHUNK = 50;
+  for (let i = 0; i < records.length; i += CHUNK) {
+    await Promise.all(records.slice(i, i + CHUNK).map((r) => upsertScore(sql, r)));
   }
 
   return { market: opts.market, scored, skipped, nonTarget, lowConfidence };

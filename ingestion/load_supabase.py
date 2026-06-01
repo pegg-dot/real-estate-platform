@@ -114,13 +114,52 @@ def load_properties(conn, market_id: str, properties: list[dict]) -> dict:
     # years per parcel would otherwise be tens of thousands of round trips over the pooler).
     assess_params: list = []
     sale_params: list = []
-    for p in properties:
-        owner_id = None
-        if p.get("owner"):
-            owner_id = upsert_owner(conn, market_id, p["owner"])
-            counts["owner"] += 1
+    # collect the RETURNING ids from an executemany (one per input tuple, in order)
+    def _returned_ids(cur):
+        out = []
+        while True:
+            row = cur.fetchone()
+            out.append(row[0] if row else None)
+            if not cur.nextset():
+                break
+        return out
 
-        pid = conn.execute(
+    # 1. batch-upsert DISTINCT owners -> (name, mailing) -> owner_id
+    owner_by_key: dict = {}
+    for p in properties:
+        o = p.get("owner")
+        if o:
+            owner_by_key[(o["name"], o["mailing_address"])] = o
+    owner_id_by_key: dict = {}
+    owners = list(owner_by_key.values())
+    if owners:
+        with conn.cursor() as cur:
+            cur.executemany(
+                "insert into owner (market_id, name, mailing_address, is_absentee, entity_type) "
+                "values (%s,%s,%s,%s,%s) "
+                "on conflict (market_id, name, mailing_address) do update set "
+                "  is_absentee = excluded.is_absentee, entity_type = excluded.entity_type "
+                "returning id",
+                [(market_id, o["name"], o["mailing_address"], o["is_absentee"], o["entity_type"])
+                 for o in owners], returning=True)
+            for o, oid in zip(owners, _returned_ids(cur)):
+                owner_id_by_key[(o["name"], o["mailing_address"])] = oid
+        counts["owner"] = len(owners)
+
+    # 2. batch-upsert properties -> apn -> pid (executemany RETURNING preserves order)
+    prop_params = []
+    for p in properties:
+        o = p.get("owner")
+        owner_id = owner_id_by_key.get((o["name"], o["mailing_address"])) if o else None
+        prop_params.append(
+            (market_id, p["apn"], p["gpin"], p["address"], p.get("lat"), p.get("lng"),
+             p["acreage"], p["zone_code"], p["legal_desc"], p["tax_district"], p["is_active"],
+             p.get("beds"), p.get("baths"), p.get("sqft"), p.get("year_built"),
+             p.get("by_room_legal"), p.get("max_unrelated_occupants"),
+             Json(p["zoning"]) if p.get("zoning") is not None else None, owner_id,
+             p["est_market_value"], Json(p["provenance"])))
+    with conn.cursor() as cur:
+        cur.executemany(
             "insert into property "
             "  (market_id, apn, gpin, address, lat, lng, acreage, zone_code, legal_desc, "
             "   tax_district, is_active, beds, baths, sqft, year_built, "
@@ -131,36 +170,31 @@ def load_properties(conn, market_id: str, properties: list[dict]) -> dict:
             "  gpin = excluded.gpin, address = excluded.address, "
             "  lat = coalesce(excluded.lat, property.lat), "
             "  lng = coalesce(excluded.lng, property.lng), "
-            "  acreage = excluded.acreage, "
-            "  zone_code = excluded.zone_code, legal_desc = excluded.legal_desc, "
-            "  tax_district = excluded.tax_district, is_active = excluded.is_active, "
-            "  beds = excluded.beds, baths = excluded.baths, sqft = excluded.sqft, "
-            "  year_built = excluded.year_built, by_room_legal = excluded.by_room_legal, "
+            "  acreage = excluded.acreage, zone_code = excluded.zone_code, "
+            "  legal_desc = excluded.legal_desc, tax_district = excluded.tax_district, "
+            "  is_active = excluded.is_active, beds = excluded.beds, baths = excluded.baths, "
+            "  sqft = excluded.sqft, year_built = excluded.year_built, "
+            "  by_room_legal = excluded.by_room_legal, "
             "  max_unrelated_occupants = excluded.max_unrelated_occupants, zoning = excluded.zoning, "
             "  owner_id = coalesce(excluded.owner_id, property.owner_id), "
             "  est_market_value = excluded.est_market_value, provenance = excluded.provenance, "
             "  last_seen_at = now() "
             "returning id",
-            (market_id, p["apn"], p["gpin"], p["address"], p.get("lat"), p.get("lng"),
-             p["acreage"], p["zone_code"],
-             p["legal_desc"], p["tax_district"], p["is_active"],
-             p.get("beds"), p.get("baths"), p.get("sqft"), p.get("year_built"),
-             p.get("by_room_legal"), p.get("max_unrelated_occupants"),
-             Json(p["zoning"]) if p.get("zoning") is not None else None, owner_id,
-             p["est_market_value"], Json(p["provenance"])),
-        ).fetchone()[0]
-        counts["property"] += 1
+            prop_params, returning=True)
+        pids = _returned_ids(cur)
+    apn_to_pid = {p["apn"]: pid for p, pid in zip(properties, pids)}
+    counts["property"] = len(properties)
 
+    # 3. risk_profile (only present with --flood) + collect child rows keyed by pid
+    for p in properties:
+        pid = apn_to_pid[p["apn"]]
         if p.get("flood"):
             upsert_risk_profile(conn, pid, p["flood"])
-
-        # collect every assessment year (history from layer 2, or the single layer-1 current)
         assessments = p.get("assessments") or ([p["assessment"]] if p.get("assessment") else [])
         for a in assessments:
             assess_params.append(
                 (pid, a["year"], a["assessed_land"], a["assessed_improvement"],
                  a["assessed_total"], a["source"], a["source_object_id"]))
-
         for s in p.get("sales", []):
             if s["source_record_id"] is None:
                 continue  # cannot dedupe a sale with no stable source id
