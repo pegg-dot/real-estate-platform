@@ -14,8 +14,11 @@
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import type { Sql } from "../lib/db/client.js";
 import { getSql } from "../lib/db/client.js";
 import { seedKnowledgeRules } from "../lib/db/knowledge.js";
+import { loadActiveThesis, saveThesis } from "../lib/db/thesis.js";
+import { genericThesis } from "../lib/thesis/compile.js";
 import { scoreMarket, type Thesis } from "../lib/pipeline/scoreMarket.js";
 import { renderDossierForApn } from "../lib/dossier/fromDb.js";
 
@@ -27,11 +30,20 @@ function arg(name: string, fallback?: string): string | undefined {
 }
 const flag = (name: string) => process.argv.includes(`--${name}`);
 
-function loadThesis(): Thesis {
-  const path = fs.existsSync("config/thesis.json") ? "config/thesis.json" : "config/thesis.example.json";
-  const t = JSON.parse(fs.readFileSync(path, "utf8"));
-  return { version: t.version, goal: { preferred_cash_on_cash: t.goal.preferred_cash_on_cash },
-           scoring_weights: t.scoring_weights };
+/** Use the ACTIVE thesis from the DB; if none has been authored yet, seed the generic as v1. */
+async function resolveThesis(sql: Sql): Promise<Thesis> {
+  let active = await loadActiveThesis(sql);
+  if (!active) {
+    const g = genericThesis();
+    const version = await saveThesis(sql, g);
+    active = { ...g, version };
+    console.log(`      (no thesis yet — seeded the generic default as v${version})`);
+  }
+  return {
+    version: active.version,
+    goal: { preferred_cash_on_cash: active.goal.preferred_cash_on_cash },
+    scoring_weights: { ...active.scoring_weights },
+  };
 }
 
 async function main() {
@@ -45,7 +57,7 @@ async function main() {
   if (dossierApn) {
     const sql = getSql(dsn);
     await seedKnowledgeRules(sql);
-    console.log(await renderDossierForApn(sql, market, dossierApn, loadThesis()));
+    console.log(await renderDossierForApn(sql, market, dossierApn, await resolveThesis(sql)));
     await sql.end();
     return;
   }
@@ -64,8 +76,8 @@ async function main() {
   // 2. REASON — seed the cited knowledge rules, then score + finance
   console.log(`[2/3] scoring ${market}…`);
   const sql = getSql(dsn);
-  const thesis = loadThesis();
   await seedKnowledgeRules(sql);   // so every financing citation resolves to real text
+  const thesis = await resolveThesis(sql);
   const res = await scoreMarket(sql, { market, thesis });
   console.log(`      scored ${res.scored} · non-target(institution) ${res.nonTarget} · ` +
     `no-value ${res.skipped} · low-confidence(no beds) ${res.lowConfidence}`);

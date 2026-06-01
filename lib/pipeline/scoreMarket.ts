@@ -15,7 +15,7 @@ import { recommendFinancing, type FinancingInput, type FinancingResult, type Str
 
 export interface Thesis {
   version: number;
-  goal: { preferred_cash_on_cash: number };
+  goal: { preferred_cash_on_cash?: number };
   scoring_weights: Record<string, number>;
 }
 

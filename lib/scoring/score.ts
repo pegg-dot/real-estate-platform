@@ -47,7 +47,7 @@ function haversineMiles(aLat: number, aLng: number, bLat: number, bLng: number):
 
 export function scoreProperty(
   input: ScoreInput,
-  thesis: { goal: { preferred_cash_on_cash: number };
+  thesis: { goal: { preferred_cash_on_cash?: number };
             scoring_weights: Record<string, number> },
   assumptions: ProFormaAssumptions,
   opts?: { campus?: { lat: number; lng: number } },
