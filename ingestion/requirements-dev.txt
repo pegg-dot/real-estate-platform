@@ -1,0 +1,6 @@
+# Dev/test dependencies for the ingestion pipeline (spec 002).
+# Runtime pull (charlottesville.py) still needs only the stdlib; these are for the
+# normalize/load tests and the live Supabase loader.
+pytest>=8.0
+jsonschema>=4.0        # validates config/thesis.example.json against thesis.schema.json
+psycopg[binary]>=3.2   # Supabase/Postgres loader (load_supabase.py) + integration test

@@ -1,0 +1,302 @@
+[
+  {
+    "ParcelNumber": "010001600",
+    "CurrentAssessedValue": 140776100,
+    "OBJECTID": 1,
+    "st_number": "600",
+    "st_name": "MASSIE RD",
+    "st_unit": "",
+    "LEGALDESCR": "80 AC JAG SCHOOL",
+    "LOTSQFT": 3516163.2
+  },
+  {
+    "ParcelNumber": "010001200",
+    "CurrentAssessedValue": 1994800,
+    "OBJECTID": 2,
+    "st_number": "1159",
+    "st_name": "MILLMONT ST",
+    "st_unit": "",
+    "LEGALDESCR": "LOT C-1 WEST BAR",
+    "LOTSQFT": 25264.8
+  },
+  {
+    "ParcelNumber": "010001500",
+    "CurrentAssessedValue": 2551000,
+    "OBJECTID": 3,
+    "st_number": "1149",
+    "st_name": "MILLMONT ST",
+    "st_unit": "",
+    "LEGALDESCR": "LOT C-2A WEST BAR",
+    "LOTSQFT": 39944.52
+  },
+  {
+    "ParcelNumber": "010001000",
+    "CurrentAssessedValue": 166743800,
+    "OBJECTID": 4,
+    "st_number": "1117",
+    "st_name": "EMMET ST N",
+    "st_unit": "",
+    "LEGALDESCR": "39.77 ACRES BARRACKS ROAD SHOPPING CENTER",
+    "LOTSQFT": 1937043.504
+  },
+  {
+    "ParcelNumber": "010001300",
+    "CurrentAssessedValue": 1436500,
+    "OBJECTID": 5,
+    "st_number": "1135-37",
+    "st_name": "MILLMONT ST",
+    "st_unit": "",
+    "LEGALDESCR": "LOT C-2B WEST BAR",
+    "LOTSQFT": 17816.04
+  },
+  {
+    "ParcelNumber": "010001400",
+    "CurrentAssessedValue": 11287000,
+    "OBJECTID": 6,
+    "st_number": "1111",
+    "st_name": "MILLMONT ST",
+    "st_unit": "",
+    "LEGALDESCR": "LOT B-1 WEST BAR",
+    "LOTSQFT": 143181.72
+  },
+  {
+    "ParcelNumber": "010004100",
+    "CurrentAssessedValue": 5549400,
+    "OBJECTID": 7,
+    "st_number": "1170",
+    "st_name": "EMMET ST N",
+    "st_unit": "",
+    "LEGALDESCR": "PARCEL 3 & PAR X",
+    "LOTSQFT": 51879.96
+  },
+  {
+    "ParcelNumber": "010001700",
+    "CurrentAssessedValue": 11359000,
+    "OBJECTID": 8,
+    "st_number": "1101",
+    "st_name": "MILLMONT ST",
+    "st_unit": "",
+    "LEGALDESCR": "PARCEL V WEST BAR",
+    "LOTSQFT": 150761.16
+  },
+  {
+    "ParcelNumber": "010004000",
+    "CurrentAssessedValue": 5243900,
+    "OBJECTID": 9,
+    "st_number": "1138",
+    "st_name": "EMMET ST N",
+    "st_unit": "",
+    "LEGALDESCR": "LOT M",
+    "LOTSQFT": 109104.732
+  },
+  {
+    "ParcelNumber": "010004300",
+    "CurrentAssessedValue": 1036700,
+    "OBJECTID": 10,
+    "st_number": "1134",
+    "st_name": "EMMET ST N",
+    "st_unit": "",
+    "LEGALDESCR": "LOT 2B",
+    "LOTSQFT": 8886.24
+  },
+  {
+    "ParcelNumber": "010005000",
+    "CurrentAssessedValue": 434100,
+    "OBJECTID": 11,
+    "st_number": "2030",
+    "st_name": "BARRACKS RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOT 11 BK 10 RUGBY",
+    "LOTSQFT": 36198.36
+  },
+  {
+    "ParcelNumber": "010018000",
+    "CurrentAssessedValue": 17409300,
+    "OBJECTID": 12,
+    "st_number": "1001",
+    "st_name": "EMMET ST N",
+    "st_unit": "",
+    "LEGALDESCR": "PARCELS 1, 2, & 3",
+    "LOTSQFT": 315417.96
+  },
+  {
+    "ParcelNumber": "010006000",
+    "CurrentAssessedValue": 1769300,
+    "OBJECTID": 13,
+    "st_number": "2028",
+    "st_name": "BARRACKS RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOTS 9 & 10 BK 10 RUGBY",
+    "LOTSQFT": 82676.88
+  },
+  {
+    "ParcelNumber": "010017100",
+    "CurrentAssessedValue": 1928000,
+    "OBJECTID": 14,
+    "st_number": "1895",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOT B BK 11 RUGBY",
+    "LOTSQFT": 40336.56
+  },
+  {
+    "ParcelNumber": "010007000",
+    "CurrentAssessedValue": 2648300,
+    "OBJECTID": 15,
+    "st_number": "1930",
+    "st_name": "DAIRY RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOTS 7,8 & STRIP BK 10 RUGBY",
+    "LOTSQFT": 90125.64
+  },
+  {
+    "ParcelNumber": "010016000",
+    "CurrentAssessedValue": 1047700,
+    "OBJECTID": 16,
+    "st_number": "1891",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOT 2 BK 11 RUGBY",
+    "LOTSQFT": 43560.0
+  },
+  {
+    "ParcelNumber": "010008000",
+    "CurrentAssessedValue": 498000,
+    "OBJECTID": 17,
+    "st_number": "1924",
+    "st_name": "BARRACKS RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOT 6 & PT 5 BK 10 RUGBY",
+    "LOTSQFT": 59633.64
+  },
+  {
+    "ParcelNumber": "010017000",
+    "CurrentAssessedValue": 1497000,
+    "OBJECTID": 18,
+    "st_number": "1893",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOT A BK 11 RUGBY",
+    "LOTSQFT": 19645.56
+  },
+  {
+    "ParcelNumber": "010015000",
+    "CurrentAssessedValue": 1478300,
+    "OBJECTID": 19,
+    "st_number": "1889",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOT 3 BK 11 RUGBY",
+    "LOTSQFT": 41120.64
+  },
+  {
+    "ParcelNumber": "010009000",
+    "CurrentAssessedValue": 1518100,
+    "OBJECTID": 20,
+    "st_number": "1920",
+    "st_name": "BARRACKS RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOT 4 & PT LOT 5 BK 10 RUGBY",
+    "LOTSQFT": 88252.56
+  },
+  {
+    "ParcelNumber": "010014000",
+    "CurrentAssessedValue": 1870400,
+    "OBJECTID": 21,
+    "st_number": "1885",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOT 4 BK 11 RUGBY",
+    "LOTSQFT": 56235.96
+  },
+  {
+    "ParcelNumber": "010019000",
+    "CurrentAssessedValue": 945000,
+    "OBJECTID": 22,
+    "st_number": "1890",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "6537 SQ FT BK 9 RUGBY",
+    "LOTSQFT": 6534.0
+  },
+  {
+    "ParcelNumber": "010020000",
+    "CurrentAssessedValue": 1784900,
+    "OBJECTID": 23,
+    "st_number": "1888",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOTS 10, 11 & TRI LOT BK 9 RUGBY",
+    "LOTSQFT": 22215.6
+  },
+  {
+    "ParcelNumber": "010012000",
+    "CurrentAssessedValue": 969300,
+    "OBJECTID": 25,
+    "st_number": "1857",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "PT LOTS 5 & 6 BK 11 RUGBY",
+    "LOTSQFT": 37505.16
+  },
+  {
+    "ParcelNumber": "010021000",
+    "CurrentAssessedValue": 1542400,
+    "OBJECTID": 26,
+    "st_number": "1884",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOT 12 BK 9 RUGBY",
+    "LOTSQFT": 14984.64
+  },
+  {
+    "ParcelNumber": "010011000",
+    "CurrentAssessedValue": 1636100,
+    "OBJECTID": 28,
+    "st_number": "1855",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "PT LOTS 6 & 7 BK 11 RUGBY",
+    "LOTSQFT": 44387.64
+  },
+  {
+    "ParcelNumber": "010010000",
+    "CurrentAssessedValue": 1477100,
+    "OBJECTID": 35,
+    "st_number": "1851",
+    "st_name": "WESTVIEW RD",
+    "st_unit": "",
+    "LEGALDESCR": "LOT 8 & PT 7 BK 11 RUGBY",
+    "LOTSQFT": 40510.8
+  },
+  {
+    "ParcelNumber": "010001100",
+    "CurrentAssessedValue": 5826500,
+    "OBJECTID": 11999,
+    "st_number": "1035-67",
+    "st_name": "MILLMONT ST",
+    "st_unit": "",
+    "LEGALDESCR": "PARCEL W WEST BAR",
+    "LOTSQFT": 93479.76
+  },
+  {
+    "ParcelNumber": "010004400",
+    "CurrentAssessedValue": 790700,
+    "OBJECTID": 14306,
+    "st_number": "1136",
+    "st_name": "EMMET ST N",
+    "st_unit": "A",
+    "LEGALDESCR": "UNIT 1 MEADOWBROOK CONDO",
+    "LOTSQFT": 7884.36
+  },
+  {
+    "ParcelNumber": "010004500",
+    "CurrentAssessedValue": 803800,
+    "OBJECTID": 14307,
+    "st_number": "1136",
+    "st_name": "EMMET ST N",
+    "st_unit": "B",
+    "LEGALDESCR": "UNIT 2 MEADOWBROOK CONDO",
+    "LOTSQFT": 7884.36
+  }
+]

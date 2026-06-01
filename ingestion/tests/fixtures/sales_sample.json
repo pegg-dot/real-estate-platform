@@ -1,0 +1,572 @@
+[
+  {
+    "RecordID_Int": 1,
+    "ParcelNumber": "010001000",
+    "SaleAmount": 0,
+    "SaleDate": 972273600000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1117",
+    "Unit": "",
+    "BookPage": "793:231"
+  },
+  {
+    "RecordID_Int": 2,
+    "ParcelNumber": "010001000",
+    "SaleAmount": 0,
+    "SaleDate": 1455080400000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1117",
+    "Unit": "",
+    "BookPage": "2016:418"
+  },
+  {
+    "RecordID_Int": 3,
+    "ParcelNumber": "010001000",
+    "SaleAmount": 0,
+    "SaleDate": 1455080400000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1117",
+    "Unit": "",
+    "BookPage": "2016:418"
+  },
+  {
+    "RecordID_Int": 4,
+    "ParcelNumber": "010001000",
+    "SaleAmount": 0,
+    "SaleDate": 1745899200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1117",
+    "Unit": "",
+    "BookPage": "2025:0989"
+  },
+  {
+    "RecordID_Int": 5,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 18381,
+    "SaleDate": 789973200000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "645:681"
+  },
+  {
+    "RecordID_Int": 6,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 0,
+    "SaleDate": 1669870800000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2022:3988"
+  },
+  {
+    "RecordID_Int": 7,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 484687,
+    "SaleDate": 1222142400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2008:4756"
+  },
+  {
+    "RecordID_Int": 8,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 0,
+    "SaleDate": 1222142400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2008:4750"
+  },
+  {
+    "RecordID_Int": 9,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 0,
+    "SaleDate": 1222142400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2008:4755"
+  },
+  {
+    "RecordID_Int": 10,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 0,
+    "SaleDate": 1222142400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2008:4754"
+  },
+  {
+    "RecordID_Int": 11,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 0,
+    "SaleDate": 1222142400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2008:4751"
+  },
+  {
+    "RecordID_Int": 12,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 0,
+    "SaleDate": 1222142400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2008:4753"
+  },
+  {
+    "RecordID_Int": 13,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 0,
+    "SaleDate": 1222142400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2008:4752"
+  },
+  {
+    "RecordID_Int": 14,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 113437,
+    "SaleDate": 1222142400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2008:4758"
+  },
+  {
+    "RecordID_Int": 15,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 0,
+    "SaleDate": 1669870800000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2022:3987"
+  },
+  {
+    "RecordID_Int": 16,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 700000,
+    "SaleDate": 789973200000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 17,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 113437,
+    "SaleDate": 1222142400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2008:4757"
+  },
+  {
+    "RecordID_Int": 18,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 113437,
+    "SaleDate": 1222142400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2008:4759"
+  },
+  {
+    "RecordID_Int": 19,
+    "ParcelNumber": "010001100",
+    "SaleAmount": 0,
+    "SaleDate": 1669870800000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1035-67",
+    "Unit": "",
+    "BookPage": "2022:3989"
+  },
+  {
+    "RecordID_Int": 20,
+    "ParcelNumber": "010001200",
+    "SaleAmount": 0,
+    "SaleDate": 599461200000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1159",
+    "Unit": "",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 21,
+    "ParcelNumber": "010001200",
+    "SaleAmount": 0,
+    "SaleDate": 605937600000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1159",
+    "Unit": "",
+    "BookPage": "525:627"
+  },
+  {
+    "RecordID_Int": 22,
+    "ParcelNumber": "010001300",
+    "SaleAmount": 0,
+    "SaleDate": 605937600000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1135-37",
+    "Unit": "",
+    "BookPage": "525:627"
+  },
+  {
+    "RecordID_Int": 23,
+    "ParcelNumber": "010001300",
+    "SaleAmount": 0,
+    "SaleDate": 599461200000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1135-37",
+    "Unit": "",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 24,
+    "ParcelNumber": "010001400",
+    "SaleAmount": 8389526,
+    "SaleDate": 862286400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1111",
+    "Unit": "",
+    "BookPage": "692:693"
+  },
+  {
+    "RecordID_Int": 25,
+    "ParcelNumber": "010001400",
+    "SaleAmount": 1275000,
+    "SaleDate": 1761710400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1111",
+    "Unit": "",
+    "BookPage": "2025:2819"
+  },
+  {
+    "RecordID_Int": 26,
+    "ParcelNumber": "010001400",
+    "SaleAmount": 0,
+    "SaleDate": 1690171200000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1111",
+    "Unit": "",
+    "BookPage": "2023:1682"
+  },
+  {
+    "RecordID_Int": 27,
+    "ParcelNumber": "010001400",
+    "SaleAmount": 827000,
+    "SaleDate": 827121600000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1111",
+    "Unit": "",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 28,
+    "ParcelNumber": "010001500",
+    "SaleAmount": 0,
+    "SaleDate": 599461200000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1149",
+    "Unit": "",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 29,
+    "ParcelNumber": "010001500",
+    "SaleAmount": 0,
+    "SaleDate": 605937600000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1149",
+    "Unit": "",
+    "BookPage": "525:627"
+  },
+  {
+    "RecordID_Int": 30,
+    "ParcelNumber": "010001600",
+    "SaleAmount": 0,
+    "SaleDate": -2208970800000,
+    "StreetName": "MASSIE RD",
+    "StreetNumber": "600",
+    "Unit": "",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 31,
+    "ParcelNumber": "010001700",
+    "SaleAmount": 0,
+    "SaleDate": 441608400000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1101",
+    "Unit": "",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 32,
+    "ParcelNumber": "010001700",
+    "SaleAmount": 1300000,
+    "SaleDate": 589003200000,
+    "StreetName": "MILLMONT ST",
+    "StreetNumber": "1101",
+    "Unit": "",
+    "BookPage": "517:527"
+  },
+  {
+    "RecordID_Int": 38,
+    "ParcelNumber": "010004000",
+    "SaleAmount": 0,
+    "SaleDate": 851662800000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1138",
+    "Unit": "",
+    "BookPage": "685:683"
+  },
+  {
+    "RecordID_Int": 39,
+    "ParcelNumber": "010004000",
+    "SaleAmount": 0,
+    "SaleDate": 1526875200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1138",
+    "Unit": "",
+    "BookPage": "2018:1798"
+  },
+  {
+    "RecordID_Int": 40,
+    "ParcelNumber": "010004000",
+    "SaleAmount": 0,
+    "SaleDate": 1515128400000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1138",
+    "Unit": "",
+    "BookPage": "2018:0073"
+  },
+  {
+    "RecordID_Int": 41,
+    "ParcelNumber": "010004000",
+    "SaleAmount": 0,
+    "SaleDate": 1526875200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1138",
+    "Unit": "",
+    "BookPage": "2018:1799"
+  },
+  {
+    "RecordID_Int": 42,
+    "ParcelNumber": "010004000",
+    "SaleAmount": 0,
+    "SaleDate": 842932800000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1138",
+    "Unit": "",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 43,
+    "ParcelNumber": "010004000",
+    "SaleAmount": 0,
+    "SaleDate": 1526875200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1138",
+    "Unit": "",
+    "BookPage": "2018:1797"
+  },
+  {
+    "RecordID_Int": 44,
+    "ParcelNumber": "010004000",
+    "SaleAmount": 0,
+    "SaleDate": 1768885200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1138",
+    "Unit": "",
+    "BookPage": "2026:0139"
+  },
+  {
+    "RecordID_Int": 45,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 0,
+    "SaleDate": 1285560000000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "2010:3587"
+  },
+  {
+    "RecordID_Int": 46,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 0,
+    "SaleDate": 1515128400000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "2018:0073"
+  },
+  {
+    "RecordID_Int": 47,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 0,
+    "SaleDate": 1526875200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "2018:1799"
+  },
+  {
+    "RecordID_Int": 48,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 130000,
+    "SaleDate": 353304000000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 49,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 0,
+    "SaleDate": 1526875200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "2018:1798"
+  },
+  {
+    "RecordID_Int": 50,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 0,
+    "SaleDate": 1567742400000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "2019:3150"
+  },
+  {
+    "RecordID_Int": 51,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 0,
+    "SaleDate": 1474603200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "2016:3705"
+  },
+  {
+    "RecordID_Int": 52,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 0,
+    "SaleDate": 1492574400000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "2017:1431"
+  },
+  {
+    "RecordID_Int": 53,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 200000,
+    "SaleDate": 495691200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "469:9"
+  },
+  {
+    "RecordID_Int": 54,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 400000,
+    "SaleDate": 883976400000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "710:19"
+  },
+  {
+    "RecordID_Int": 55,
+    "ParcelNumber": "010004100",
+    "SaleAmount": 0,
+    "SaleDate": 1526875200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1170",
+    "Unit": "",
+    "BookPage": "2018:1797"
+  },
+  {
+    "RecordID_Int": 56,
+    "ParcelNumber": "010004300",
+    "SaleAmount": 32000,
+    "SaleDate": 45892800000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1134",
+    "Unit": "",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 57,
+    "ParcelNumber": "010004300",
+    "SaleAmount": 220000,
+    "SaleDate": 551332800000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1134",
+    "Unit": "",
+    "BookPage": "497:612"
+  },
+  {
+    "RecordID_Int": 58,
+    "ParcelNumber": "010004300",
+    "SaleAmount": 220000,
+    "SaleDate": 551332800000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1134",
+    "Unit": "",
+    "BookPage": "497:612"
+  },
+  {
+    "RecordID_Int": 59,
+    "ParcelNumber": "010004300",
+    "SaleAmount": 375000,
+    "SaleDate": 987652800000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1134",
+    "Unit": "",
+    "BookPage": "806:475"
+  },
+  {
+    "RecordID_Int": 60,
+    "ParcelNumber": "010004400",
+    "SaleAmount": 85600,
+    "SaleDate": -30826800000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1136",
+    "Unit": "A",
+    "BookPage": "0:0"
+  },
+  {
+    "RecordID_Int": 61,
+    "ParcelNumber": "010004400",
+    "SaleAmount": 350000,
+    "SaleDate": 1018843200000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1136",
+    "Unit": "A",
+    "BookPage": "848:464"
+  },
+  {
+    "RecordID_Int": 62,
+    "ParcelNumber": "010004400",
+    "SaleAmount": 0,
+    "SaleDate": 583560000000,
+    "StreetName": "EMMET ST N",
+    "StreetNumber": "1136",
+    "Unit": "A",
+    "BookPage": "514:265"
+  }
+]

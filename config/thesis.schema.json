@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lot.local/schemas/thesis.schema.json",
+  "title": "Investor Thesis",
+  "description": "The validation contract for Nate's Investor Thesis. config/thesis.example.json is a seed instance that must validate against this schema. See docs/decisions/0001-foundation-decisions.md (#4). NOTE: JSON Schema cannot express the cross-field rule that scoring_weights must sum to 1.0 — that invariant is enforced in code by the Thesis Compiler (spec 001).",
+  "type": "object",
+  "required": ["version", "investor", "goal", "markets", "rental_model", "scoring_weights", "hard_constraints", "financing"],
+  "additionalProperties": false,
+  "properties": {
+    "$comment": { "type": "string" },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic version. Re-running the compiler creates a new version; prior versions are preserved (spec 001)."
+    },
+    "investor": {
+      "type": "object",
+      "required": ["capital_source", "capital_posture", "horizon"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "capital_source": { "type": "string", "enum": ["family_trust", "personal", "llc", "partnership", "other"] },
+        "capital_posture": { "type": "string", "enum": ["all_cash_default", "leverage_default", "mixed"] },
+        "leverage_appetite": { "type": "string", "enum": ["none", "optional_creative_finance", "conventional", "max_leverage"] },
+        "horizon": { "type": "string", "enum": ["short_term_flip", "medium_term", "long_term_hold"] },
+        "role": { "type": "string", "enum": ["active_operator_early", "active_operator", "passive_allocator"] },
+        "experience": { "type": "string", "enum": ["learning", "intermediate", "experienced"] },
+        "monthly_time_budget_hours": { "type": "number", "minimum": 0 }
+      }
+    },
+    "goal": {
+      "type": "object",
+      "required": ["primary", "type", "min_cash_on_cash"],
+      "additionalProperties": false,
+      "properties": {
+        "primary": { "type": "string", "enum": ["forever_money", "today_money", "tomorrow_money"] },
+        "type": { "type": "string", "enum": ["buy_and_hold_cashflow_plus_appreciation", "buy_and_hold_cashflow", "buy_and_hold_appreciation", "flip", "brrrr"] },
+        "target_doors_5yr": { "type": "integer", "minimum": 0 },
+        "min_cash_on_cash": { "type": "number", "minimum": 0, "maximum": 1, "description": "Decimal fraction, e.g. 0.08 = 8%." },
+        "preferred_cash_on_cash": { "type": "number", "minimum": 0, "maximum": 1 },
+        "appreciation_weight_vs_cashflow": { "type": "number", "minimum": 0, "maximum": 1, "description": "0 = all cash-flow, 1 = all appreciation." }
+      }
+    },
+    "markets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "state", "priority"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "state": { "type": "string", "pattern": "^[A-Z]{2}$", "description": "Two-letter USPS state code." },
+          "priority": { "type": "integer", "minimum": 1 },
+          "thesis": { "type": "string" },
+          "rental_model_default": { "type": "string", "enum": ["by_the_room", "whole_house", "whole_unit_multifamily"] }
+        }
+      }
+    },
+    "rental_model": {
+      "type": "object",
+      "required": ["evaluate_both_per_bedroom_and_whole_house", "by_room_requires_legal_clearance"],
+      "additionalProperties": false,
+      "properties": {
+        "evaluate_both_per_bedroom_and_whole_house": { "type": "boolean" },
+        "prefer_higher_legal_yield": { "type": "boolean" },
+        "by_room_requires_legal_clearance": { "type": "boolean" }
+      }
+    },
+    "scoring_weights": {
+      "type": "object",
+      "description": "Weights for the scoring engine (spec 003). MUST sum to 1.0 — enforced in code, not by this schema. risk_penalty_* is stored as a positive weight; the scoring engine applies the penalty sign.",
+      "required": [
+        "cash_on_cash",
+        "by_room_upside",
+        "appreciation_potential",
+        "campus_proximity",
+        "occupancy_legal_clearance",
+        "management_simplicity",
+        "owner_motivation",
+        "risk_penalty_insurance_flood_condo"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "cash_on_cash": { "type": "number", "minimum": 0, "maximum": 1 },
+        "by_room_upside": { "type": "number", "minimum": 0, "maximum": 1 },
+        "appreciation_potential": { "type": "number", "minimum": 0, "maximum": 1 },
+        "campus_proximity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "occupancy_legal_clearance": { "type": "number", "minimum": 0, "maximum": 1 },
+        "management_simplicity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "owner_motivation": { "type": "number", "minimum": 0, "maximum": 1 },
+        "risk_penalty_insurance_flood_condo": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "hard_constraints": {
+      "type": "object",
+      "description": "Gates applied as pass/fail in scoring (spec 003), not silent low scores.",
+      "additionalProperties": true,
+      "properties": {
+        "by_room_legal_or_whole_house_must_pencil": { "type": "boolean" },
+        "max_flood_risk": { "type": "string" },
+        "exclude_condos_without_sirs_clearance": { "type": "boolean" },
+        "min_assessed_to_price_sanity_check": { "type": "boolean" }
+      }
+    },
+    "financing": {
+      "type": "object",
+      "required": ["default", "always_surface_legal_guardrails"],
+      "additionalProperties": false,
+      "properties": {
+        "default": { "type": "string", "enum": ["cash", "conventional", "seller_finance", "subject_to"] },
+        "consider_seller_finance_when": { "type": "string" },
+        "consider_subject_to_when": { "type": "string" },
+        "always_surface_legal_guardrails": { "type": "boolean", "const": true, "description": "Non-negotiable per CLAUDE.md golden rule 4." },
+        "attorney_review_required_for": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["subject_to", "wraparound", "seller_finance_to_consumer", "hybrid"] }
+        }
+      }
+    },
+    "risk_tolerance": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "regulatory": { "type": "string" },
+        "concentration": { "type": "string" },
+        "vacancy": { "type": "string" }
+      }
+    },
+    "outreach": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default_channel": { "type": "string", "enum": ["direct_mail", "sms", "call", "email"], "description": "Defaults to direct_mail per compliance rule (no TCPA exposure)." },
+        "sms_calls_require": { "type": "array", "items": { "type": "string" } },
+        "target_segments": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "description": "Provenance for the thesis itself (spec 001): which answers were confirmed vs defaulted.",
+      "additionalProperties": true,
+      "properties": {
+        "intake_mode": { "type": "string", "enum": ["guided", "conversational", "defaults_only"] },
+        "created_at": { "type": "string", "format": "date-time" },
+        "defaulted_fields": { "type": "array", "items": { "type": "string" }, "description": "Fields filled by default and not confirmed by Nate — flagged 'default, not confirmed' (spec 001 acceptance)." }
+      }
+    }
+  }
+}

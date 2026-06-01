@@ -1,0 +1,17 @@
+{
+  "$comment": "Curated, CITED by-the-room legality for Charlottesville. This is the make-or-break legal field (CLAUDE.md golden rule #3). It is informational, NOT legal advice: every attach carries the stability_flag and a 'confirm per-parcel' caveat, and the engine marks by_room_legal confidence as 'modeled' (never 'real'/settled). Source: RESEARCH-FINDINGS.md Stream 4. The zoning-analyst subagent refines per-zone/per-parcel.",
+  "market": "Charlottesville",
+  "state": "VA",
+  "source_url": "https://library.municode.com/va/charlottesville/codes/code_of_ordinances (2024 Development Code, eff. 2024-02-19)",
+  "as_of_date": "2024-02-19",
+  "stability_flag": "White v. City of Charlottesville: the 2024 Development Code was litigated, briefly VOIDED mid-2025, then SETTLED Oct 2025 and is back in effect. Confirm currency and pull a fresh per-parcel zoning determination before any high-bedroom deal.",
+  "default": {
+    "by_room_legal": true,
+    "max_unrelated_occupants": null,
+    "rooming_house_allowed": true,
+    "note": "The 2024 Development Code removed unrelated-occupant caps citywide (a July 2024 zoning determination approved a 9-10 bedroom dwelling as one 'household'). Applied as the citywide default; treat as 'modeled', confirm per parcel."
+  },
+  "zones": {
+    "$comment": "Per-zone overrides go here when the zoning-analyst confirms a zone differs from the citywide default (e.g. a zone that does not permit dwellings at all). Empty until verified — do not guess."
+  }
+}

@@ -15,8 +15,8 @@ names (verified live) so it's not hypothetical.
 |---|---|---|---|
 | `id` | uuid | — | internal PK |
 | `market_id` | fk → market | — | Charlottesville, Miami-Dade, … |
-| `apn` | text | Cville `ParcelNumber` / MDC folio | local parcel id |
-| `gpin` | text | Cville `GPIN` | geo-parcel id (join key) |
+| `apn` | text | Cville `ParcelNumber` / MDC folio | **unique parcel id + upsert key** (condo units have distinct APNs) |
+| `gpin` | text | Cville `GPIN` | geo-parcel id; layer join key, but **shared by condo units** so NOT unique |
 | `address` | text | `StreetNumber`+`StreetName`+`Unit` | normalized via USPS later |
 | `lat` / `lng` | float | ArcGIS geometry | for the map |
 | `acreage` | float | Cville `Acreage` | lot size |
@@ -24,19 +24,29 @@ names (verified live) so it's not hypothetical.
 | `legal_desc` | text | Cville `Legal` | |
 | `tax_district` | text | Cville `TaxDist` | |
 | `is_active` | bool | Cville `IsActive` | filter inactive parcels |
-| `beds` / `baths` / `sqft` / `year_built` | — | Residential Details layer / MLS | physical |
+| `beds` / `baths` / `sqft` / `year_built` | — | Residential Details layer / MLS | physical (often modeled until that layer is wired) |
+| `est_market_value` / `est_equity` | numeric | derived (002/003) | modeled — always carry `provenance`; never asserted as real |
+| `owner_id` | fk → owner | deed grantee | current owner |
+| `provenance` | jsonb | ingest | per-field `{source, confidence, as_of}` (ADR 0001 #5) |
 | `last_seen_at` | timestamptz | ingest | freshness for the weekly loop |
 
-## `assessment` (history per property)
+## `assessment` (per property)
 `property_id`, `year`, `assessed_land`, `assessed_improvement`, `assessed_total`,
-`source` (Cville layer 1). Used for value baselining and equity estimates.
+`source`, `source_object_id` (Cville layer 1). Used for value baselining and equity
+estimates. ⚠️ Verified-live caveat: the Cville "Current Assessments" layer is
+**current-only** — it gives `CurrentAssessedValue` (→ `assessed_total`) with **no
+land/improvement split and no year** (so `year` is NULL for a current snapshot). True
+history needs the separate "All Assessments" layer (future hook).
 
 ## `sale` (transfer history per property)
-`property_id`, `sale_date`, `sale_price`, `grantor`, `grantee`, `deed_ref`
-(Cville layer 3). Drives **owner tenure** (a motivation signal) and price trend.
+`property_id`, `source_record_id` (layer-3 `RecordID_Int` — stable dedupe key),
+`sale_date`, `sale_price` (`SaleAmount`), `grantor`, `grantee`, `deed_ref` (`BookPage`)
+(Cville layer 3). Drives **owner tenure** (a motivation signal) and price trend. Note:
+grantor/grantee are not in the sales layer — they come from the owner/deed layer later.
 
 ## `owner`
-`id`, `name`, `mailing_address`, `is_absentee` (mailing ≠ property), `tenure_years`
+`id`, `market_id` (owner is market-scoped — `portfolio_size` counts parcels owned in the
+market), `name`, `mailing_address`, `is_absentee` (mailing ≠ property), `tenure_years`
 (from earliest sale), `entity_type` (person/LLC/trust), `portfolio_size` (count of
 parcels owned in market). Powers the "tired landlord / likely seller" detection.
 
