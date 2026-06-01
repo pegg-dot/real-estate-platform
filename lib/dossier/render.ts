@@ -52,7 +52,6 @@ function offerBlock(o: Offer): string {
     `- **Nate:** cash in deal ${usd(o.buyer.cashInDeal)} — ${o.buyer.capitalEfficiency}`,
     o.legalGuardrail && `- **⚖️ Legal guardrail:** ${o.legalGuardrail}`,
     o.citedRules.length && `- **Cites:** ${o.citedRules.join(", ")}`,
-    `- _Assumptions:_ ${o.assumptions.join("; ")}`,
   ].filter(Boolean);
   return lines.join("\n");
 }
@@ -70,8 +69,9 @@ export function renderDossier(
     `Headline model: **${h.model.replace(/_/g, "-")}** at ${pct(h.proForma.cashOnCash)} cash-on-cash` +
     `${depth.dataConfidence != null ? ` · data confidence ${depth.dataConfidence.toFixed(2)}` : ""}.*`);
   if (depth.gates && !depth.gates.passed) {
-    out.push(`\n> 🚫 **Hard-constraint gate FAILED** (thesis red-line): ${depth.gates.failures.join("; ")}. ` +
-      `This deal is excluded from your shortlist regardless of yield.`);
+    out.push(`\n> ⚠️ **Thesis constraint flag${depth.gates.failures.length > 1 ? "s" : ""}:** ` +
+      `${depth.gates.failures.join("; ")}. ` +
+      `Shown for your judgment (not hidden) — but it trips a thesis red-line, so verify before acting.`);
   } else if (depth.gates) {
     out.push(`\n> ✓ Passes all thesis hard-constraint gates.`);
   }
@@ -121,6 +121,10 @@ export function renderDossier(
   // Financing
   out.push(`\n## Financing recommendation 💵`);
   for (const o of financing.recommended) out.push(offerBlock(o) + "\n");
+  // assumptions are deal-level (same across offers) — print once, not per offer
+  if (financing.recommended[0]) {
+    out.push(`_Assumptions (deal-level):_ ${financing.recommended[0].assumptions.join("; ")}`);
+  }
   if (financing.suppressed.length) {
     out.push(`**Suppressed structures** (the engine won't force creative finance where it doesn't fit):`);
     for (const s of financing.suppressed) out.push(`- **${s.structure.replace(/_/g, " ")}** — ${s.reason}`);

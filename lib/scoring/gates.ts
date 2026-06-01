@@ -7,12 +7,16 @@
 export interface GateInput {
   byRoomLegal: boolean | null;
   wholeHouseCoc: number;
+  headlineCoc: number;
   floodZone?: string | null;
   isCondo?: boolean | null;
   sirsCleared?: boolean | null;
   minCashOnCash: number;
 }
 
+// A modeled CoC above this on the assessed-value proxy almost always means the assessed
+// value badly understates the true price (a data artifact), not a real screaming deal.
+const IMPLAUSIBLE_COC = 0.15;
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 
 export function evaluateGates(
@@ -33,6 +37,11 @@ export function evaluateGates(
       g.byRoomLegal === false && g.wholeHouseCoc < g.minCashOnCash) {
     failures.push(
       `by-room illegal and whole-house CoC ${pct(g.wholeHouseCoc)} is below the ${pct(g.minCashOnCash)} minimum`);
+  }
+  if (hardConstraints["min_assessed_to_price_sanity_check"] && g.headlineCoc > IMPLAUSIBLE_COC) {
+    failures.push(
+      `assessed-to-price sanity: modeled CoC ${pct(g.headlineCoc)} is implausibly high — ` +
+      `the assessed value likely understates true price; verify pricing before trusting the yield`);
   }
 
   return { passed: failures.length === 0, failures };

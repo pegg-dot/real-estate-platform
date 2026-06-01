@@ -37,6 +37,19 @@ export interface ScoreResult {
 const UVA = { lat: 38.0356, lng: -78.5036 };
 const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
 
+/**
+ * Modeled appreciation potential, per-property (spec 003). Appreciation skews to close-in,
+ * higher-value parcels (the "trophy"/path-of-growth play) — the INVERSE of the cash-flow
+ * play. Making this vary per property (vs a market constant) is what lets an
+ * appreciation-weighted thesis re-rank toward genuinely DIFFERENT deals than a cash-flow
+ * thesis. MODELED — a real signal would use the assessed-value CAGR from history.
+ */
+function appreciationProxy(distMiles: number | null, price: number): number {
+  const proximity = distMiles != null ? clamp(1 - distMiles / 2) : 0.5;
+  const valueTier = clamp(price / 800_000); // normalize to a ~$800k anchor
+  return clamp(0.2 + 0.45 * proximity + 0.35 * valueTier);
+}
+
 export function haversineMiles(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const R = 3958.8, toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(bLat - aLat), dLng = toRad(bLng - aLng);
@@ -77,7 +90,7 @@ export function scoreProperty(
     by_room_upside: byRoom
       ? clamp((byRoom.cashOnCash - wholeHouse.cashOnCash) / Math.max(wholeHouse.cashOnCash, 1e-6))
       : 0,
-    appreciation_potential: input.appreciation ?? 0.5,
+    appreciation_potential: appreciationProxy(distMiles, input.price),
     campus_proximity: distMiles != null ? clamp(1 - distMiles / 2) : 0.5,
     occupancy_legal_clearance:
       input.byRoomLegal === true ? 1 : input.byRoomLegal === false ? 0 : 0.5,

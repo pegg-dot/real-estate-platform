@@ -8,7 +8,7 @@ const HC = {
   min_assessed_to_price_sanity_check: true,
 };
 const clean: GateInput = {
-  byRoomLegal: true, wholeHouseCoc: 0.05, floodZone: "X", isCondo: false, minCashOnCash: 0.08,
+  byRoomLegal: true, wholeHouseCoc: 0.05, headlineCoc: 0.06, floodZone: "X", isCondo: false, minCashOnCash: 0.08,
 };
 
 describe("hard-constraint gates (red-lines flag/exclude, not silently low-score)", () => {
@@ -45,7 +45,13 @@ describe("hard-constraint gates (red-lines flag/exclude, not silently low-score)
     expect(evaluateGates({ ...clean, byRoomLegal: null, wholeHouseCoc: 0.03 }, HC).passed).toBe(true);
   });
 
+  it("an implausibly-high modeled CoC fails the assessed-to-price sanity gate", () => {
+    const r = evaluateGates({ ...clean, headlineCoc: 0.19 }, HC);   // 19% -> under-assessed artifact
+    expect(r.passed).toBe(false);
+    expect(r.failures.join(" ")).toMatch(/assessed|sanity|understate/i);
+  });
+
   it("constraints absent from the thesis are not enforced", () => {
-    expect(evaluateGates({ ...clean, floodZone: "VE" }, {}).passed).toBe(true);
+    expect(evaluateGates({ ...clean, floodZone: "VE", headlineCoc: 0.5 }, {}).passed).toBe(true);
   });
 });

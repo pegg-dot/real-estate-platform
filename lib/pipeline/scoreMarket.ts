@@ -80,6 +80,7 @@ export function scoreRow(
   const gates = evaluateGates({
     byRoomLegal: row.byRoomLegal,
     wholeHouseCoc: score.proFormas.wholeHouse.cashOnCash,
+    headlineCoc: score.headline.proForma.cashOnCash,
     floodZone: row.floodZone, isCondo: row.isCondo,
     minCashOnCash: thesis.goal.min_cash_on_cash ?? 0.08,
   }, thesis.hard_constraints ?? {});

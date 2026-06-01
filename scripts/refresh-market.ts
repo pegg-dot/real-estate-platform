@@ -88,37 +88,38 @@ async function main() {
     `no-value ${res.skipped} · low-confidence(no beds) ${res.lowConfidence}`);
 
   // 3. SHOW — only CONFIDENT opportunities (low-confidence pro-formas are a guess, not ranked here)
+  // Confidence-weighted shortlist: a thin/modeled deal shouldn't out-rank a fully-real one
+  // at the same headline score. Gate-flagged deals are SHOWN (not hidden), tagged inline.
   const top = await sql<{ apn: string; address: string | null; score: number; headline_coc: number;
                           coc_low: number | null; coc_high: number | null; data_confidence: number | null;
+                          gate_passed: boolean; gate_failures: string[];
                           by_room_legal: boolean | null; recommended_structure: string;
                           owner_entity_type: string | null; is_absentee: boolean | null }[]>`
     select apn, address, score, headline_coc, coc_low, coc_high, data_confidence,
-           by_room_legal, recommended_structure, owner_entity_type, is_absentee
+           gate_passed, gate_failures, by_room_legal, recommended_structure, owner_entity_type, is_absentee
     from deal_genome
-    where market = ${market} and score is not null and low_confidence = false and gate_passed
-    order by score desc limit 10`;
-  // deals hidden SOLELY by a hard-constraint gate (exclude the low-confidence ones already
-  // counted, so the two tallies don't double-count the same row)
-  const [gd] = await sql<{ n: number }[]>`
-    select count(*)::int n from deal_genome
-    where market = ${market} and gate_passed = false and low_confidence = false`;
+    where market = ${market} and score is not null and low_confidence = false
+    order by score * coalesce(data_confidence, 0.5) desc
+    limit 12`;
   const lowCount = res.lowConfidence;
   if (top.length === 0) {
     console.log(`[3/3] no confident opportunities in this slice (${lowCount} low-confidence — need beds/rent data).`);
     console.log(`      tip: target residential parcels, e.g. --where "StreetName LIKE '%GRADY%'"`);
   } else {
-    console.log(`[3/3] top opportunities (${lowCount} low-confidence + ${gd?.n ?? 0} gate-failed hidden):\n`);
+    console.log(`[3/3] top opportunities (confidence-weighted; ${lowCount} low-confidence hidden; ` +
+      `⚠ = trips a thesis constraint, shown anyway):\n`);
   }
   const pct = (x: number | null) => (x != null ? `${(Number(x) * 100).toFixed(1)}%` : "—");
   for (const r of top) {
     const range = r.coc_low != null ? `(${pct(r.coc_low)}–${pct(r.coc_high)})` : "";
+    const flag = r.gate_passed ? "" : `  ⚠ ${(r.gate_failures?.[0] ?? "constraint").slice(0, 40)}`;
     console.log(
       `  ${String(r.score).padStart(5)}  ${(r.address ?? r.apn).slice(0, 22).padEnd(22)} ` +
       `CoC ${pct(r.headline_coc).padStart(6)} ${range.padEnd(16)} ` +
       `conf ${r.data_confidence != null ? Number(r.data_confidence).toFixed(2) : "—"}  ` +
       `byroom=${r.by_room_legal ? "Y" : r.by_room_legal === false ? "N" : "?"}  ` +
       `fin=${(r.recommended_structure ?? "—").padEnd(14)} ` +
-      `owner=${r.owner_entity_type ?? "?"}${r.is_absentee ? " (abs)" : ""}`);
+      `owner=${r.owner_entity_type ?? "?"}${r.is_absentee ? " (abs)" : ""}${flag}`);
   }
   await sql.end();
   console.log(`\n✓ refresh complete.`);
