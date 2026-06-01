@@ -117,9 +117,11 @@ def fetch_owners(parcels) -> list:
     for clause in cv.build_parcel_filters(parcels):
         params = {"where": clause, "outFields": fields, "orderByFields": "OBJECTID",
                   "f": "json", "resultRecordCount": 1000}
-        url = OWNER_TABLE + "?" + urllib.parse.urlencode(params)
-        req = urllib.request.Request(url, headers={"User-Agent": "LOT-ingest/0.1"})
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        # POST so a large ParcelNumber IN (...) can't overflow the URL length limit (404)
+        body = urllib.parse.urlencode(params).encode("utf-8")
+        req = urllib.request.Request(OWNER_TABLE, data=body, headers={
+            "User-Agent": "LOT-ingest/0.1", "Content-Type": "application/x-www-form-urlencoded"})
+        with urllib.request.urlopen(req, timeout=90) as resp:
             data = json.loads(resp.read().decode("utf-8"))
         out.extend(f.get("attributes", {}) for f in data.get("features", []))
     return out

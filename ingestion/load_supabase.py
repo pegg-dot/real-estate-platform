@@ -109,6 +109,11 @@ def load_properties(conn, market_id: str, properties: list[dict]) -> dict:
                                           # for offline test collection without psycopg
 
     counts = {"property": 0, "assessment": 0, "sale": 0, "owner": 0}
+    # accumulate child rows and batch-insert them after the loop (one pipelined executemany
+    # each) instead of a network round-trip per row — critical at city scale (~30 assessment
+    # years per parcel would otherwise be tens of thousands of round trips over the pooler).
+    assess_params: list = []
+    sale_params: list = []
     for p in properties:
         owner_id = None
         if p.get("owner"):
@@ -149,10 +154,24 @@ def load_properties(conn, market_id: str, properties: list[dict]) -> dict:
         if p.get("flood"):
             upsert_risk_profile(conn, pid, p["flood"])
 
-        # persist every assessment year (history from layer 2, or the single layer-1 current)
+        # collect every assessment year (history from layer 2, or the single layer-1 current)
         assessments = p.get("assessments") or ([p["assessment"]] if p.get("assessment") else [])
         for a in assessments:
-            conn.execute(
+            assess_params.append(
+                (pid, a["year"], a["assessed_land"], a["assessed_improvement"],
+                 a["assessed_total"], a["source"], a["source_object_id"]))
+
+        for s in p.get("sales", []):
+            if s["source_record_id"] is None:
+                continue  # cannot dedupe a sale with no stable source id
+            sale_params.append(
+                (pid, s["source_record_id"], s["sale_date"], s["sale_price"], s["grantor"],
+                 s["grantee"], s["deed_ref"], s["is_arms_length"], s["source"]))
+
+    # batch-insert the children (pipelined; ON CONFLICT keeps it idempotent)
+    if assess_params:
+        with conn.cursor() as cur:
+            cur.executemany(
                 "insert into assessment "
                 "  (property_id, year, assessed_land, assessed_improvement, assessed_total, "
                 "   source, source_object_id) "
@@ -161,17 +180,12 @@ def load_properties(conn, market_id: str, properties: list[dict]) -> dict:
                 "  assessed_land = excluded.assessed_land, "
                 "  assessed_improvement = excluded.assessed_improvement, "
                 "  assessed_total = excluded.assessed_total, "
-                "  source = excluded.source, "
-                "  source_object_id = excluded.source_object_id",
-                (pid, a["year"], a["assessed_land"], a["assessed_improvement"],
-                 a["assessed_total"], a["source"], a["source_object_id"]),
-            )
-            counts["assessment"] += 1
-
-        for s in p.get("sales", []):
-            if s["source_record_id"] is None:
-                continue  # cannot dedupe a sale with no stable source id
-            conn.execute(
+                "  source = excluded.source, source_object_id = excluded.source_object_id",
+                assess_params)
+        counts["assessment"] = len(assess_params)
+    if sale_params:
+        with conn.cursor() as cur:
+            cur.executemany(
                 "insert into sale "
                 "  (property_id, source_record_id, sale_date, sale_price, grantor, grantee, "
                 "   deed_ref, is_arms_length, source) "
@@ -180,10 +194,8 @@ def load_properties(conn, market_id: str, properties: list[dict]) -> dict:
                 "  property_id = excluded.property_id, sale_date = excluded.sale_date, "
                 "  sale_price = excluded.sale_price, deed_ref = excluded.deed_ref, "
                 "  is_arms_length = excluded.is_arms_length",
-                (pid, s["source_record_id"], s["sale_date"], s["sale_price"], s["grantor"],
-                 s["grantee"], s["deed_ref"], s["is_arms_length"], s["source"]),
-            )
-            counts["sale"] += 1
+                sale_params)
+        counts["sale"] = len(sale_params)
 
     conn.commit()
     return counts

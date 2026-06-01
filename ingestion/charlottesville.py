@@ -93,18 +93,25 @@ def build_query_params(layer, where: str = "1=1", offset: int = 0, count: int = 
     }
 
 
-def _get(url: str, retries: int = 3, backoff: float = 2.0) -> dict:
-    """GET a URL and parse JSON, with simple retry/backoff."""
+def _get(url: str, params: dict | None = None, retries: int = 3, backoff: float = 2.0) -> dict:
+    """Fetch JSON from an ArcGIS endpoint with retry/backoff. When `params` is given they
+    are sent as a POST body (form-encoded) instead of a query string — this is REQUIRED for
+    large `... IN (...)` clauses, which overflow the server's URL length limit on GET (404)."""
+    headers = {"User-Agent": "LOT-ingest/0.1"}
+    data = None
+    if params is not None:
+        data = urllib.parse.urlencode(params).encode("utf-8")
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
     last_err = None
     for attempt in range(retries):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "LOT-ingest/0.1"})
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            req = urllib.request.Request(url, data=data, headers=headers)
+            with urllib.request.urlopen(req, timeout=90) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except Exception as e:  # noqa: BLE001 - want broad retry here
             last_err = e
             time.sleep(backoff * (attempt + 1))
-    raise RuntimeError(f"Failed to GET {url}: {last_err}")
+    raise RuntimeError(f"Failed to fetch {url}: {last_err}")
 
 
 def query_layer(layer, where: str = "1=1", limit: int | None = None) -> list[dict]:
@@ -120,8 +127,8 @@ def query_layer(layer, where: str = "1=1", limit: int | None = None) -> list[dic
         if page_count <= 0:
             break
         params = build_query_params(layer, where=where, offset=offset, count=page_count)
-        url = f"{BASE}/{layer_id}/query?" + urllib.parse.urlencode(params)
-        data = _get(url)
+        # POST the params so a large WHERE ... IN (...) can't overflow the URL length limit
+        data = _get(f"{BASE}/{layer_id}/query", params=params)
         feats = data.get("features", [])
         if not feats:
             break

@@ -1,56 +1,83 @@
 # LOT — Land of Opportunity Terminal
 
-An AI-native real estate acquisition tool built **for Nate** to find, score, and finance
+An AI-native real estate acquisition engine built **for Nate** to find, score, and finance
 buy-and-hold rentals — starting with **college-town rentals in Charlottesville (UVA)**,
 then **Miami-Dade (FIU)**. It pulls raw data straight from county sources (no agents, no
 Zillow), scores each property against Nate's own thesis, and recommends *how to finance
-it* (cash / seller-finance / subject-to).
+it* (cash / seller-finance / subject-to) — with the legal guardrails baked in.
 
-> This repo is the buildable form of the planning done in the `Real Estate/Knowledge Base/`
-> folder. Read `Knowledge Base/STRATEGY-REFRAMES.md` and `PRODUCT-SPEC-v1-to-v10.md` first
-> — they explain *why* this is an internal buying machine first, a product later.
+> Why this exists and why it's sequenced this way: read
+> `docs/knowledge-base/STRATEGY-REFRAMES.md` and `PRODUCT-SPEC-v1-to-v10.md`. The moat is
+> the **judgment layer** (scoring + creative-finance), not the data.
 
-## What this is (and isn't, yet)
-- ✅ A scaffolded repo set up for **spec-driven development with Claude Code**.
-- ✅ A **working data-ingestion script** for Charlottesville county open data (proven
-  against the live ArcGIS REST API — see `ingestion/`).
-- ✅ Specs for the first features (Thesis Compiler, ingest, scoring, financing engine).
-- ⬜ Not yet a running app — the next step is to build the specs in Claude Code.
+## What works today (a running system, not a scaffold)
 
-## The build loop (how to work in this repo)
-Spec-driven, not vibe-coded. For each feature:
-1. Open the spec in `/specs`.
-2. In Claude Code, use **plan mode** (Shift+Tab) to get a blueprint before coding.
-3. Implement against the spec; write the test first (tests are the agent's oracle).
-4. Commit per step. Let the `code-reviewer` subagent and lint/test hooks check it.
+The full **SENSE → REASON → SHOW** loop runs end-to-end against a live Supabase database:
 
-See `CLAUDE.md` for the full operating manual.
+- **SENSE** (`/ingestion`, Python) — pulls real Charlottesville county data (parcels,
+  zoning, assessed value + 30-yr history, real bed counts, owner + absentee + entity type,
+  parcel centroids for lat/lng, FEMA flood zones) into Postgres. Idempotent, provenance-
+  tagged (real vs modeled), injection-safe, paged via POST for large pulls.
+- **REASON** (`/lib`, TypeScript — the moat) — `scoreMarket` reads the DB, underwrites
+  per-bedroom **and** whole-house, scores against the thesis, and recommends a creative-
+  finance structure with a **structurally-enforced legal guardrail** (the engine refuses
+  to emit a creative structure without its guardrail + attorney trigger). Reproduces the
+  hand-run dossiers to the dollar.
+- **SHOW** — a cited markdown **dossier** generated from real DB data (`npm run dossier`),
+  and a ranked **digest** of top opportunities (`npm run refresh`).
 
-## Quickstart
+Results land in `property_score` + the `deal_genome` view (the read model the map UI will
+consume). **Modeled inputs (rents) are flagged as modeled everywhere — never presented as
+real.**
+
+## Run it
+
 ```bash
-# 1. Try the data pipeline (no keys needed — public county data)
-cd ingestion
-pip install -r requirements.txt
-python charlottesville.py --limit 50 --out ../data/cville_sample.json
+# 0. one-time: Python venv + Node deps
+python3 -m venv .venv && .venv/bin/pip install -r ingestion/requirements-dev.txt
+npm install
 
-# 2. Open the repo in Claude Code and start with specs/001-thesis-compiler.md
+# 1. point at your database (Supabase Session-pooler URI)
+cp .env.example .env   # then put your SUPABASE_DB_URL in it
+
+# 2. create the schema
+set -a; source .env; set +a
+npx tsx scripts/apply-migrations.ts
+
+# 3. ingest + score + digest a slice (use --where to target streets/zones)
+npx tsx scripts/refresh-market.ts --market Charlottesville \
+  --where "(Zone LIKE 'R%' OR Zone LIKE 'NX%') AND IsActive=1" --limit 500 [--geocode] [--flood]
+
+# 4. render one cited deal dossier from the DB
+npx tsx scripts/refresh-market.ts --skip-ingest --market Charlottesville --dossier 040049000
 ```
 
+## Tests
+```bash
+npm test            # TypeScript engines (Vitest) + run `npm run typecheck`
+.venv/bin/pytest    # Python ingestion
+```
+The DB-integration tests run only when `TEST_DATABASE_URL` points at a throwaway Postgres.
+
+## Build status (honest)
+- ✅ **002 ingest**, **003 scoring**, **004 financing** — built + tested + live-verified.
+- ⬜ **001 Thesis Compiler** — the engine reads `config/thesis.example.json`; the intake UX
+  (ask-Nate questionnaire, versioning) is not built.
+- ⬜ **003 sensitivity** — ±rent/rate/vacancy analysis the spec calls for is not built.
+- ⬜ **005 Map UI** — next.
+- ⚠️ **006 agent swarm / weekly loop / LEARN / leads** — only the `refresh` orchestrator
+  exists; scheduling, the "what changed" diff, regulatory radar, sourcing/outreach, and the
+  outcome-learning loop are not built.
+- Modeled (not yet real): per-bedroom **rents** (need a comp source), **insurance $**.
+
 ## Layout
-- `CLAUDE.md` — the agent operating manual (read first).
-- `/specs` — one markdown spec per feature.
-- `/docs` — data model + domain knowledge (mirrors the Knowledge Base).
-- `/ingestion` — county data pipelines (Charlottesville live; Miami-Dade next).
-- `/config` — `thesis.example.json` (Nate's investor thesis seed).
-- `.claude/` — skills, subagents, commands, hooks for Claude Code.
-- `.mcp.json` — MCP servers (Supabase, Postgres, filesystem).
-
-## Stack (planned)
-Next.js + shadcn/ui on Vercel · Supabase (Postgres + Auth + Cron + pgvector) ·
-Mapbox GL maps · Vercel AI SDK for LLM orchestration. See `docs/architecture.md`.
-
-## Next steps
-1. Create a GitHub repo and push this skeleton.
-2. Open in Claude Code; build `001-thesis-compiler` then `002-charlottesville-ingest`.
-3. Wire Supabase; load the first Charlottesville dataset; build the scoring + financing
-   engines (`003`, `004`).
+- `CLAUDE.md` — agent operating manual (read first).
+- `/ingestion` — Python county pipelines (Charlottesville live; Miami-Dade next).
+- `/lib` — the TypeScript judgment layer: `scoring/`, `financing/`, `pipeline/` (the
+  DB↔engine bridge), `dossier/`, `db/`, `config/`.
+- `/scripts` — `refresh-market.ts` (the loop), `apply-migrations.ts`.
+- `/supabase/migrations` — `0001` core schema, `0002` score + `deal_genome` view.
+- `/config` — thesis, per-market assumptions, zoning rules, knowledge-rule seed.
+- `/specs` — one spec per feature (each carries its own implementation-status note).
+- `/docs` — data model, architecture, financing-engine design, the knowledge base.
+- `.claude/` — skills, subagents (code-reviewer, underwriter, zoning-analyst).
