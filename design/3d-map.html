@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOT — 3D map (Charlottesville)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+:root{
+  --color-background-primary:#ffffff;--color-background-secondary:#f4f3ee;--color-background-tertiary:#eceae3;
+  --color-background-info:#e6f1fb;
+  --color-text-primary:#1a1a18;--color-text-secondary:#6b6a63;--color-text-tertiary:#9a988f;
+  --color-text-info:#185fa5;--color-text-success:#3b6d11;
+  --color-border-tertiary:rgba(0,0,0,.15);--color-border-secondary:rgba(0,0,0,.30);--color-border-info:#378add;
+  --border-radius-md:8px;--border-radius-lg:12px;
+  --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--color-background-tertiary);font-family:var(--font-sans);color:var(--color-text-primary);}
+.wrap{max-width:760px;margin:0 auto;padding:24px 20px 40px;}
+button{font-family:inherit}
+.ov{position:absolute;background:var(--color-background-primary);border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);}
+.lg-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:9px;">
+      <div style="width:26px;height:26px;border-radius:var(--border-radius-md);background:var(--color-text-primary);color:var(--color-background-primary);display:flex;align-items:center;justify-content:center;font-weight:500;font-size:12px;">L</div>
+      <span style="font-size:15px;font-weight:500;">LOT</span>
+      <span style="font-size:13px;color:var(--color-text-secondary);">3D map · Charlottesville, VA</span>
+    </div>
+    <span style="font-size:12px;color:var(--color-text-info);background:var(--color-background-info);padding:3px 9px;border-radius:var(--border-radius-md);">by-room · all-cash</span>
+  </div>
+
+  <div id="mapwrap" style="position:relative;height:480px;border-radius:var(--border-radius-lg);overflow:hidden;border:.5px solid var(--color-border-tertiary);">
+    <canvas id="cvs" style="position:absolute;inset:0;width:100%;height:100%;display:block;"></canvas>
+
+    <div class="ov" style="top:12px;left:12px;right:120px;display:flex;align-items:center;gap:8px;padding:0 11px;height:34px;">
+      <i class="ti ti-search" style="font-size:15px;color:var(--color-text-tertiary);"></i>
+      <span style="font-size:13px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">4+ beds · walk to grounds · by-room legal</span>
+    </div>
+
+    <div class="ov" style="top:12px;right:12px;padding:8px 10px;font-size:11px;line-height:1.7;">
+      <div><span class="lg-dot" style="background:#639922;"></span>strong</div>
+      <div><span class="lg-dot" style="background:#BA7517;"></span>moderate</div>
+      <div><span class="lg-dot" style="background:#888780;"></span>weak</div>
+      <div><span class="lg-dot" style="background:#378ADD;"></span>UVA</div>
+    </div>
+
+    <div class="ov" style="bottom:12px;left:12px;width:260px;padding:12px 13px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div>
+          <div style="font-size:11px;color:var(--color-text-tertiary);">top match</div>
+          <div style="font-size:14px;font-weight:500;">1301 Wertland St</div>
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-top:1px;">$1.08M · 0.40 ac · RX-5 · sold $1.0M (2024)</div>
+        </div>
+        <span style="font-size:13px;font-weight:500;padding:2px 8px;border-radius:var(--border-radius-md);background:#C0DD97;color:#173404;">71</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <div style="flex:1;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 9px;"><div style="font-size:11px;color:var(--color-text-secondary);">by-room CoC</div><div style="font-size:15px;font-weight:500;">4.0%</div></div>
+        <div style="flex:1;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 9px;"><div style="font-size:11px;color:var(--color-text-secondary);">finance</div><div style="font-size:15px;font-weight:500;color:var(--color-text-success);">Cash</div></div>
+      </div>
+      <button style="width:100%;margin-top:9px;font-size:12px;background:transparent;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px;cursor:pointer;color:var(--color-text-primary);">Full dossier</button>
+    </div>
+
+    <div style="position:absolute;bottom:14px;right:14px;font-size:11px;color:var(--color-text-tertiary);background:var(--color-background-primary);padding:3px 8px;border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);"><i class="ti ti-rotate-360" style="font-size:13px;vertical-align:-2px;"></i> drag to rotate</div>
+  </div>
+  <p style="font-size:12px;color:var(--color-text-secondary);margin-top:10px;">Buildings are extruded and color-coded by thesis score; the blue beam marks the top match (1301 Wertland), the blue cluster is UVA grounds. Drag to rotate. Real parcels &amp; assessed values; rents/scores are modeled.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  var wrap=document.getElementById('mapwrap'), cvs=document.getElementById('cvs');
+  var W=wrap.clientWidth||720, H=wrap.clientHeight||480;
+  var dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var COL={bg:dark?0x1b1b19:0xeae7df, ground:dark?0x232320:0xdedacf, grid:dark?0x33332f:0xc7c3b6, base:dark?0x3c3c37:0xcbc7bb};
+
+  var scene=new THREE.Scene(); scene.background=new THREE.Color(COL.bg);
+  var camera=new THREE.PerspectiveCamera(42, W/H, 0.1, 1000);
+  camera.position.set(0,80,108); camera.lookAt(0,4,0);
+  var renderer=new THREE.WebGLRenderer({canvas:cvs, antialias:true});
+  renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1)); renderer.setSize(W,H,false);
+
+  scene.add(new THREE.AmbientLight(0xffffff, dark?0.55:0.85));
+  var dir=new THREE.DirectionalLight(0xffffff, dark?0.8:0.7); dir.position.set(40,90,30); scene.add(dir);
+  var dir2=new THREE.DirectionalLight(0xffffff,0.25); dir2.position.set(-50,40,-30); scene.add(dir2);
+
+  var city=new THREE.Group(); scene.add(city);
+  var ground=new THREE.Mesh(new THREE.PlaneGeometry(160,160), new THREE.MeshLambertMaterial({color:COL.ground}));
+  ground.rotation.x=-Math.PI/2; ground.position.y=-0.1; city.add(ground);
+  var grid=new THREE.GridHelper(160,15,COL.grid,COL.grid); grid.position.y=0.02; if(grid.material){grid.material.opacity=0.5;grid.material.transparent=true;} city.add(grid);
+
+  var seed=7; function rnd(){seed=(seed*1664525+1013904223)%4294967296;return seed/4294967296;}
+  function box(x,z,w,h,d,color){var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:color}));m.position.set(x,h/2,z);city.add(m);return m;}
+
+  function scoreSprite(num,fill,txt){
+    var c=document.createElement('canvas');c.width=c.height=128;var x=c.getContext('2d');
+    x.fillStyle=fill;x.beginPath();x.arc(64,64,50,0,7);x.fill();
+    x.lineWidth=7;x.strokeStyle='rgba(255,255,255,.9)';x.stroke();
+    x.fillStyle=txt;x.font='bold 58px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(num,64,68);
+    var t=new THREE.CanvasTexture(c);var s=new THREE.Sprite(new THREE.SpriteMaterial({map:t}));s.scale.set(11,11,1);return s;
+  }
+  function pin(x,z,top,num,fill,txt){var sp=scoreSprite(num,fill,txt);sp.position.set(x,top+8,z);city.add(sp);}
+
+  var heroes={ "-1,0":{s:71,c:0x97C459,t:'sel',h:24}, "2,1":{s:78,c:0x639922,t:'st',h:20}, "-3,2":{s:75,c:0x639922,t:'st',h:18},
+               "0,-1":{s:64,c:0xBA7517,t:'mo',h:15}, "3,-2":{s:38,c:0x888780,t:'wk',h:40} };
+  var pal={sel:['#C0DD97','#173404'],st:['#C0DD97','#173404'],mo:['#FAC775','#412402'],wk:['#D3D1C7','#2C2C2A']};
+
+  for(var gx=-5;gx<=5;gx++){for(var gz=-5;gz<=5;gz++){
+    var key=gx+","+gz, wx=gx*11.5, wz=gz*11.5;
+    if(gz===-5){ if(gx>=-2&&gx<=2){box(wx,wz,8,6+rnd()*5,8,0x2f6db0);} continue; }
+    if(heroes[key]){var hh=heroes[key];box(wx,wz,8,hh.h,8,hh.c);
+      pin(wx,wz,hh.h,hh.s,pal[hh.t][0],pal[hh.t][1]);
+      if(hh.t==='sel'){var beam=new THREE.Mesh(new THREE.BoxGeometry(1.4,60,1.4),new THREE.MeshBasicMaterial({color:0x378ADD,transparent:true,opacity:0.8}));beam.position.set(wx,30,wz);city.add(beam);}
+      continue;}
+    if(rnd()<0.12) continue;
+    var h=4+rnd()*16; if(rnd()>0.92) h+=18;
+    box(wx,wz,7+rnd()*1.5,h,7+rnd()*1.5,COL.base);
+  }}
+
+  (function(){var c=document.createElement('canvas');c.width=256;c.height=64;var x=c.getContext('2d');
+   x.fillStyle='#185FA5';if(x.roundRect){x.beginPath();x.roundRect(8,12,240,40,10);x.fill();}else{x.fillRect(8,12,240,40);}
+   x.fillStyle='#fff';x.font='bold 26px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('UVA grounds',128,33);
+   var t=new THREE.CanvasTexture(c);var s=new THREE.Sprite(new THREE.SpriteMaterial({map:t}));s.scale.set(26,6.5,1);s.position.set(0,16,-57);city.add(s);})();
+
+  var rotY=-0.5, targetY=-0.5, dragging=false, lastX=0, auto=true;
+  cvs.addEventListener('pointerdown',function(e){dragging=true;auto=false;lastX=e.clientX;});
+  window.addEventListener('pointerup',function(){dragging=false;});
+  window.addEventListener('pointermove',function(e){if(dragging){targetY+=(e.clientX-lastX)*0.006;lastX=e.clientX;}});
+  function animate(){requestAnimationFrame(animate); if(auto)targetY+=0.0016; rotY+=(targetY-rotY)*0.08; city.rotation.y=rotY; renderer.render(scene,camera);}
+  animate();
+  window.addEventListener('resize',function(){var w=wrap.clientWidth,h=wrap.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);});
+})();
+</script>
+</body>
+</html>

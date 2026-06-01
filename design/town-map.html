@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOT — Charlottesville town map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#eceae3;--card:#fff;--surf:#f4f3ee;--info-bg:#e6f1fb;
+  --tp:#1a1a18;--ts:#6b6a63;--tt:#9a988f;--ti:#185fa5;--tsuccess:#3b6d11;
+  --bd:rgba(0,0,0,.14);--bd2:rgba(0,0,0,.28);--r:8px;--rl:12px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);font-family:var(--font);color:var(--tp);}
+.app{max-width:1100px;margin:0 auto;height:100vh;min-height:640px;display:flex;flex-direction:column;padding:14px 16px 18px;}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.brand{display:flex;align-items:center;gap:9px}
+.logo{width:28px;height:28px;border-radius:var(--r);background:var(--tp);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px}
+.search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;background:var(--card);border:.5px solid var(--bd2);border-radius:var(--r);height:36px;padding:0 12px;color:var(--ts);font-size:13px}
+.pill{font-size:12px;color:var(--ti);background:var(--info-bg);padding:4px 10px;border-radius:var(--r)}
+.main{flex:1;display:flex;gap:12px;min-height:0}
+.side{width:280px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+.card{background:var(--card);border:.5px solid var(--bd);border-radius:var(--rl);padding:12px 13px}
+.card h3{margin:0 0 9px;font-size:13px;font-weight:600;color:var(--tp);display:flex;align-items:center;gap:6px}
+.lyr{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--ts);padding:5px 0;cursor:pointer}
+.sw{width:34px;height:20px;border-radius:11px;background:#d3d1c7;position:relative;transition:.15s;flex:none}
+.sw.on{background:#639922}
+.sw i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s}
+.sw.on i{left:16px}
+.deal{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:var(--r);cursor:pointer}
+.deal:hover{background:var(--surf)}
+.badge{font-size:12px;font-weight:600;min-width:26px;text-align:center;padding:2px 6px;border-radius:var(--r)}
+.b-st{background:#C0DD97;color:#173404}.b-mo{background:#FAC775;color:#412402}.b-wk{background:#D3D1C7;color:#2C2C2A}
+.feed{font-size:12px;color:var(--ts);line-height:1.5;padding:6px 0;border-top:.5px solid var(--bd)}
+.feed:first-of-type{border-top:0}
+#map{flex:1;border-radius:var(--rl);border:.5px solid var(--bd);min-height:0}
+.pin{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);font-weight:600;font-size:12px}
+.pin span{transform:rotate(45deg)}
+.p-st{background:#639922;color:#fff}.p-mo{background:#BA7517;color:#fff}.p-wk{background:#888780;color:#fff}
+.lead{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#1D9E75;color:#fff;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);font-size:13px}
+.leaflet-popup-content{margin:11px 13px;font-family:var(--font)}
+.pop-t{font-size:14px;font-weight:600}.pop-s{font-size:12px;color:var(--ts);margin-top:2px}
+.pop-row{display:flex;gap:6px;margin-top:8px}
+.pop-row div{flex:1;background:var(--surf);border-radius:var(--r);padding:6px 8px;font-size:12px}
+.pop-row b{display:block;font-size:14px;font-weight:600}
+.legend{font-size:11px;color:var(--ts);line-height:1.7}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand"><div class="logo">L</div><span style="font-size:15px;font-weight:600">LOT</span><span style="font-size:13px;color:var(--ts)">Charlottesville · UVA</span></div>
+    <div class="search"><i class="ti ti-search"></i><span>4+ beds · walk to grounds · by-room legal · owner 10+ yrs</span></div>
+    <span class="pill">by-room · all-cash</span>
+  </div>
+  <div class="main">
+    <div class="side">
+      <div class="card">
+        <h3><i class="ti ti-stack-2"></i> Layers</h3>
+        <div class="lyr" data-layer="deals">Deals (scored) <span class="sw on" id="sw-deals"><i></i></span></div>
+        <div class="lyr" data-layer="leads">Off-market leads <span class="sw on" id="sw-leads"><i></i></span></div>
+        <div class="lyr" data-layer="zone">By-room legal zone <span class="sw on" id="sw-zone"><i></i></span></div>
+        <div class="lyr" data-layer="heat">Demand heat <span class="sw" id="sw-heat"><i></i></span></div>
+        <div class="legend" style="margin-top:8px;border-top:.5px solid var(--bd);padding-top:8px">
+          <div><span class="dot" style="background:#639922"></span>strong deal &nbsp; <span class="dot" style="background:#BA7517"></span>moderate &nbsp; <span class="dot" style="background:#888780"></span>weak</div>
+          <div><span class="dot" style="background:#1D9E75"></span>motivated-seller lead</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><i class="ti ti-robot"></i> Automations</h3>
+        <div class="lyr">Weekly data refresh <span class="sw on"><i></i></span></div>
+        <div class="lyr">New-distress alerts <span class="sw on"><i></i></span></div>
+        <div class="lyr">Auto-draft outreach (mail) <span class="sw"><i></i></span></div>
+        <div style="margin-top:6px">
+          <div style="font-size:11px;color:var(--tt);text-transform:none;margin-bottom:2px">what changed this week</div>
+          <div class="feed"><i class="ti ti-plus" style="color:var(--tsuccess)"></i> 3 new listings near grounds</div>
+          <div class="feed"><i class="ti ti-gavel" style="color:var(--ti)"></i> Probate filing on Preston Ave → lead added</div>
+          <div class="feed"><i class="ti ti-arrow-down" style="color:var(--ts)"></i> Rugby Rd price cut 4% → re-scored</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><i class="ti ti-list"></i> Top matches</h3>
+        <div id="deallist"></div>
+      </div>
+    </div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var map=L.map('map',{zoomControl:true,scrollWheelZoom:true}).setView([38.0355,-78.5060],15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+
+var deals=[
+ {n:'1301 Wertland St',lat:38.0356,lng:-78.5056,s:71,t:'st',p:'$1.08M',bd:'8 bd',coc:'4.0%',fin:'Cash'},
+ {n:'1215 Wertland St',lat:38.0354,lng:-78.5049,s:64,t:'mo',p:'$236k',bd:'2 bd',coc:'4.4%',fin:'Cash'},
+ {n:'1207-11 Wertland St',lat:38.0352,lng:-78.5045,s:38,t:'wk',p:'$9.88M',bd:'MF',coc:'1.7%',fin:'—'},
+ {n:'112 14th St NW',lat:38.0372,lng:-78.5072,s:78,t:'st',p:'$545k',bd:'5 bd',coc:'5.2%',fin:'Cash'},
+ {n:'Jefferson Park Ave',lat:38.0322,lng:-78.5096,s:75,t:'st',p:'$610k',bd:'6 bd',coc:'5.0%',fin:'Seller-fin'},
+ {n:'Rugby Rd',lat:38.0395,lng:-78.5042,s:68,t:'mo',p:'$720k',bd:'6 bd',coc:'4.6%',fin:'Cash'}
+];
+var leads=[
+ {n:'Grady Ave',lat:38.0388,lng:-78.5086,sig:'Tired landlord · 21 yr tenure · high equity → seller-finance target'},
+ {n:'Gordon Ave',lat:38.0361,lng:-78.5079,sig:'Absentee owner · 16 yr hold'},
+ {n:'Preston Ave',lat:38.0379,lng:-78.5012,sig:'Probate filing (new this week)'},
+ {n:'10th St NW',lat:38.0336,lng:-78.4996,sig:'Tax-delinquent flag'}
+];
+var pal={st:'p-st',mo:'p-mo',wk:'p-wk'},bcl={st:'b-st',mo:'b-mo',wk:'b-wk'};
+
+var zone=L.polygon([[38.0410,-78.5095],[38.0420,-78.4990],[38.0330,-78.4970],[38.0300,-78.5070],[38.0345,-78.5110]],
+  {color:'#3B6D11',weight:1.5,dashArray:'5',fillColor:'#639922',fillOpacity:0.10});
+var heat=L.layerGroup([
+  L.circle([38.0356,-78.5050],{radius:260,color:'transparent',fillColor:'#D85A30',fillOpacity:0.18}),
+  L.circle([38.0372,-78.5068],{radius:200,color:'transparent',fillColor:'#D85A30',fillOpacity:0.14}),
+  L.circle([38.0330,-78.5090],{radius:180,color:'transparent',fillColor:'#EF9F27',fillOpacity:0.12})
+]);
+
+var gDeals=L.layerGroup(),gLeads=L.layerGroup(),listEl=document.getElementById('deallist'),markers={};
+deals.forEach(function(d,i){
+  var icon=L.divIcon({className:'',html:'<div class="pin '+pal[d.t]+'"><span>'+d.s+'</span></div>',iconSize:[30,30],iconAnchor:[15,30],popupAnchor:[0,-30]});
+  var m=L.marker([d.lat,d.lng],{icon:icon}).addTo(gDeals);
+  m.bindPopup('<div class="pop-t">'+d.n+'</div><div class="pop-s">'+d.p+' · '+d.bd+' · score '+d.s+'</div>'+
+    '<div class="pop-row"><div>by-room CoC<b>'+d.coc+'</b></div><div>finance<b>'+d.fin+'</b></div></div>');
+  markers[i]=m;
+  if(d.t!=='wk'){var row=document.createElement('div');row.className='deal';
+    row.innerHTML='<span class="badge '+bcl[d.t]+'">'+d.s+'</span><div style="flex:1"><div style="font-size:13px;font-weight:500">'+d.n+'</div><div style="font-size:11px;color:var(--ts)">'+d.p+' · '+d.bd+' · '+d.coc+' · '+d.fin+'</div></div>';
+    row.onclick=function(){map.flyTo([d.lat,d.lng],16);m.openPopup();};listEl.appendChild(row);}
+});
+leads.forEach(function(l){
+  var icon=L.divIcon({className:'',html:'<div class="lead"><i class="ti ti-target"></i></div>',iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]});
+  L.marker([l.lat,l.lng],{icon:icon}).addTo(gLeads).bindPopup('<div class="pop-t">'+l.n+'</div><div class="pop-s">'+l.sig+'</div>');
+});
+
+gDeals.addTo(map);gLeads.addTo(map);zone.addTo(map);
+var layers={deals:gDeals,leads:gLeads,zone:zone,heat:heat};
+document.querySelectorAll('.lyr[data-layer]').forEach(function(el){
+  el.onclick=function(){var k=el.getAttribute('data-layer'),sw=document.getElementById('sw-'+k),on=sw.classList.toggle('on');
+    if(on)layers[k].addTo(map);else map.removeLayer(layers[k]);};
+});
+</script>
+</body>
+</html>
