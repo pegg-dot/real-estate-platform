@@ -104,3 +104,49 @@ export function proposeWeightRetune(
       `shrunk by 1/√${n}, capped ±${perCycleCap}, floors held — review before activating`,
   };
 }
+
+// ── Knowledge-weight reweighting (spec 016) ──────────────────────────────────────────────────
+// The SAME governed nudge, but over distilled knowledge rows instead of thesis weights: when a
+// recommendation that CITED a knowledge row is advanced, nudge that row's weight up; when passed,
+// down. Shrunk by 1/√n, per-cycle capped, floored/ceilinged, and gated on a minimum observation
+// count. Pure + deterministic; it only PROPOSES — a human approves before any weight is written.
+
+export interface KnowledgeOutcome { key: string; action: "advance" | "pass" }
+export interface KnowledgeWeightDiff {
+  key: string; from: number; to: number; delta: number; n: number; advances: number; passes: number;
+}
+
+export function proposeKnowledgeReweight(
+  currentWeights: Record<string, number>,
+  outcomes: KnowledgeOutcome[],
+  opts: { learningRate?: number; perCycleCap?: number; minObservations?: number; floor?: number; ceil?: number } = {},
+): KnowledgeWeightDiff[] {
+  const learningRate = opts.learningRate ?? 0.5;
+  const cap = opts.perCycleCap ?? 0.2;
+  const minObs = opts.minObservations ?? 5;
+  const floor = opts.floor ?? 0.1;     // never zero a row out from a thin sample
+  const ceil = opts.ceil ?? 3.0;
+
+  const tally = new Map<string, { adv: number; pass: number }>();
+  for (const o of outcomes) {
+    const t = tally.get(o.key) ?? { adv: 0, pass: 0 };
+    if (o.action === "advance") t.adv++; else t.pass++;
+    tally.set(o.key, t);
+  }
+
+  const diffs: KnowledgeWeightDiff[] = [];
+  for (const [key, t] of tally) {
+    const n = t.adv + t.pass;
+    if (n < minObs) continue;                         // not enough signal -> no change (governed)
+    const from = currentWeights[key] ?? 1.0;
+    const signal = (t.adv - t.pass) / n;              // [-1, 1]
+    const nudge = clamp(learningRate * signal * (1 / Math.sqrt(n)), -cap, cap);
+    const to = clamp(from + nudge, floor, ceil);
+    if (Math.abs(to - from) < 1e-6) continue;
+    diffs.push({
+      key, from, to: Number(to.toFixed(4)), delta: Number((to - from).toFixed(4)),
+      n, advances: t.adv, passes: t.pass,
+    });
+  }
+  return diffs.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+}
