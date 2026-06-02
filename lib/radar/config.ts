@@ -34,7 +34,12 @@ export function loadZoningRules(market: string): ZoneRule[] | null {
   }
   // explicit per-zone overrides ($comment keys skipped)
   for (const [zone, v] of Object.entries(j.zones ?? {})) {
-    if (zone.startsWith("$") || typeof v !== "object") continue;
+    if (zone.startsWith("$")) continue;
+    if (typeof v !== "object" || v == null) {
+      // a bare-string/null zone value would silently vanish from the radar — surface it
+      console.warn(`[radar] skipping malformed zone "${zone}" in ${file} (expected an object)`);
+      continue;
+    }
     rules.push({
       zoneCode: zone, byRoomLegal: v.by_room_legal === true,
       maxUnrelated: v.max_unrelated_occupants ?? null, stabilityFlag: stability,

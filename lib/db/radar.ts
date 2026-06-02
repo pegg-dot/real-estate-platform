@@ -39,11 +39,22 @@ export async function runRegulatoryRadar(
   const events = detectZoningChanges(prev, incoming);
   const out: RadarResult["events"] = [];
 
+  // Zones with an explicit per-zone rule. A parcel is governed by the citywide '*' default
+  // iff its zone_code is NOT one of these (mirrors ingestion/zoning.py's fallback). This is
+  // what makes a '*' change actually re-flag parcels — no real parcel literally has zone '*'.
+  const explicitZones = incoming.filter((r) => r.zoneCode !== "*").map((r) => r.zoneCode);
+
+  // SQL fragment selecting the parcels a rule governs: an explicit zone → that zone_code;
+  // the '*' default → every parcel without an explicit per-zone rule (incl. unknown zone).
+  const parcelsFor = (zoneCode: string) =>
+    zoneCode === "*"
+      ? sql`market_id = ${marketId} and (zone_code is null or not (zone_code = any(${explicitZones})))`
+      : sql`market_id = ${marketId} and zone_code = ${zoneCode}`;
+
   for (const e of events) {
-    // how many parcels does this zone touch? (the size of the opportunity/risk)
+    // how many parcels does this rule touch? (the size of the opportunity/risk)
     const [cnt] = await sql<{ count: string }[]>`
-      select count(*)::text as count from property
-      where market_id = ${marketId} and zone_code = ${e.zoneCode}`;
+      select count(*)::text as count from property where ${parcelsFor(e.zoneCode)}`;
     const affected = Number(cnt?.count ?? 0);
 
     await sql`
@@ -51,13 +62,12 @@ export async function runRegulatoryRadar(
       values (${marketId}, ${opts.runId ?? null}, ${e.zoneCode}, ${e.changeType},
               ${sql.json({ ...e.detail, direction: e.direction } as Json)}, ${affected}, ${e.alphaNote})`;
 
-    // a by-room legality flip must propagate: re-flag every parcel in the zone so the next
-    // score run reflects the new reality (this is the whole point — regulatory change as alpha)
+    // a by-room legality flip must propagate: re-flag every parcel the rule governs so the
+    // next score run reflects the new reality (this is the whole point — regulatory as alpha)
     if (e.changeType === "by_room_legal_change") {
       const newLegal = (e.detail as { to?: boolean }).to;
       if (typeof newLegal === "boolean") {
-        await sql`update property set by_room_legal = ${newLegal}
-                  where market_id = ${marketId} and zone_code = ${e.zoneCode}`;
+        await sql`update property set by_room_legal = ${newLegal} where ${parcelsFor(e.zoneCode)}`;
       }
     }
 

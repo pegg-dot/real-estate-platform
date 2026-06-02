@@ -44,7 +44,6 @@ export async function captureSnapshot(sql: Sql, runId: string, market: string): 
            g.by_room_legal,
            (select owner_id from property p where p.id = g.id)
     from deal_genome g
-    join market m on m.name = g.market
     where g.market = ${market} and g.score is not null
     returning id`;
   return rows.length;

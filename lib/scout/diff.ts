@@ -56,6 +56,12 @@ export function diffSnapshots(
   const prevById = new Map(prev.map((s) => [s.propertyId, s]));
   const events: ChangeEvent[] = [];
 
+  // NOTE (deliberate): we iterate `curr` only, so a property present LAST run but absent this
+  // run emits nothing. That's intentional — the dominant cause of disappearance is an ingest
+  // `--limit` slice differing between runs (an operational artifact, not data truth), which
+  // would spam false "disappeared" events. The weekly cron runs full-city, so for it this is
+  // a real (small) blind spot; the seam to add a prev-not-in-curr "disappeared" event is here.
+
   for (const c of curr) {
     const p = prevById.get(c.propertyId);
     const id = c.propertyId;
