@@ -9,6 +9,8 @@ interface OwnerData {
   owner: { name: string | null; entity_type: string | null; is_absentee: boolean | null };
   portfolio: { count: number; totalValue: number; byRoomLegal: number; distressCount: number;
     parcels: Array<{ apn: string; address: string | null; est_market_value: string | null; distress: boolean }> };
+  situation: { situation: string; approach: string; bestPlay: string; tone: string } | null;
+  contact: { phones?: string[]; emails?: string[] } | null;
   intel: Array<{ category: string; source: string }>;
   links: Array<{ label: string; url: string }>;
 }
@@ -25,6 +27,8 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
   const [loadingOwner, setLoadingOwner] = useState(false);
   async function loadOwner() {
     setLoadingOwner(true);
+    // run the funnel's ENRICH step (derive situation + any keyed vendors), then load the dossier
+    await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "enrich-owner", apn }) }).catch(() => {});
     const r = await fetch(`/api/owner?apn=${encodeURIComponent(apn)}`).then((x) => x.json());
     setLoadingOwner(false);
     if (!r.error) setOwner(r);
@@ -143,6 +147,18 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
                   {owner.portfolio.parcels.slice(0, 6).map((p, i) => (
                     <div key={i} className="muted">• {p.address ?? p.apn} ({usd(p.est_market_value)}){p.distress ? " ⚠️" : ""}</div>
                   ))}
+                </div>
+              )}
+              {owner.situation && (
+                <div style={{ margin: "6px 0", padding: "8px 10px", background: "#fefce8", borderRadius: 6, fontSize: 12.5 }}>
+                  <div><strong>Their likely situation:</strong> {owner.situation.situation}</div>
+                  <div style={{ marginTop: 4 }}><strong>How to approach:</strong> {owner.situation.approach}</div>
+                  <div style={{ marginTop: 4 }} className="muted">Best play: <strong>{owner.situation.bestPlay.replace(/_/g, " ")}</strong> · tone: {owner.situation.tone}</div>
+                </div>
+              )}
+              {owner.contact && (owner.contact.phones?.length || owner.contact.emails?.length) && (
+                <div style={{ fontSize: 12, marginBottom: 4 }}>
+                  📞 {(owner.contact.phones ?? []).join(", ") || "—"} · ✉️ {(owner.contact.emails ?? []).join(", ") || "—"}
                 </div>
               )}
               <div style={{ fontSize: 12 }}>Research (no scraping — you click): {owner.links.map((l, i) => (

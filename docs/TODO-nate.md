@@ -33,6 +33,10 @@
       parser drop in). Your call on cost + legal posture.
 - [ ] **(optional) paid distress vendor** (PropStream/BatchData) — foreclosure / lis-pendens /
       probate coverage; inserts into the same `distress_signal` table (no code change needed).
+- [ ] **Owner enrichment / skip-trace key** (spec 014) — the whole owner-intelligence funnel (phones,
+      emails, contact) lights up the moment you add ONE: `BATCHDATA_API_KEY=...` (BatchData) **or**
+      `ENDATO_NAME=... ENDATO_KEY=...` (Endato) in `.env`. The free layer (portfolio resolution, the
+      situation-read, research links) already works without any key. Run: `npm run enrich -- --leads`.
 
 - [ ] **Rent comps** — pick the path (see "How rent data works" below). Free baseline
       (HUD FMR + Census + a light UVA-listings scrape) costs $0; paid (RentCast free tier →

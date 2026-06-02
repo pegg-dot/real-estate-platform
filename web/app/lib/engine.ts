@@ -7,7 +7,7 @@ import path from "node:path";
 const execFileAsync = promisify(execFile);   // execFile = NO shell; args are an array, never interpolated
 const REPO = path.resolve(process.cwd(), "..");          // web/ -> repo root
 const TSX = path.join(REPO, "node_modules", ".bin", "tsx");
-const ALLOWED = new Set(["sourcing.ts", "learn.ts", "rents.ts", "brief.ts", "thesis.ts", "deal.ts", "refresh-market.ts"]);
+const ALLOWED = new Set(["sourcing.ts", "learn.ts", "rents.ts", "brief.ts", "thesis.ts", "deal.ts", "refresh-market.ts", "enrich.ts"]);
 
 export async function runEngine(script: string, args: string[], timeoutMs = 120_000): Promise<string> {
   if (!ALLOWED.has(script)) throw new Error(`script not allowed: ${script}`);
@@ -68,6 +68,9 @@ export function buildAction(action: string, p: Record<string, unknown>): { scrip
       return { script: "refresh-market.ts", args: ["--dossier", p.apn, "--market", "Charlottesville"], timeout: 40_000 };
     case "run-radar":     // refresh-market --radar: detect zoning changes (no ingest/score)
       return { script: "refresh-market.ts", args: ["--radar", "--market", "Charlottesville"], timeout: 40_000 };
+    case "enrich-owner":  // derive the owner's situation + run any keyed vendor adapters
+      if (typeof p.apn !== "string" || !/^[0-9A-Za-z][0-9A-Za-z._-]*$/.test(p.apn) || p.apn.length > 64) throw new Error("enrich-owner needs a valid apn");
+      return { script: "enrich.ts", args: ["--owner", p.apn], timeout: 40_000 };
     default:
       throw new Error(`unknown action: ${action}`);
   }

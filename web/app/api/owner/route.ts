@@ -36,8 +36,10 @@ export async function GET(req: Request) {
     parcels: parcels.slice(0, 25),
   };
 
-  const intel = await sql()<Array<{ category: string; detail: unknown; source: string; confidence: string }>>`
+  const intel = await sql()<Array<{ category: string; detail: Record<string, unknown>; source: string; confidence: string }>>`
     select category, detail, source, confidence from owner_intel where owner_id = ${owner.id}`;
+  const situation = intel.find((x) => x.category === "situation")?.detail ?? null;
+  const contact = intel.find((x) => x.category === "contact")?.detail ?? null;
 
   // compliant research deep-links (no scraping — a human clicks these)
   const q = (s: string) => encodeURIComponent(s);
@@ -49,5 +51,5 @@ export async function GET(req: Request) {
     ...(cleanName ? [{ label: "Obituary / probate (Legacy)", url: `https://www.legacy.com/search?query=${q(cleanName)}` }] : []),
   ];
 
-  return Response.json({ owner, portfolio, intel, links }, { headers: { "cache-control": "no-store" } });
+  return Response.json({ owner, portfolio, intel, situation, contact, links }, { headers: { "cache-control": "no-store" } });
 }
