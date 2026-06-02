@@ -1,6 +1,19 @@
 # Spec 005 — Map + Deal UI + Natural-Language Filters (SHOW)
 
-**Status:** after 003 · **Depends on:** scored properties · **Unlocks:** the daily-use experience
+**Status:** functional preview BUILT 2026-06-02 (`web/`) · **Depends on:** scored properties · **Unlocks:** the daily-use experience
+
+## Functional preview built (web/)
+Next.js + Mapbox app over the LIVE data, deliberately functional-first (plain styling; the visual
+design pass happens via Claude design on top). Isolated `web/` package (its own deps) reading the
+same `deal_genome` view + `lead`/`deal` tables via direct SQL — always in sync, no duplicated logic.
+- **Map** (`/`): ~12.3k scored parcels plotted, colored red→green by score, outline ring on a
+  constraint trip; click → **deal panel** (score, CoC + range, confidence, snapshot, score
+  breakdown, financing rec + legal guardrail).
+- **Leads** (`/leads`), **Pipeline** (`/deals`): the lead queue + the deal board.
+- Verified live: `/api/parcels` serves 12,268 features; `/api/dossier` returns the scored row;
+  all pages 200. (Mapbox pixel rendering is client-side — open it in a browser to see the map.)
+- Run: `cd web && npm install && (source ../.env) && npm run dev`. See `web/README.md`.
+- NL filters + the Monday-Brief page are the next UI iteration.
 
 ## Purpose
 The map-first interface where Nate explores and *compares* — "this one's better for me,

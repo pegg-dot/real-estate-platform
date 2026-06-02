@@ -1,0 +1,21 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; color: #1a1a1a; }
+a { color: inherit; text-decoration: none; }
+
+nav {
+  display: flex; gap: 1.25rem; align-items: center;
+  padding: 0.6rem 1rem; background: #0f172a; color: #e2e8f0; font-size: 0.9rem;
+}
+nav .brand { font-weight: 700; letter-spacing: 0.04em; color: #fff; }
+nav a { opacity: 0.75; } nav a:hover { opacity: 1; }
+nav a.active { opacity: 1; border-bottom: 2px solid #38bdf8; padding-bottom: 2px; }
+
+.page { padding: 1.25rem 1.5rem; }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #e5e7eb; }
+th { color: #64748b; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+tr:hover td { background: #f8fafc; }
+.pill { display: inline-block; padding: 0.05rem 0.4rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
+.pill.flag { background: #fef3c7; color: #92400e; }
+.pill.ok { background: #dcfce7; color: #166534; }
+.muted { color: #94a3b8; }
