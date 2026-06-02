@@ -63,15 +63,21 @@ FY2026_CHARLOTTESVILLE = {
 }
 
 
-def fetch_fmr(token: str, cbsa: str = CHARLOTTESVILLE_CBSA, year: int | None = None) -> dict:
-    """Network: fetch + parse the HUD FMR for a metro CBSA (Bearer token required)."""
+def fetch_fmr(token: str, cbsa: str = CHARLOTTESVILLE_CBSA, year: int | None = None,
+              expect: str | None = "Charlottesville") -> dict:
+    """Network: fetch + parse the HUD FMR for a metro CBSA (Bearer token required). The
+    geography guard runs HERE (not only in main()) so no programmatic caller can skip it —
+    pass expect=None to opt out for a new market."""
     url = f"{HUD_API}/{hud_entity_id(cbsa)}"
     if year:
         url += f"?year={year}"
     req = urllib.request.Request(
         url, headers={"Authorization": f"Bearer {token}", "User-Agent": "LOT-ingest/0.1"})
     with urllib.request.urlopen(req, timeout=30) as resp:
-        return parse_fmr_response(json.loads(resp.read().decode("utf-8")))
+        parsed = parse_fmr_response(json.loads(resp.read().decode("utf-8")))
+    if expect:
+        assert_area_matches(parsed, expect)
+    return parsed
 
 
 def _config_block(parsed: dict) -> dict:

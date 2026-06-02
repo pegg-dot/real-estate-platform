@@ -25,7 +25,8 @@ export async function renderDossierForApn(
            g.owner_name, g.owner_entity_type as "ownerEntityType", g.is_absentee as "isAbsentee",
            g.tenure_years, g.last_arms_price as "lastArmsPrice",
            to_char(g.last_arms_date,'YYYY-MM-DD') as "lastArmsDate",
-           g.flood_zone as "floodZone", g.is_condo as "isCondo"
+           g.flood_zone as "floodZone", g.is_condo as "isCondo",
+           g.est_annual_insurance as "estAnnualInsurance"
     from deal_genome g where g.market = ${market} and g.apn = ${apn} limit 1`;
   const row = rows[0];
   if (!row) throw new Error(`No parcel ${apn} in ${market}. Ingest it first.`);

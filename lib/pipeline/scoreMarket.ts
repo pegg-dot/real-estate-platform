@@ -104,7 +104,11 @@ export function scoreRow(
   });
 
   // HUD FMR real floor / sanity cross-check (004a): does the MODELED whole-house rent dip
-  // below the real voucher floor? If so the rent model is suspect for this parcel.
+  // below the real voucher floor? Surfaced on the DOSSIER (not persisted to the digest/genome)
+  // ON PURPOSE: with the current $/bed whole-house model, `belowFloor` fires for ~every
+  // beds-known parcel — i.e. it's a MODEL-LEVEL signal (our whole-house rent reads ~systematically
+  // below HUD), not a per-parcel anomaly, so persisting it to the triage digest would be noise.
+  // It belongs in the deep dossier as calibration context. (See the whole-house-vs-HUD finding.)
   const fmrSched = fmrScheduleFor(a);
   const vsFloor = fmrSched
     ? rentVsHudFloor(score.proFormas.wholeHouse.grossAnnualRent, row.beds, fmrSched)
