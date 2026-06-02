@@ -12,9 +12,9 @@ export default function LearnPage() {
 
   useEffect(() => { fetch("/api/learn").then((x) => x.json()).then(setR); }, []);
 
-  async function propose() {
+  async function act(action: string) {
     setBusy(true); setOut(null);
-    const x = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "propose-retune" }) }).then((y) => y.json());
+    const x = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action }) }).then((y) => y.json());
     setBusy(false); setOut(x.ok ? x.output : `⚠️ ${x.error}`);
   }
 
@@ -33,7 +33,8 @@ export default function LearnPage() {
             <Stat label="Passed high-scorers" value={String(r.passedHighScorers ?? 0)} />
             <Stat label="Advanced low-scorers" value={String(r.advancedLowScorers ?? 0)} />
           </div>
-          <button onClick={propose} disabled={busy} style={btn}>{busy ? "Computing…" : "🧠 Propose a weight retune"}</button>
+          <button onClick={() => act("propose-retune")} disabled={busy} style={btn}>{busy ? "Computing…" : "🧠 Propose a weight retune"}</button>
+          <button onClick={() => act("apply-retune")} disabled={busy} style={{ ...btn, background: "#fff", color: "#0f172a", marginLeft: 8 }}>{busy ? "…" : "✓ Apply it (saves a new thesis to review)"}</button>
           {out && <pre style={{ background: "#0f172a", color: "#e2e8f0", padding: 12, borderRadius: 6, fontSize: 12, marginTop: 12, whiteSpace: "pre-wrap" }}>{out}</pre>}
         </>
       )}

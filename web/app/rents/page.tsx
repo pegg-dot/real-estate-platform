@@ -12,11 +12,18 @@ export default function RentsPage() {
   const load = () => fetch("/api/rents").then((r) => r.json()).then((j) => setComps(j.comps ?? []));
   useEffect(() => { load(); }, []);
 
+  const [rc, setRc] = useState({ address: "", beds: "" });
   async function add() {
     setBusy(true); setMsg(null);
     const x = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "add-rent-comp", address: f.address, lat: f.lat, lng: f.lng, beds: f.beds, rent: f.rent, byroom: f.byroom }) }).then((y) => y.json());
     setBusy(false); setMsg(x.ok ? x.output : `⚠️ ${x.error}`); if (x.ok) { load(); setF({ address: "", lat: "", lng: "", beds: "", rent: "", byroom: false }); }
+  }
+  async function fetchRentCast() {
+    setBusy(true); setMsg(null);
+    const x = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "rentcast", address: rc.address, beds: rc.beds }) }).then((y) => y.json());
+    setBusy(false); setMsg(x.ok ? x.output : `⚠️ ${x.error}`); if (x.ok) load();
   }
 
   return (
@@ -33,6 +40,14 @@ export default function RentsPage() {
         <button onClick={add} disabled={busy} style={btn}>{busy ? "…" : "+ Add comp"}</button>
       </div>
       {msg && <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>{msg}</div>}
+
+      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 14 }}>
+        <span className="muted" style={{ fontSize: 12 }}>or pull from RentCast:</span>
+        <I v={rc.address} set={(v) => setRc({ ...rc, address: v })} ph="full address, City, VA" w={200} />
+        <I v={rc.beds} set={(v) => setRc({ ...rc, beds: v })} ph="beds" w={60} />
+        <button onClick={fetchRentCast} disabled={busy} style={{ padding: "6px 12px", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Fetch RentCast</button>
+        <span className="muted" style={{ fontSize: 11 }}>(needs RENTCAST_API_KEY)</span>
+      </div>
 
       <table><thead><tr><th>Address</th><th>Beds</th><th>Rent/mo</th><th>$/bed</th><th>Type</th><th>Source</th></tr></thead><tbody>
         {comps.map((c, i) => (<tr key={i}><td>{c.address ?? "—"}</td><td>{c.beds ?? "—"}</td><td>${Number(c.rent_monthly ?? 0).toLocaleString()}</td><td>${Number(c.per_bed_rent ?? 0).toLocaleString()}</td><td>{c.is_by_room ? "per-room" : "whole-unit"}</td><td className="muted">{c.source}</td></tr>))}

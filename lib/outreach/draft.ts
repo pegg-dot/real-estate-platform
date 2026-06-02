@@ -18,6 +18,8 @@ export interface MailerInput {
   structure?: string;              // recommended structure (internal context, not named at the seller)
   internalReasonChips?: string[];  // INTERNAL ONLY — deliberately ignored in the body
   signerName?: string;             // who the letter is from (default Nate)
+  /** the owner's situation read (spec 014) — tailors tone + opening, respectfully */
+  situation?: { situation: string; approach: string; bestPlay: string; tone: string } | null;
 }
 
 export interface Mailer { subject: string; body: string }
@@ -31,6 +33,15 @@ export function draftMailer(m: MailerInput): Mailer {
   const lines: string[] = [];
   lines.push(greeting);
   lines.push("");
+  // situation-aware opening (spec 014) — respectful, never reveals internal reasoning. A gentle
+  // tone (e.g. an inherited/estate property) leads softly; others get the standard direct opener.
+  if (m.situation?.tone === "gentle") {
+    lines.push(
+      "I know a property like this can become more of a burden than a benefit — especially if it " +
+      "came to you unexpectedly. There's no pressure at all here; I just wanted to offer a simple, " +
+      "respectful option if and when the time is right for you.");
+    lines.push("");
+  }
   lines.push(
     `I'm a local buyer interested in your property at ${m.propertyAddress}. I'm not an agent ` +
     `and there's no listing or commission involved — I buy directly and can be flexible on how a ` +

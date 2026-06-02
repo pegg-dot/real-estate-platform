@@ -41,6 +41,10 @@ export function buildAction(action: string, p: Record<string, unknown>): { scrip
       return { script: "sourcing.ts", args: ["--inbound", String(p.leadId), ...(p.optOut ? ["--optout"] : [])] };
     case "propose-retune":
       return { script: "learn.ts", args: ["--propose"] };
+    case "apply-retune":
+      return { script: "learn.ts", args: ["--apply"] };
+    case "enrich-leads":
+      return { script: "enrich.ts", args: ["--leads", String(Math.min(100, Math.max(1, Number(p.n) || 25)))], timeout: 180_000 };
     case "thesis-from":
       if (typeof p.prose !== "string" || !p.prose.trim()) throw new Error("describe your thesis first");
       return { script: "thesis.ts", args: ["--from", noFlag(p.prose.trim(), 4000, "thesis description")], timeout: 90_000 };

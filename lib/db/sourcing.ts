@@ -169,9 +169,13 @@ export async function approveMailer(sql: Sql, market: string, leadId: string): P
     : [];
   const rec = (fin?.financing as { recommended?: Array<{ structure?: string; sellerPitch?: string;
     capGains?: { sellerBenefit?: number } }> } | undefined)?.recommended?.[0];
+  // pull the owner's situation read (spec 014) so the letter's tone fits their backstory
+  const [sit] = await sql<Array<{ detail: { situation: string; approach: string; bestPlay: string; tone: string } }>>`
+    select detail from owner_intel where owner_id = ${lead.owner_id} and category = 'situation' limit 1`;
   const mailer = draftMailer({
     ownerName: lead.owner_name, propertyAddress: fin?.address ?? "your property",
     sellerPitch: rec?.sellerPitch, capGainsBenefit: rec?.capGains?.sellerBenefit, structure: rec?.structure,
+    situation: sit?.detail ?? null,
   });
 
   const [evt] = await sql<{ id: string }[]>`
