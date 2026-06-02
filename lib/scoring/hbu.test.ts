@@ -5,7 +5,7 @@ const A: HbuAssumptions = {
   landShareRedevelopThreshold: 0.5,
   buildCostPerUnit: 250_000, stabilizedValuePerUnit: 400_000, developHorizonYears: 2,
   flipRehabRate: 0.15, flipArvUplift: 0.4, flipHorizonYears: 1, flipMaxYearBuilt: 1975,
-  saleCostRate: 0.10, wholesaleSpreadRate: 0.05,
+  saleCostRate: 0.10, wholesaleSpreadRate: 0.05, wholesaleEnabled: true, minViablePrice: 50_000,
   intensity: { hold: 0.1, develop: 0.9, flip: 0.8, wholesale: 0.4 },
 };
 
@@ -59,5 +59,21 @@ describe("highestAndBestUse", () => {
     const out = highestAndBestUse(landHeavy({ yearBuilt: 2015 }), A, { management_appetite: 0.2 });
     expect(out.ranked.some((r) => r.use === "hold")).toBe(true);
     for (const e of out.excluded) expect(e.reason.trim().length).toBeGreaterThan(0);
+  });
+
+  it("excludes wholesale (and never recommends it) when the thesis disables it", () => {
+    const noWholesale = { ...A, wholesaleEnabled: false };
+    const out = highestAndBestUse(landHeavy(), noWholesale, { management_appetite: 0.2 });
+    expect(out.excluded.find((e) => e.use === "wholesale")).toBeDefined();
+    expect(out.recommended).not.toBe("wholesale");
+    expect(out.ranked.some((r) => r.use === "wholesale")).toBe(false);
+  });
+
+  it("excludes develop & flip on an implausibly low-value parcel (data artifact / vacant lot)", () => {
+    const out = highestAndBestUse(landHeavy({ price: 1_200 }), A, { management_appetite: 0.9 });
+    expect(out.excluded.find((e) => e.use === "develop")!.reason).toMatch(/value too low|implausible|verify/i);
+    expect(out.excluded.find((e) => e.use === "flip")).toBeDefined();
+    // a tiny-price parcel must never surface a blown-up develop return as the recommendation
+    expect(out.recommended).not.toBe("develop");
   });
 });

@@ -37,6 +37,8 @@ export interface HbuAssumptions {
   flipMaxYearBuilt: number;             // built on/before this => "dated", a flip candidate
   saleCostRate: number;                 // cost to sell (~0.10)
   wholesaleSpreadRate: number;          // assignment spread as a fraction of price
+  wholesaleEnabled: boolean;            // wholesaling is not buy-and-hold; off by default for a holder
+  minViablePrice: number;               // below this, value is a data artifact / vacant lot -> don't model develop/flip
   intensity: Record<Use, number>;       // 0..1 operating/risk intensity per use
 }
 
@@ -86,8 +88,15 @@ export function highestAndBestUse(
   // --- HOLD: always feasible, the baseline ---
   add("hold", input.holdCashOnCash, { cashOnCash: input.holdCashOnCash });
 
+  // A parcel valued below the viability floor is almost always a data artifact (assessed-only,
+  // vacant sliver, common area) — modeling a build/flip return off it produces garbage, so gate
+  // the active plays off and let hold stand. (develop/flip share this guard.)
+  const lowValue = input.price < a.minViablePrice;
+
   // --- DEVELOP: land-heavy + zoning headroom => add units/ADU ---
-  if (landShare == null) {
+  if (lowValue) {
+    excluded.push({ use: "develop", reason: "parcel value too low to model development reliably — verify the value first" });
+  } else if (landShare == null) {
     excluded.push({ use: "develop", reason: "no land/improvement split — cannot assess redevelopment" });
   } else if (landShare < a.landShareRedevelopThreshold) {
     excluded.push({ use: "develop", reason: "improvement-heavy: the value is in the building, not the dirt" });
@@ -108,7 +117,9 @@ export function highestAndBestUse(
   }
 
   // --- FLIP: a dated building to rehab + resell ---
-  if (input.yearBuilt == null) {
+  if (lowValue) {
+    excluded.push({ use: "flip", reason: "parcel value too low to model a flip reliably — verify the value first" });
+  } else if (input.yearBuilt == null) {
     excluded.push({ use: "flip", reason: "build year unknown — cannot assess flip" });
   } else if (input.yearBuilt > a.flipMaxYearBuilt) {
     excluded.push({ use: "flip", reason: "improvement not dated — flip margin unlikely" });
@@ -120,8 +131,13 @@ export function highestAndBestUse(
     add("flip", ret, { arv, rehab, profit });
   }
 
-  // --- WHOLESALE: assign the contract for a spread (fast, low-touch, low-priority) ---
-  add("wholesale", a.wholesaleSpreadRate, { spreadRate: a.wholesaleSpreadRate });
+  // --- WHOLESALE: assign the contract for a spread. Not buy-and-hold, so off unless the thesis
+  // opts in — otherwise its flat spread out-ranks every weak/negative hold and floods the results. ---
+  if (a.wholesaleEnabled) {
+    add("wholesale", a.wholesaleSpreadRate, { spreadRate: a.wholesaleSpreadRate });
+  } else {
+    excluded.push({ use: "wholesale", reason: "wholesaling is not a buy-and-hold play — disabled for this thesis" });
+  }
 
   feasible.sort((x, y) => y.thesisFit - x.thesisFit);
   return {

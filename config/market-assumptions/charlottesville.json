@@ -40,6 +40,8 @@
     "flipMaxYearBuilt": 1975,
     "saleCostRate": 0.10,
     "wholesaleSpreadRate": 0.05,
+    "wholesaleEnabled": false,
+    "minViablePrice": 50000,
     "intensity": { "hold": 0.1, "develop": 0.9, "flip": 0.8, "wholesale": 0.4 }
   },
   "campus": { "name": "UVA", "lat": 38.0356, "lng": -78.5036 },
