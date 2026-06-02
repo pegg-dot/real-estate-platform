@@ -43,18 +43,26 @@ export async function generateLeads(sql: Sql, market: string): Promise<number> {
   const [m] = await sql<{ id: string }[]>`select id from market where name = ${market}`;
   if (!m) throw new Error(`unknown market: ${market}`);
 
-  // one row per (owner, their best-scoring by-room-legal parcel)
+  // one row per (owner, their best-scoring by-room-legal parcel), with a per-parcel distress score
   const rows = await sql<Array<{ owner_id: string; entity_type: string | null;
     is_absentee: boolean | null; tenure_years: number | null; property_id: string;
-    score: number | null; thesis_version: number | null }>>`
+    score: number | null; thesis_version: number | null; distress_score: number | null }>>`
     select distinct on (o.id)
       o.id as owner_id, o.entity_type, o.is_absentee, o.tenure_years,
-      p.id as property_id, ps.score, ps.thesis_version
+      p.id as property_id, ps.score, ps.thesis_version, d.distress_score
     from owner o
     join property p on p.owner_id = o.id
     join market m on m.id = p.market_id
     left join property_score ps on ps.property_id = p.id
       and ps.thesis_version = (select version from thesis where is_active limit 1)
+    left join (
+      -- 0..1 visible-neglect score per parcel: severity of the strongest signal + a small bump
+      -- for repeat complaints (recurring neglect is a stronger tell)
+      select property_id, least(1.0,
+        max(case severity when 'high' then 0.9 when 'medium' then 0.6 else 0.3 end)
+        + 0.1 * (count(*) - 1)) as distress_score
+      from distress_signal group by property_id
+    ) d on d.property_id = p.id
     where m.name = ${market} and p.by_room_legal is true and o.entity_type <> 'institution'
     order by o.id, ps.score desc nulls last`;
   if (rows.length === 0) return 0;
@@ -63,6 +71,7 @@ export async function generateLeads(sql: Sql, market: string): Promise<number> {
     const mot = motivationScore({
       tenureYears: r.tenure_years, isAbsentee: r.is_absentee,
       entityType: r.entity_type, byRoomLegal: true,
+      distressScore: r.distress_score != null ? Number(r.distress_score) : null,
     });
     const gateState = !mot.eligible ? "excluded" : mot.routeManualReview ? "manual_review" : "mailable";
     const segment = r.is_absentee ? "absentee" : (r.tenure_years ?? 0) >= 15 ? "long_tenure" : "owner_occupant";

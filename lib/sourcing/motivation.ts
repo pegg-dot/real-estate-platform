@@ -13,7 +13,11 @@ export interface MotivationSignals {
   isAbsentee: boolean | null;     // owner mailing address != property (off-site landlord)
   entityType: string | null;      // person | llc | trust | estate | institution | unknown
   byRoomLegal: boolean | null;    // make-or-break: only by-room-viable parcels are leads
+  distressScore?: number | null;  // 0..1 visible-neglect signal (distress_signal); null = none observed
 }
+
+// max points a visible-neglect signal can LIFT a score (a bonus, never a penalty for absence)
+const DISTRESS_LIFT_MAX = 20;
 
 export interface MotivationResult {
   score: number;                  // 0-100 (0 when ineligible)
@@ -66,8 +70,12 @@ export function motivationScore(s: MotivationSignals): MotivationResult {
   const entityPrior = ENTITY_PRIOR[entity] ?? 0.45;
   reasons.push(`owner type: ${entity} (prior ${entityPrior.toFixed(2)})`);
 
-  const raw = W.holdDuration * holdDuration + W.absentee * absentee + W.entityPrior * entityPrior;
-  const score = Math.round(clamp(raw) * 100);
+  const base = W.holdDuration * holdDuration + W.absentee * absentee + W.entityPrior * entityPrior;
+  // distress is a LIFT, not a weighted component — a complaint raises the score, but the absence
+  // of one (the common case) must not push every clean parcel down.
+  const distress = clamp(s.distressScore ?? 0);
+  if (distress > 0) reasons.push(`visible-neglect/distress signal (${(distress * 100).toFixed(0)}% — overgrown/abandoned complaint)`);
+  const score = Math.round(clamp(clamp(base) * 100 + distress * DISTRESS_LIFT_MAX, 0, 100));
 
   return {
     score,

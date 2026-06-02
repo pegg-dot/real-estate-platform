@@ -107,6 +107,11 @@ async function main() {
     if (flag("no-history")) pyArgs.push("--no-history");
     const py = fs.existsSync(".venv/bin/python") ? ".venv/bin/python" : "python3";
     execFileSync(py, pyArgs, { stdio: "inherit", env: { ...process.env, SUPABASE_DB_URL: dsn } });
+    // distress signals (free MyCvilleRequests neglect complaints -> distress_signal -> motivation lift)
+    if (flag("distress")) {
+      console.log(`      + distress signals…`);
+      execFileSync(py, ["-m", "ingestion.distress"], { stdio: "inherit", env: { ...process.env, SUPABASE_DB_URL: dsn } });
+    }
   }
 
   // 2. REASON — seed the cited knowledge rules, then score + finance

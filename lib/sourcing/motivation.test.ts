@@ -56,4 +56,25 @@ describe("motivated-seller score (004c) — by-room-legal only, explainable sign
     expect(r.eligible).toBe(true);
     expect(Number.isFinite(r.score)).toBe(true);
   });
+
+  it("a visible-neglect distress signal LIFTS the score above an otherwise-identical clean parcel", () => {
+    const clean = motivationScore(base);
+    const neglected = motivationScore(sig({ distressScore: 0.6 }));
+    expect(neglected.score).toBeGreaterThan(clean.score);
+  });
+
+  it("absence of a distress signal does NOT penalize (no complaint != a negative)", () => {
+    // null distress and 0 distress both mean 'no neglect observed' -> same score as the base
+    expect(motivationScore(sig({ distressScore: null })).score).toBe(motivationScore(base).score);
+    expect(motivationScore(sig({ distressScore: 0 })).score).toBe(motivationScore(base).score);
+  });
+
+  it("the distress lift is bounded (score stays 0-100)", () => {
+    const r = motivationScore(sig({ tenureYears: 25, isAbsentee: true, distressScore: 1 }));
+    expect(r.score).toBeLessThanOrEqual(100);
+  });
+
+  it("a distress signal is explained in the reasons", () => {
+    expect(motivationScore(sig({ distressScore: 0.6 })).reasons.join(" ").toLowerCase()).toMatch(/neglect|distress|overgrown|complaint/);
+  });
 });
