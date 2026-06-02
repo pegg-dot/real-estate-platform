@@ -6,7 +6,6 @@ import DealPanel from "./DealPanel";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-// circle color ramp by score: red (low) → amber → green (high)
 const scorePaint = {
   "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 2.5, 15, 6] as unknown as number,
   "circle-color": [
@@ -20,11 +19,31 @@ const scorePaint = {
 
 export default function MapPage() {
   const [selectedApn, setSelectedApn] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [dataUrl, setDataUrl] = useState("/api/parcels");
+  const [filterMsg, setFilterMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const onClick = useCallback((e: MapLayerMouseEvent) => {
     const f = e.features?.[0];
     if (f?.properties?.apn) setSelectedApn(String(f.properties.apn));
   }, []);
+
+  async function applyFilter(e: React.FormEvent) {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setBusy(true); setFilterMsg(null);
+    const r = await fetch("/api/filter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt: query }) }).then((x) => x.json());
+    setBusy(false);
+    if (!r.ok) { setFilterMsg(`⚠️ ${r.error}`); return; }
+    const f = r.filter as Record<string, unknown>;
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(f)) if (v != null) params.set(k, String(v));
+    setDataUrl(`/api/parcels?${params}`);
+    const applied = Object.entries(f).filter(([, v]) => v != null).map(([k, v]) => `${k}=${v}`);
+    setFilterMsg(applied.length ? `Filtered: ${applied.join(", ")}` : "No filters parsed from that.");
+  }
+  function clearFilter() { setDataUrl("/api/parcels"); setQuery(""); setFilterMsg(null); }
 
   if (!TOKEN) {
     return <div className="page"><h2>Map needs a Mapbox token</h2>
@@ -41,15 +60,22 @@ export default function MapPage() {
         onClick={onClick}
         cursor="pointer"
       >
-        <Source id="parcels-src" type="geojson" data="/api/parcels">
+        <Source id="parcels-src" type="geojson" data={dataUrl}>
           <Layer id="parcels" type="circle" paint={scorePaint as never} />
         </Source>
       </Map>
 
-      <div style={{ position: "absolute", top: 12, left: 12, background: "#fff", padding: "8px 12px",
-        borderRadius: 8, boxShadow: "0 1px 6px rgba(0,0,0,0.15)", fontSize: 13 }}>
-        <strong>Deal map</strong> — every scored parcel, colored by thesis score.<br />
-        <span className="muted">🔴 low · 🟡 ~55 · 🟢 high · ⌬ outline = trips a constraint. Click a dot.</span>
+      <div style={{ position: "absolute", top: 12, left: 12, width: 420, background: "#fff", padding: "10px 12px",
+        borderRadius: 8, boxShadow: "0 1px 8px rgba(0,0,0,0.18)", fontSize: 13 }}>
+        <strong>Deal map</strong> — scored parcels, red→green by score. Click a dot for the dossier.
+        <form onSubmit={applyFilter} style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          <input value={query} onChange={(e) => setQuery(e.target.value)}
+            placeholder='Ask: "by-room-legal under $400k within 1mi with a neglect flag"'
+            style={{ flex: 1, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 12 }} />
+          <button type="submit" disabled={busy} style={{ padding: "6px 10px", border: "1px solid #0f172a", background: "#0f172a", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>{busy ? "…" : "Filter"}</button>
+          {dataUrl !== "/api/parcels" && <button type="button" onClick={clearFilter} style={{ padding: "6px 8px", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>Clear</button>}
+        </form>
+        {filterMsg && <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>{filterMsg}</div>}
       </div>
 
       {selectedApn && <DealPanel apn={selectedApn} onClose={() => setSelectedApn(null)} />}

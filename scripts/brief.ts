@@ -17,7 +17,9 @@ async function main() {
   if (!dsn) throw new Error("SUPABASE_DB_URL not set");
   const sql = getSql(dsn);
   try {
-    console.log(renderBrief(await assembleBrief(sql, market)));
+    const brief = await assembleBrief(sql, market);
+    // --json: structured output for the web UI to consume; otherwise the terminal digest
+    console.log(process.argv.includes("--json") ? JSON.stringify(brief) : renderBrief(brief));
   } finally {
     await sql.end();
   }

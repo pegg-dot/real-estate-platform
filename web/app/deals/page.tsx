@@ -1,12 +1,13 @@
 import { sql, MARKET } from "../lib/db";
+import DealCard from "./DealCard";
 
 export const dynamic = "force-dynamic";
 const STAGES = ["watch", "analyzing", "offer", "under_contract", "owned", "exited", "passed"];
 
 export default async function DealsPage() {
-  const deals = await sql()<Array<{ stage: string; address: string | null; score: number | null;
+  const deals = await sql()<Array<{ id: string; stage: string; address: string | null; score: number | null;
     updated_at: string; recommended_structure: string | null }>>`
-    select d.stage::text as stage, p.address, dg.score, d.updated_at,
+    select d.id, d.stage::text as stage, p.address, dg.score, d.updated_at,
            dg.recommended_structure
     from deal d
     join property p on p.id = d.property_id
@@ -32,11 +33,8 @@ export default async function DealsPage() {
               <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "#475569", marginBottom: 8 }}>
                 {s.replace(/_/g, " ")} <span className="muted">({items.length})</span>
               </div>
-              {items.map((d, i) => (
-                <div key={i} style={{ background: "#fff", borderRadius: 6, padding: "6px 8px", marginBottom: 6, fontSize: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}>
-                  <div style={{ fontWeight: 600 }}>{d.address ?? "—"}</div>
-                  <div className="muted">{d.score != null ? `score ${Math.round(Number(d.score))}` : ""} {d.recommended_structure ? `· ${d.recommended_structure.replace(/_/g, " ")}` : ""}</div>
-                </div>
+              {items.map((d) => (
+                <DealCard key={d.id} dealId={d.id} stage={d.stage} address={d.address} score={d.score} structure={d.recommended_structure} />
               ))}
             </div>
           );

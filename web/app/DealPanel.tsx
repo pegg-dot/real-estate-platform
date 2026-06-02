@@ -8,6 +8,15 @@ const pct = (n: unknown) => (n != null && n !== "" ? `${(Number(n) * 100).toFixe
 export default function DealPanel({ apn, onClose }: { apn: string; onClose: () => void }) {
   const [d, setD] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tracking, setTracking] = useState(false);
+  const [trackMsg, setTrackMsg] = useState<string | null>(null);
+
+  async function track() {
+    setTracking(true); setTrackMsg(null);
+    const r = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "track-deal", apn }) }).then((x) => x.json());
+    setTracking(false);
+    setTrackMsg(r.ok ? r.output : `⚠️ ${r.error}`);
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -45,6 +54,11 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
               ⚠️ Constraint flag: {gateFailures[0]}
             </div>
           )}
+
+          <button onClick={track} disabled={tracking} style={{ width: "100%", padding: "8px", border: "1px solid #0f172a", background: "#0f172a", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+            {tracking ? "Tracking…" : "＋ Track this deal"}
+          </button>
+          {trackMsg && <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{trackMsg} <a href="/deals">→ Pipeline</a></div>}
 
           <Section title="Snapshot (real)">
             <Row k="Assessed value" v={usd(d.est_market_value)} />
