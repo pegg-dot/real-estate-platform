@@ -17,8 +17,16 @@ export async function runEngine(script: string, args: string[], timeoutMs = 120_
   return stdout;
 }
 
-const isUuid = (s: unknown) => typeof s === "string" && /^[0-9a-f-]{36}$/i.test(s);
+// strict uuid (starts with a hex digit, so it can never be read as a flag)
+const isUuid = (s: unknown) => typeof s === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 const numStr = (n: unknown) => { const x = Number(n); if (!Number.isFinite(x)) throw new Error("bad number"); return String(x); };
+// any user string crossing the argv boundary must NOT begin with '-' (argv flag-smuggling) and is length-bounded
+const noFlag = (s: unknown, max: number, label: string): string => {
+  if (typeof s !== "string" || s.length === 0 || s.length > max || /^-/.test(s)) {
+    throw new Error(`${label}: required, must not begin with '-', and be ≤${max} chars`);
+  }
+  return s;
+};
 
 /** Map a UI action to a concrete (script, args) — the client never names a script directly. */
 export function buildAction(action: string, p: Record<string, unknown>): { script: string; args: string[]; timeout?: number } {
@@ -35,9 +43,10 @@ export function buildAction(action: string, p: Record<string, unknown>): { scrip
       return { script: "learn.ts", args: ["--propose"] };
     case "thesis-from":
       if (typeof p.prose !== "string" || !p.prose.trim()) throw new Error("describe your thesis first");
-      return { script: "thesis.ts", args: ["--from", p.prose], timeout: 90_000 };
+      return { script: "thesis.ts", args: ["--from", noFlag(p.prose.trim(), 4000, "thesis description")], timeout: 90_000 };
     case "track-deal":
-      if (typeof p.apn !== "string" || !/^[0-9A-Za-z._-]+$/.test(p.apn)) throw new Error("track-deal needs a valid apn");
+      // apn must START alphanumeric (no leading '-') and contain only safe chars
+      if (typeof p.apn !== "string" || !/^[0-9A-Za-z][0-9A-Za-z._-]*$/.test(p.apn) || p.apn.length > 64) throw new Error("track-deal needs a valid apn");
       return { script: "deal.ts", args: ["--track", p.apn] };
     case "transition-deal":
       if (!isUuid(p.dealId)) throw new Error("transition-deal needs a valid dealId");
@@ -45,7 +54,7 @@ export function buildAction(action: string, p: Record<string, unknown>): { scrip
       if (typeof p.toStage !== "string" || !/^[a-z_]+$/.test(p.toStage)) throw new Error("transition-deal needs a valid toStage");
       return { script: "deal.ts", args: ["--transition", String(p.dealId), "--to", p.toStage, ...(p.reason && /^[a-z_]+$/.test(String(p.reason)) ? ["--reason", String(p.reason)] : [])] };
     case "add-rent-comp":
-      return { script: "rents.ts", args: ["--add", String(p.address ?? "manual comp"),
+      return { script: "rents.ts", args: ["--add", noFlag(String(p.address ?? "manual comp"), 200, "address"),
         "--lat", numStr(p.lat), "--lng", numStr(p.lng), "--beds", numStr(p.beds), "--rent", numStr(p.rent),
         ...(p.byroom ? ["--byroom"] : [])] };
     default:
