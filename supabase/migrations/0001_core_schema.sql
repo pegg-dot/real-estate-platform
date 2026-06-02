@@ -132,7 +132,7 @@ create table owner (
   name            text,
   mailing_address text,
   is_absentee     boolean,                     -- mailing != property (derived)
-  tenure_years    numeric(6,2),                -- from earliest arm's-length sale (derived)
+  tenure_years    numeric(6,2),                -- hold duration: years since the MOST-RECENT arm's-length acquisition (derived, spec 019 0017)
   entity_type     owner_entity_type not null default 'unknown',
   portfolio_size  integer,                      -- parcels owned in market (derived)
   provenance      jsonb not null default '{}'::jsonb,
