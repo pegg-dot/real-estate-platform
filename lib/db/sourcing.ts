@@ -10,6 +10,7 @@
 import type postgres from "postgres";
 import type { Sql } from "./client.js";
 import { motivationScore } from "../sourcing/motivation.js";
+import { inferBunny } from "../sourcing/bunny.js";
 import { assertCompliant } from "../outreach/complianceGate.js";
 import { draftMailer } from "../outreach/draft.js";
 import { createDeal } from "./deal.js";
@@ -45,10 +46,12 @@ export async function generateLeads(sql: Sql, market: string): Promise<number> {
 
   // one row per (owner, their best-scoring by-room-legal parcel), with a per-parcel distress score
   const rows = await sql<Array<{ owner_id: string; entity_type: string | null;
-    is_absentee: boolean | null; tenure_years: number | null; property_id: string;
+    is_absentee: boolean | null; tenure_years: number | null; portfolio_size: number | null;
+    equity_pct: string | null; property_id: string;
     score: number | null; thesis_version: number | null; distress_score: number | null }>>`
     select distinct on (o.id)
-      o.id as owner_id, o.entity_type, o.is_absentee, o.tenure_years,
+      o.id as owner_id, o.entity_type, o.is_absentee, o.tenure_years, o.portfolio_size,
+      case when p.est_market_value > 0 then p.est_equity / p.est_market_value else null end as equity_pct,
       p.id as property_id, ps.score, ps.thesis_version, d.distress_score
     from owner o
     join property p on p.owner_id = o.id
@@ -75,11 +78,21 @@ export async function generateLeads(sql: Sql, market: string): Promise<number> {
     });
     const gateState = !mot.eligible ? "excluded" : mot.routeManualReview ? "manual_review" : "mailable";
     const segment = r.is_absentee ? "absentee" : (r.tenure_years ?? 0) >= 15 ? "long_tenure" : "owner_occupant";
+    // typed motivation_type -> bunny -> structure -> angle (spec 019 Part B). Tier-B signal stays
+    // null until an adapter feeds one; tenure now comes from the backfilled owner.tenure_years.
+    const bunny = inferBunny({
+      tenureYears: r.tenure_years, isAbsentee: r.is_absentee, portfolioSize: r.portfolio_size,
+      entityType: r.entity_type, estEquityPct: r.equity_pct != null ? Number(r.equity_pct) : null,
+      byRoomLegal: true,
+    });
     return {
       market_id: m.id, owner_id: r.owner_id, property_id: r.property_id,
       motivation_score: mot.score,
-      score_provenance: sql.json({ subScores: mot.subScores, reasons: mot.reasons } as Json),
+      score_provenance: sql.json({ subScores: mot.subScores, reasons: mot.reasons,
+        bunny: { angle: bunny.outreachAngle, reasons: bunny.reasons } } as Json),
       gate_state: gateState, segment, thesis_version: r.thesis_version,
+      motivation_type: bunny.motivationType, likely_bunny: bunny.likelyBunny,
+      recommended_structure: bunny.recommendedStructure, bunny_confidence: bunny.confidence,
     };
   });
 
@@ -89,11 +102,14 @@ export async function generateLeads(sql: Sql, market: string): Promise<number> {
     const slice = records.slice(i, i + CHUNK);
     await sql`
       insert into lead ${sql(slice, "market_id", "owner_id", "property_id", "motivation_score",
-        "score_provenance", "gate_state", "segment", "thesis_version")}
+        "score_provenance", "gate_state", "segment", "thesis_version",
+        "motivation_type", "likely_bunny", "recommended_structure", "bunny_confidence")}
       on conflict (owner_id) do update set
         property_id = excluded.property_id, motivation_score = excluded.motivation_score,
         score_provenance = excluded.score_provenance, gate_state = excluded.gate_state,
-        segment = excluded.segment, thesis_version = excluded.thesis_version`;
+        segment = excluded.segment, thesis_version = excluded.thesis_version,
+        motivation_type = excluded.motivation_type, likely_bunny = excluded.likely_bunny,
+        recommended_structure = excluded.recommended_structure, bunny_confidence = excluded.bunny_confidence`;
   }
   return records.length;
 }

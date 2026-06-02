@@ -242,6 +242,15 @@ def load_properties(conn, market_id: str, properties: list[dict]) -> dict:
             "        where owner_id is not null and market_id = %s group by owner_id) sub "
             "where sub.owner_id = o.id and (o.portfolio_size is distinct from sub.n)",
             (market_id,))
+        # owner.tenure_years = years since the owner's most-recent arm's-length acquisition
+        # (spec 019 Part B; the tired-landlord hold-duration gate). Long hold => high tenure.
+        cur.execute(
+            "update owner o set tenure_years = sub.yrs "
+            "from (select p.owner_id, extract(year from age(now(), max(s.sale_date)))::int yrs "
+            "        from property p join sale s on s.property_id = p.id and s.is_arms_length "
+            "        where p.owner_id is not null and p.market_id = %s group by p.owner_id) sub "
+            "where sub.owner_id = o.id and (o.tenure_years is distinct from sub.yrs)",
+            (market_id,))
 
     conn.commit()
     return counts
