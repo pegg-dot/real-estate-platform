@@ -2,13 +2,18 @@
 /**
  * refresh-market — the orchestrated weekly loop (spec 006, first real cut).
  *
- * SENSE -> REASON -> SHOW in one command:
+ * SENSE -> REASON -> SHOW -> SCOUT in one command:
  *   1. ingest county data (Python loader) into Postgres
  *   2. score + recommend financing for every property (the TS bridge)
  *   3. print a digest: top opportunities for Nate's thesis
+ *   4. SCOUT: snapshot this run + diff vs last run → "what changed this week"
+ *   5. RADAR: turn any zoning-rule change into an alpha signal
  *
  * Usage:
  *   SUPABASE_DB_URL=postgres://... npx tsx scripts/refresh-market.ts --market Charlottesville --limit 50 [--geocode] [--skip-ingest]
+ *   ... --changes   show the last run's change feed (no rescore)
+ *   ... --radar      run the regulatory radar against config/zoning/<market>.json
+ *   ... --dossier <apn>   render one cited dossier
  *
  * This is what the `run-market-refresh` skill invokes. Cron/Edge-Function scheduling later.
  */
@@ -21,6 +26,10 @@ import { loadActiveThesis, saveThesis } from "../lib/db/thesis.js";
 import { genericThesis } from "../lib/thesis/compile.js";
 import { scoreMarket, type Thesis } from "../lib/pipeline/scoreMarket.js";
 import { renderDossierForApn } from "../lib/dossier/fromDb.js";
+import { runScout, showLatestChanges } from "../lib/scout/run.js";
+import { runRegulatoryRadar } from "../lib/db/radar.js";
+import { loadZoningRules } from "../lib/radar/config.js";
+import { renderRegulatoryDigest } from "../lib/radar/digest.js";
 
 function arg(name: string, fallback?: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -62,6 +71,28 @@ async function main() {
     const sql = getSql(dsn);
     await seedKnowledgeRules(sql);
     console.log(await renderDossierForApn(sql, market, dossierApn, await resolveThesis(sql)));
+    await sql.end();
+    return;
+  }
+
+  // --changes: show the latest run's change feed without rescoring, and exit
+  if (flag("changes")) {
+    const sql = getSql(dsn);
+    console.log(await showLatestChanges(sql, market));
+    await sql.end();
+    return;
+  }
+
+  // --radar: run the regulatory radar against config/zoning/<market>.json, and exit
+  if (flag("radar")) {
+    const sql = getSql(dsn);
+    const rules = loadZoningRules(market);
+    if (!rules) {
+      console.log(`No config/zoning/${market.toLowerCase()}.json — nothing for the radar to read.`);
+    } else {
+      const { events } = await runRegulatoryRadar(sql, market, rules);
+      console.log(renderRegulatoryDigest(events));
+    }
     await sql.end();
     return;
   }
@@ -132,6 +163,18 @@ async function main() {
     console.log(`\n  …plus ${flaggedBelowCut} more constraint-flagged deal(s) ranked below the top 12 ` +
       `(shown, not hidden — run \`npm run dossier -- --dossier <apn>\` to inspect any).`);
   }
+
+  // 4. SCOUT — snapshot this run + diff vs the previous run ("what changed this week")
+  const scout = await runScout(sql, market, { thesisVersion: thesis.version });
+  console.log(`\n${scout.digest}`);
+
+  // 5. RADAR — turn any zoning-rule change into an alpha signal (skips if no config)
+  const rules = loadZoningRules(market);
+  if (rules) {
+    const { events } = await runRegulatoryRadar(sql, market, rules, { runId: scout.runId });
+    if (events.length > 0) console.log(`\n${renderRegulatoryDigest(events)}`);
+  }
+
   await sql.end();
   console.log(`\n✓ refresh complete.`);
 }

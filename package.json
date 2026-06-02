@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "refresh": "tsx scripts/refresh-market.ts",
     "dossier": "tsx scripts/refresh-market.ts --skip-ingest",
+    "changes": "tsx scripts/refresh-market.ts --changes",
+    "radar": "tsx scripts/refresh-market.ts --radar",
     "thesis": "tsx scripts/thesis.ts"
   },
   "devDependencies": {
