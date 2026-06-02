@@ -11,9 +11,11 @@ const MARKET = process.argv[2] ?? "Charlottesville";
 const usd = (n: number) => `$${Math.round(n).toLocaleString()}`;
 
 async function main() {
+  const asJson = process.argv.includes("--json");
   const sql = getSql();
   try {
     const a = await advisePortfolio(sql, MARKET);
+    if (asJson) { console.log(JSON.stringify(a)); return; }
     const m = a.model;
     console.log(`\nPortfolio (${MARKET}): ${m.count} owned · value ${usd(m.totalValue)} · equity ${usd(m.totalEquity)} · ` +
       `cash flow ${usd(m.totalCashFlow)}/yr · CoC ${(m.cashOnCash * 100).toFixed(1)}%`);
