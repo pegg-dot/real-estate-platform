@@ -8,7 +8,9 @@
  *   npm run learn [-- --market Charlottesville]
  */
 import { getSql } from "../lib/db/client.js";
-import { divergenceReport } from "../lib/db/learn.js";
+import { divergenceReport, proposeRetune, applyRetune } from "../lib/db/learn.js";
+
+const flag = (name: string) => process.argv.includes(`--${name}`);
 
 async function main() {
   const i = process.argv.indexOf("--market");
@@ -17,13 +19,33 @@ async function main() {
   if (!dsn) throw new Error("SUPABASE_DB_URL not set");
   const sql = getSql(dsn);
   try {
+    if (flag("propose") || flag("apply")) {
+      const { proposal, currentWeights } = await proposeRetune(sql, market);
+      console.log(`🧠 LEARN retuner — ${proposal.reason}\n`);
+      if (!proposal.proposed) { console.log("No proposal (keep deciding)."); return; }
+      console.log("Proposed weight changes (current → proposed):");
+      for (const d of proposal.diff) {
+        console.log(`  ${d.delta >= 0 ? "↑" : "↓"} ${d.key.padEnd(38)} ${d.from.toFixed(3)} → ${d.to.toFixed(3)} ` +
+          `(${d.delta >= 0 ? "+" : ""}${d.delta.toFixed(3)}; revealed signal ${d.signal >= 0 ? "+" : ""}${d.signal})`);
+      }
+      void currentWeights;
+      if (flag("apply")) {
+        const res = await applyRetune(sql, market);
+        console.log(res
+          ? `\n✓ saved as thesis v${res.version} (INACTIVE). Review, then: npm run thesis -- --activate ${res.version}`
+          : "\n(nothing to apply)");
+      } else {
+        console.log(`\nTo save it as a new (inactive) thesis for review: npm run learn -- --apply`);
+      }
+      return;
+    }
     const r = await divergenceReport(sql, market);
     console.log("📊 LEARN — revealed-preference divergence\n");
     console.log(r.note);
     console.log(`\n  thesis-relevant decisions: ${r.thesisRelevantCount}` +
       `  ·  advanced avg score: ${r.advancedAvgScore ?? "—"}  ·  passed avg score: ${r.passedAvgScore ?? "—"}`);
     console.log(`  passed high-scorers: ${r.passedHighScorers}  ·  advanced low-scorers: ${r.advancedLowScorers}` +
-      `  ·  retune proposed: ${r.proposeRetune ? "yes (review it)" : "no"}`);
+      `  ·  retune proposed: ${r.proposeRetune ? "yes — run: npm run learn -- --propose" : "no"}`);
   } finally {
     await sql.end();
   }

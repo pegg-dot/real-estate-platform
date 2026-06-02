@@ -1,6 +1,6 @@
 # Spec 011 — LEARN loop: labeling now, retune deferred (Phase 4 / 004e)
 
-**Status:** labeling + divergence BUILT 2026-06-01; retuner SPECCED + GATED OFF · **Depends on:** 008 (decision log)
+**Status:** labeling + divergence + retuner BUILT 2026-06-02 (retuner GATED at ~40 decisions) · **Depends on:** 008 (decision log)
 
 ## Purpose
 Make LOT compound: every advance/pass teaches it Nate's REVEALED thesis. Ship the high-value,
@@ -22,14 +22,18 @@ retuner never runs on a thin/synthetic sample, and never auto-applies.
   (5 tests)
 - `lib/db/learn.ts` (`divergenceReport`), surfaced in the Monday Brief + `npm run learn`.
 
-## The deferred retuner (specced, gated off until n ≥ minDecisions)
-Direct WEIGHT-SPACE nudge (NOT a logistic-to-weight translation — the review cut that): per
-component, `mean(raw | advanced) − mean(raw | passed)`, shrunk by `1/sqrt(n)`, per-cycle cap 0.05,
-**per-key floors on `occupancy_legal_clearance` and `risk_penalty`** (golden-rule weights can
-never be learned to ~0 — Nate's locked decision), renormalized via the existing `normalizeWeights`,
-emitted as a NEW thesis via `saveThesis(activate:false)` with an attributed diff + one-click
-approve + rollback. Anti-overfit governors are first-class config (minDecisions, class-balance,
-per-cycle/cumulative caps, stale-label windowing, temporal hold-out).
+## The retuner — BUILT, gated at n ≥ minDecisions (default 40)
+`lib/learn/retune.ts` (pure, 7 tests): direct WEIGHT-SPACE nudge (NOT a logistic-to-weight
+translation — the review cut that): per component, `mean(raw | advanced) − mean(raw | passed)`,
+shrunk by `1/sqrt(n)`, per-cycle cap 0.05, **per-key floors on `occupancy_legal_clearance` and
+`risk_penalty_insurance_flood_condo`** (golden-rule weights can never erode to ~0 — Nate's locked
+decision), risk-penalty weight held out of learning entirely, renormalized to sum 1 honoring the
+floors. `lib/db/learn.ts` `proposeRetune`/`applyRetune` read the FROZEN component raws
+(`deal_decision.frozen_components`, migration 0009) one-per-deal, and emit a NEW thesis via
+`saveThesis(activate:false)` — never auto-activated. `npm run learn --propose` shows the
+attributed diff; `--apply` saves the inactive version for `npm run thesis --activate`. Below the
+floor it proposes nothing. Verified live (4-decision floor override → governed diff sums to 1,
+floors held, saved inactive, active unchanged).
 
 ## Acceptance
 - Below floor: REPORTS divergence, PROPOSES nothing, writes no thesis. ✅ (live: 0/40 → "keep deciding")
