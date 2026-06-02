@@ -27,8 +27,8 @@ describe("scout diff — what changed between two runs", () => {
   it("a property present only in the current run is a new_parcel", () => {
     const events = diffSnapshots([], [base]);
     expect(events).toHaveLength(1);
-    expect(events[0].changeType).toBe("new_parcel");
-    expect(events[0].propertyId).toBe("p1");
+    expect(events[0]!.changeType).toBe("new_parcel");
+    expect(events[0]!.propertyId).toBe("p1");
   });
 
   it("a price drop beyond the threshold emits price_change (a drop is the buy signal → high)", () => {
