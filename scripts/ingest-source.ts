@@ -12,6 +12,8 @@ import fs from "node:fs";
 import { getSql } from "../lib/db/client.js";
 import { diffArtifacts, type Artifact } from "../lib/knowledge/distill.js";
 import { loadArtifacts, storeArtifacts } from "../lib/db/knowledge.js";
+import { llmExtractor } from "../lib/knowledge/extract.js";
+import path from "node:path";
 
 function loadFromJson(path: string): Artifact[] {
   const j = JSON.parse(fs.readFileSync(path, "utf8")) as {
@@ -44,11 +46,15 @@ async function main() {
   if (file.endsWith(".json")) {
     artifacts = loadFromJson(file);
   } else {
-    console.error(
-      "LLM extraction from raw text needs Anthropic billing (ANTHROPIC_API_KEY + credits).\n" +
-      "Use the offline path: pass a .json artifacts file (see config/knowledge/pace-morby-artifacts.json),\n" +
-      "or add credits to enable transcript auto-distillation.");
-    process.exit(2);
+    // raw transcript/book -> LLM distillation (credit-gated; degrades cleanly without billing)
+    try {
+      const text = fs.readFileSync(file, "utf8");
+      artifacts = await llmExtractor(text, { source: path.basename(file) });
+    } catch (e) {
+      console.error(`LLM distillation unavailable: ${(e as Error).message}\n` +
+        "Offline alternative: pass a .json artifacts file (see config/knowledge/pace-morby-artifacts.json).");
+      process.exit(2);
+    }
   }
 
   const sql = getSql();
