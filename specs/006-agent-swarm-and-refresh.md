@@ -1,7 +1,28 @@
 # Spec 006 — Agent Swarm + Weekly Data Loop + Regulatory Radar (autonomy)
 
-**Status:** after the core pipeline works · **Depends on:** 002, 003, 004
+**Status:** Phase 3 (Scout-diff + Regulatory radar) BUILT 2026-06-01 · **Depends on:** 002, 003, 004
 **Unlocks:** the system runs itself; LEARN loop
+
+## Phase 3 — built (the autonomy core)
+- **Scout-diff** — `lib/scout/*` + migration 0005 (`refresh_run`, `property_snapshot`
+  append-only, `change_event`). Each refresh snapshots scorable state and diffs vs the
+  previous run → a "what changed this week" feed (new parcels, price moves, ownership
+  changes, score shifts, shortlist crossings, gate flips, by-room legality flips),
+  severity-graded. Surfaced in `refresh-market` step 4 + `npm run changes`.
+- **Regulatory radar** — `lib/radar/*` + `regulatory_event`. Diffs the current zoning-rule
+  reading (`config/zoning/<market>.json`) vs stored `zoning_rule`; a change becomes an
+  opportunity/risk alpha note, counts affected parcels, and **re-flags `property.by_room_legal`**
+  so it propagates into the next score run. `refresh-market` step 5 + `npm run radar`.
+- **Scheduling** — `.github/workflows/weekly-refresh.yml` (Actions cron; the pipeline is
+  Node+Python so it can't run inside Supabase pg_cron). Enabling it is the operator's click
+  (repo secrets). A SQL-only re-score could later move to pg_cron.
+
+## Phase 4 — deferred (still spec, not built)
+- Sourcing agent + compliant outreach drafting (direct-mail default; DNC/TCPA gates).
+- LEARN loop: `deal.outcome` capture + auditable `thesis.scoring_weights` retune.
+- Risk/Financing-strategist standing agents; Miami; Inngest for multi-step agentic jobs.
+- Real distress feeds (foreclosure/lien) — Scout currently diffs only the signals we hold
+  (tenure/equity/absentee/sale), with a clean seam for a real distress source.
 
 ## Purpose
 Make SENSE and part of REASON **autonomous**. A standing crew of agents refreshes the data

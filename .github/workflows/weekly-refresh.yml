@@ -1,0 +1,76 @@
+# Weekly market refresh (spec 006, Phase 3 — the autonomous loop).
+#
+# Why GitHub Actions and not Supabase Cron: the refresh is a Node + Python pipeline
+# (TS scoring engines + Python county-API ingestion), so it can't run *inside* Postgres
+# cron (SQL only) or a Deno Edge Function. Actions checks out the repo, runs the real
+# pipeline against live Supabase, and the Scout/Radar steps emit the "what changed" digest
+# into the run log. A SQL-only re-score path could later move to Supabase pg_cron.
+#
+# TO ENABLE (your click, not mine):
+#   1. Repo → Settings → Secrets and variables → Actions → New repository secret:
+#        SUPABASE_DB_URL   = your pooler connection string
+#        ANTHROPIC_API_KEY = (optional) only if a step needs conversational thesis intake
+#   2. Repo → Actions tab → enable workflows.
+#   The job is gated: with no SUPABASE_DB_URL secret it exits cleanly (no failure noise).
+
+name: weekly-refresh
+
+on:
+  schedule:
+    - cron: "0 11 * * 1"   # Mondays 11:00 UTC (~7am ET) — weekly full refresh
+  workflow_dispatch:        # manual "Run workflow" button
+    inputs:
+      market:
+        description: "Market name"
+        default: "Charlottesville"
+      limit:
+        description: "Max parcels to ingest"
+        default: "20000"
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Guard — skip cleanly if secrets are not configured
+        id: guard
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "SUPABASE_DB_URL not set — skipping (configure the secret to enable)."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.enabled == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        if: steps.guard.outputs.enabled == 'true'
+        run: |
+          npm ci
+          pip install -r ingestion/requirements.txt
+
+      - name: Run market refresh (SENSE → REASON → SHOW → SCOUT → RADAR)
+        if: steps.guard.outputs.enabled == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # pass untrusted dispatch inputs via env (never interpolate into the run: script)
+          MARKET: ${{ github.event.inputs.market || 'Charlottesville' }}
+          LIMIT: ${{ github.event.inputs.limit || '20000' }}
+        run: |
+          npm run refresh -- --market "$MARKET" --limit "$LIMIT" --no-history
