@@ -54,16 +54,18 @@ def upsert_zoning_rules(conn, market_id: str, rules: dict) -> int:
         conn.execute(
             "insert into zoning_rule "
             "  (market_id, zone_code, max_unrelated_occupants, by_room_legal, "
-            "   rooming_house_allowed, source_url, as_of_date, stability_flag) "
-            "values (%s,%s,%s,%s,%s,%s,%s,%s) "
+            "   rooming_house_allowed, str_allowed, source_url, as_of_date, stability_flag) "
+            "values (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
             "on conflict (market_id, zone_code) do update set "
             "  max_unrelated_occupants = excluded.max_unrelated_occupants, "
             "  by_room_legal = excluded.by_room_legal, "
             "  rooming_house_allowed = excluded.rooming_house_allowed, "
+            "  str_allowed = excluded.str_allowed, "
             "  source_url = excluded.source_url, as_of_date = excluded.as_of_date, "
             "  stability_flag = excluded.stability_flag",
             (market_id, zone_code, rule.get("max_unrelated_occupants"),
              rule.get("by_room_legal"), rule.get("rooming_house_allowed"),
+             rule.get("str_allowed"),
              rules.get("source_url"), rules.get("as_of_date"), rules.get("stability_flag")),
         )
     conn.commit()

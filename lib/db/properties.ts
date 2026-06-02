@@ -13,6 +13,7 @@ export interface ScorableRow {
   estMarketValue: number | null;
   beds: number | null;
   byRoomLegal: boolean | null;
+  strAllowed: boolean | null;    // STR zoning gate, resolved from zoning_rule ('*' fallback)
   lat: number | null;
   lng: number | null;
   isAbsentee: boolean | null;
@@ -33,6 +34,12 @@ export async function readScorableProperties(sql: Sql, market: string): Promise<
       p.est_market_value                                   as "estMarketValue",
       p.beds,
       p.by_room_legal                                      as "byRoomLegal",
+      -- STR legality with the '*' citywide-default fallback: prefer an exact zone row when one
+      -- exists (even if its value is null=unknown), else the market default. Never assumes legal.
+      (select zr.str_allowed from zoning_rule zr
+         where zr.market_id = p.market_id and zr.zone_code in (p.zone_code, '*')
+         order by (zr.zone_code = '*')                      -- false (exact zone) sorts before '*'
+         limit 1)                                           as "strAllowed",
       p.lat, p.lng,
       o.is_absentee                                        as "isAbsentee",
       o.entity_type                                        as "ownerEntityType",

@@ -33,9 +33,11 @@ def attach_zoning(prop: dict, rules: dict | None) -> dict:
     if rule is None:
         prop["by_room_legal"] = None
         prop["max_unrelated_occupants"] = None
+        prop["str_allowed"] = None          # unknown zone -> STR not assumed legal either
         prop["zoning"] = {
             "zone_code": zone,
             "by_room_legal": None,
+            "str_allowed": None,
             "note": "Unknown zone — needs a per-parcel zoning determination; "
                     "by-room legality is NOT assumed.",
         }
@@ -44,9 +46,11 @@ def attach_zoning(prop: dict, rules: dict | None) -> dict:
 
     prop["by_room_legal"] = rule.get("by_room_legal")
     prop["max_unrelated_occupants"] = rule.get("max_unrelated_occupants")
+    prop["str_allowed"] = rule.get("str_allowed")   # STR zoning gate (spec 019); None = unknown
     prop["zoning"] = {
         "zone_code": zone,
         "by_room_legal": rule.get("by_room_legal"),
+        "str_allowed": rule.get("str_allowed"),
         "max_unrelated_occupants": rule.get("max_unrelated_occupants"),
         "rooming_house_allowed": rule.get("rooming_house_allowed"),
         "stability_flag": rules.get("stability_flag"),
