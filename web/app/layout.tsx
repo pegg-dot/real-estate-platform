@@ -17,7 +17,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <a href="/leads">Leads</a>
           <a href="/deals">Pipeline</a>
           <a href="/thesis">Thesis</a>
-          <span className="muted" style={{ marginLeft: "auto" }}>Charlottesville · functional preview</span>
+          <span className="muted" style={{ opacity: 0.4 }}>·</span>
+          <a href="/changes">Changes</a>
+          <a href="/radar">Radar</a>
+          <a href="/learn">Learn</a>
+          <a href="/rents">Rents</a>
+          <a href="/outreach">Outreach</a>
+          <span className="muted" style={{ marginLeft: "auto" }}>Charlottesville · preview</span>
         </nav>
         {children}
       </body>

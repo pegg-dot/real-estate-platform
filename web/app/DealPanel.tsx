@@ -11,11 +11,20 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
   const [tracking, setTracking] = useState(false);
   const [trackMsg, setTrackMsg] = useState<string | null>(null);
 
+  const [dossierMd, setDossierMd] = useState<string | null>(null);
+  const [loadingMd, setLoadingMd] = useState(false);
+
   async function track() {
     setTracking(true); setTrackMsg(null);
     const r = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "track-deal", apn }) }).then((x) => x.json());
     setTracking(false);
     setTrackMsg(r.ok ? r.output : `⚠️ ${r.error}`);
+  }
+  async function loadFull() {
+    setLoadingMd(true);
+    const r = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "full-dossier", apn }) }).then((x) => x.json());
+    setLoadingMd(false);
+    setDossierMd(r.ok ? r.output : `⚠️ ${r.error}`);
   }
 
   useEffect(() => {
@@ -25,9 +34,12 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
   }, [apn]);
 
   const components = (d?.components ?? {}) as Record<string, { weight: number; weighted: number }>;
-  const financing = (d?.financing ?? {}) as { recommended?: Array<{ structure?: string; sellerPitch?: string; legalGuardrail?: string }> };
-  const top = financing.recommended?.[0];
+  const financing = (d?.financing ?? {}) as {
+    recommended?: Array<{ structure?: string; sellerPitch?: string; legalGuardrail?: string; attorneyReviewRequired?: boolean }>;
+    suppressed?: Array<{ structure?: string; reason?: string }>;
+  };
   const gateFailures = (d?.gate_failures ?? []) as string[];
+  const distress = (d?.distress ?? []) as Array<{ signal_type: string; severity: string }>;
 
   return (
     <div style={{ position: "absolute", top: 0, right: 0, height: "100%", width: 380, background: "#fff",
@@ -74,13 +86,34 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
             ))}
           </Section>
 
-          {top && (
-            <Section title="Financing">
-              <div><strong>{String(top.structure ?? "cash").replace(/_/g, " ")}</strong></div>
-              {top.sellerPitch && <div className="muted" style={{ marginTop: 4 }}>{top.sellerPitch}</div>}
-              {top.legalGuardrail && <div style={{ marginTop: 6, fontSize: 12, color: "#7c2d12" }}>⚖️ {top.legalGuardrail}</div>}
+          {distress.length > 0 && (
+            <Section title="Distress signals (real)">
+              {distress.map((s, i) => <span key={i} className="pill flag" style={{ marginRight: 4 }}>{s.signal_type.replace(/_/g, " ")}</span>)}
             </Section>
           )}
+
+          {financing.recommended && financing.recommended.length > 0 && (
+            <Section title="Financing (ranked)">
+              {financing.recommended.map((o, i) => (
+                <div key={i} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: i < financing.recommended!.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                  <div><strong>{i + 1}. {String(o.structure ?? "cash").replace(/_/g, " ")}</strong>{o.attorneyReviewRequired ? " ⚠️ attorney review" : ""}</div>
+                  {o.sellerPitch && <div className="muted" style={{ marginTop: 2 }}>{o.sellerPitch}</div>}
+                  {o.legalGuardrail && <div style={{ marginTop: 4, fontSize: 11, color: "#7c2d12" }}>⚖️ {o.legalGuardrail}</div>}
+                </div>
+              ))}
+              {financing.suppressed && financing.suppressed.length > 0 && (
+                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+                  Suppressed: {financing.suppressed.map((s) => String(s.structure).replace(/_/g, " ")).join(", ")} (don&apos;t fit).
+                </div>
+              )}
+            </Section>
+          )}
+
+          <button onClick={loadFull} disabled={loadingMd} style={{ width: "100%", padding: "7px", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, marginTop: 12 }}>
+            {loadingMd ? "Generating…" : "📄 View full cited dossier (HUD floor, sensitivity, citations)"}
+          </button>
+          {dossierMd && <pre style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: 10, borderRadius: 6, fontSize: 11, overflowX: "auto", marginTop: 8, whiteSpace: "pre-wrap" }}>{dossierMd}</pre>}
+
           <div className="muted" style={{ marginTop: 14, fontSize: 11 }}>Informational, not legal or financial advice.</div>
         </>
       )}

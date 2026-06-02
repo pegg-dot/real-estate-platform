@@ -25,6 +25,11 @@ export default function ThesisPage() {
     const r = await fetch("/api/rescore", { method: "POST" }).then((x) => x.json());
     setBusy(null); setOut(r.message ?? "started");
   }
+  async function activate(version: number) {
+    setBusy(`act${version}`); setOut(null);
+    const r = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "thesis-activate", version }) }).then((x) => x.json());
+    setBusy(null); setOut(r.ok ? `${r.output}\n(Re-score to apply it to the map.)` : `⚠️ ${r.error}`); if (r.ok) loadTheses();
+  }
 
   return (
     <div className="page" style={{ maxWidth: 760 }}>
@@ -53,7 +58,8 @@ export default function ThesisPage() {
               <td><strong>v{t.version}</strong></td>
               <td className="muted">{t.mode ?? "—"}</td>
               <td className="muted">{t.primary ?? "—"}</td>
-              <td>{t.is_active ? <span className="pill ok">active</span> : ""}</td>
+              <td>{t.is_active ? <span className="pill ok">active</span> :
+                <button onClick={() => activate(t.version)} disabled={busy === `act${t.version}`} style={{ padding: "3px 10px", border: "1px solid #cbd5e1", borderRadius: 5, background: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{busy === `act${t.version}` ? "…" : "Activate"}</button>}</td>
             </tr>
           ))}
           {theses.length === 0 && <tr><td colSpan={4} className="muted">No theses yet.</td></tr>}

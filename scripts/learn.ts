@@ -40,6 +40,7 @@ async function main() {
       return;
     }
     const r = await divergenceReport(sql, market);
+    if (flag("json")) { console.log(JSON.stringify(r)); return; }
     console.log("📊 LEARN — revealed-preference divergence\n");
     console.log(r.note);
     console.log(`\n  thesis-relevant decisions: ${r.thesisRelevantCount}` +

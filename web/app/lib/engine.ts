@@ -7,7 +7,7 @@ import path from "node:path";
 const execFileAsync = promisify(execFile);   // execFile = NO shell; args are an array, never interpolated
 const REPO = path.resolve(process.cwd(), "..");          // web/ -> repo root
 const TSX = path.join(REPO, "node_modules", ".bin", "tsx");
-const ALLOWED = new Set(["sourcing.ts", "learn.ts", "rents.ts", "brief.ts", "thesis.ts", "deal.ts"]);
+const ALLOWED = new Set(["sourcing.ts", "learn.ts", "rents.ts", "brief.ts", "thesis.ts", "deal.ts", "refresh-market.ts"]);
 
 export async function runEngine(script: string, args: string[], timeoutMs = 120_000): Promise<string> {
   if (!ALLOWED.has(script)) throw new Error(`script not allowed: ${script}`);
@@ -57,6 +57,17 @@ export function buildAction(action: string, p: Record<string, unknown>): { scrip
       return { script: "rents.ts", args: ["--add", noFlag(String(p.address ?? "manual comp"), 200, "address"),
         "--lat", numStr(p.lat), "--lng", numStr(p.lng), "--beds", numStr(p.beds), "--rent", numStr(p.rent),
         ...(p.byroom ? ["--byroom"] : [])] };
+    case "rentcast":
+      return { script: "rents.ts", args: ["--rentcast", noFlag(String(p.address), 200, "address"),
+        ...(p.beds ? ["--beds", numStr(p.beds)] : [])], timeout: 40_000 };
+    case "thesis-activate":
+      if (!Number.isInteger(Number(p.version))) throw new Error("thesis-activate needs an integer version");
+      return { script: "thesis.ts", args: ["--activate", String(Number(p.version))] };
+    case "full-dossier":  // refresh-market --dossier <apn>: the full cited dossier (no ingest/score)
+      if (typeof p.apn !== "string" || !/^[0-9A-Za-z][0-9A-Za-z._-]*$/.test(p.apn) || p.apn.length > 64) throw new Error("full-dossier needs a valid apn");
+      return { script: "refresh-market.ts", args: ["--dossier", p.apn, "--market", "Charlottesville"], timeout: 40_000 };
+    case "run-radar":     // refresh-market --radar: detect zoning changes (no ingest/score)
+      return { script: "refresh-market.ts", args: ["--radar", "--market", "Charlottesville"], timeout: 40_000 };
     default:
       throw new Error(`unknown action: ${action}`);
   }

@@ -1,11 +1,12 @@
 import { sql, MARKET } from "../lib/db";
+import LeadActions from "./LeadActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function LeadsPage() {
-  const leads = await sql()<Array<{ motivation_score: number; segment: string | null; status: string;
+  const leads = await sql()<Array<{ id: string; motivation_score: number; segment: string | null; status: string;
     owner_name: string | null; address: string | null; distress: boolean }>>`
-    select l.motivation_score, l.segment, l.status, o.name as owner_name, p.address,
+    select l.id, l.motivation_score, l.segment, l.status, o.name as owner_name, p.address,
            exists(select 1 from distress_signal ds where ds.property_id = l.property_id) as distress
     from lead l
     join market m on m.id = l.market_id
@@ -23,16 +24,17 @@ export default async function LeadsPage() {
       </p>
       {leads.length > 0 && (
         <table>
-          <thead><tr><th>Score</th><th>Property</th><th>Owner</th><th>Segment</th><th>Distress</th><th>Status</th></tr></thead>
+          <thead><tr><th>Score</th><th>Property</th><th>Owner</th><th>Segment</th><th>Distress</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            {leads.map((l, i) => (
-              <tr key={i}>
+            {leads.map((l) => (
+              <tr key={l.id}>
                 <td><strong>{l.motivation_score}</strong></td>
                 <td>{l.address ?? "—"}</td>
                 <td>{l.owner_name ?? "—"}</td>
                 <td className="muted">{l.segment ?? "—"}</td>
                 <td>{l.distress ? <span className="pill flag">neglect</span> : <span className="muted">—</span>}</td>
                 <td className="muted">{l.status}</td>
+                <td><LeadActions leadId={l.id} /></td>
               </tr>
             ))}
           </tbody>
