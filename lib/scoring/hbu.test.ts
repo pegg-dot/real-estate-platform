@@ -61,6 +61,23 @@ describe("highestAndBestUse", () => {
     for (const e of out.excluded) expect(e.reason.trim().length).toBeGreaterThan(0);
   });
 
+  it("treats allowed_units as the total cap (does not double-count an ADU)", () => {
+    // allowedUnits 2, currentUnits 1, aduAllowed true => 1 added unit, not 2
+    const out = highestAndBestUse(landHeavy({ allowedUnits: 2, aduAllowed: true }), A, { management_appetite: 0.9 });
+    expect(out.ranked.find((r) => r.use === "develop")!.detail.addedUnits).toBe(1);
+  });
+
+  it("does not invent develop headroom on an already-built-out parcel (currentUnits = allowed)", () => {
+    const out = highestAndBestUse(landHeavy({ allowedUnits: 3, currentUnits: 3, aduAllowed: false }), A, { management_appetite: 0.9 });
+    expect(out.excluded.find((e) => e.use === "develop")!.reason).toMatch(/current density|no added/i);
+  });
+
+  it("flags the HBU economics as modeled and carries the caveat (never asserts a real return)", () => {
+    const out = highestAndBestUse(landHeavy(), A, { management_appetite: 0.9 });
+    expect(out.confidence).toBe("modeled");
+    expect(out.note).toMatch(/modeled|screening|not an IRR|appraisal/i);
+  });
+
   it("excludes wholesale (and never recommends it) when the thesis disables it", () => {
     const noWholesale = { ...A, wholesaleEnabled: false };
     const out = highestAndBestUse(landHeavy(), noWholesale, { management_appetite: 0.2 });

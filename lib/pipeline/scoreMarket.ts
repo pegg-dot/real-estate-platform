@@ -163,10 +163,14 @@ export function scoreRow(
   // wholesale, gated on land-vs-improvement + zoning capacity, ranked by the same management
   // appetite. The hold baseline is the headline CoC we just computed.
   const cap = zoningCapacityFor(a.market, row.zoneCode);
+  // estimate CURRENT units: a high-bed parcel is likely already multifamily, so don't assume 1
+  // (that would invent develop headroom = allowed - 1 on a built-out building). ~3 beds/unit.
+  const currentUnits = (row.beds != null && row.beds >= a.multifamilyBedThreshold)
+    ? Math.max(1, Math.round(row.beds / 3)) : 1;
   const hbu = highestAndBestUse(
     {
       price, assessedLand: row.assessedLand, assessedTotal: row.assessedTotal, yearBuilt: row.yearBuilt,
-      holdCashOnCash: score.headline.proForma.cashOnCash, currentUnits: 1,
+      holdCashOnCash: score.headline.proForma.cashOnCash, currentUnits,
       allowedUnits: cap.allowedUnits, aduAllowed: cap.aduAllowed,
     },
     hbuAssumptionsFor(a), { management_appetite: exitThesis.management_appetite });
@@ -199,6 +203,8 @@ export async function scoreMarket(
     const hbuMenu = {
       recommended: hbu.recommended,
       landSharePct: hbu.landSharePct,
+      confidence: hbu.confidence,        // 'modeled' — develop/flip economics are config, not appraised
+      note: hbu.note,                    // the honesty caveat travels with the persisted result
       ranked: hbu.ranked.map((u) => ({
         use: u.use, annualizedReturn: Number(u.annualizedReturn.toFixed(4)),
         upsideVsHold: Number(u.upsideVsHold.toFixed(4)), intensity: u.intensity,

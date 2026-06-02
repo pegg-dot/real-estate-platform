@@ -84,3 +84,12 @@ Deal-Genome fields: `est_loan_balance`, `gross_equity`, `true_equity`, `would_wr
 ARV, rehab, build costs, and loan balances are *estimated*/config — every downstream flag carries
 confidence and never asserts sub2 viability on a guess (reuse 004's rule). Zoning capacity is
 curated + cited with the stability flag. Indicative, not entitlement/financial advice.
+
+**Modeling limitations (code-review, do not over-trust the develop ranking):** develop/flip returns
+are annualized SCREENING PROXIES, not IRRs — they systematically favor one-time plays vs a perpetual
+hold; an IRR / equivalent-annual model is a future underwriter pass. Develop value is driven by config
+per-unit constants (price-insensitive above the `minViablePrice` floor), so a depressed assessed value
+plus high zoned capacity can over-rank develop — the result carries `confidence: "modeled"` so it is
+never presented as real. `currentUnits` is estimated from beds (~3/unit) for likely-multifamily;
+`allowed_units` is the TOTAL cap (ADU-inclusive, no double-count). Wholesale is off for a buy-and-hold
+thesis (`wholesaleEnabled: false`).

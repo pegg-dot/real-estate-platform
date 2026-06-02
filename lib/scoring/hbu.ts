@@ -56,7 +56,16 @@ export interface HbuResult {
   recommended: Use;                          // ranked[0] (hold is always feasible, so never null)
   excluded: { use: Use; reason: string }[];
   landSharePct: number | null;
+  confidence: "modeled";                     // develop/flip economics are config, never appraised
+  note: string;                              // the honesty caveat that travels with the output
 }
+
+// Develop/flip returns are MODELED off config (build cost / ARV / stabilized value) and are
+// annualized SCREENING PROXIES — not IRRs and not appraisals. They flag "worth a closer look",
+// never "this is the return". This caveat is persisted with every HBU result (golden rule #4).
+const HBU_NOTE =
+  "Modeled screening estimate (build cost / ARV / stabilized value are config, annualized — " +
+  "not an IRR or appraisal). Develop/flip on possibly-stale assessed values; verify before acting.";
 
 const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
 
@@ -103,8 +112,11 @@ export function highestAndBestUse(
   } else if (input.allowedUnits == null && input.aduAllowed == null) {
     excluded.push({ use: "develop", reason: "zoning capacity unknown — verify allowed units/ADU per parcel" });
   } else {
-    const addedUnits = Math.max(0, (input.allowedUnits ?? input.currentUnits) - input.currentUnits)
-      + (input.aduAllowed === true ? 1 : 0);
+    // allowed_units is the TOTAL unit cap (ADU-inclusive), so don't add the ADU on top of it —
+    // that double-counted. Only when no explicit cap is given does an allowed ADU = 1 added unit.
+    const addedUnits = input.allowedUnits != null
+      ? Math.max(0, input.allowedUnits - input.currentUnits)
+      : (input.aduAllowed === true ? 1 : 0);
     if (addedUnits === 0) {
       excluded.push({ use: "develop", reason: "zoned at or below current density — no added units" });
     } else {
@@ -145,5 +157,7 @@ export function highestAndBestUse(
     recommended: feasible[0]!.use,            // hold is always present, so this is defined
     excluded,
     landSharePct: landShare != null ? landShare * 100 : null,
+    confidence: "modeled",
+    note: HBU_NOTE,
   };
 }
