@@ -10,8 +10,15 @@
       Settings → API Keys → roll the key), then update `ANTHROPIC_API_KEY` in `.env`.
 
 ## ✅ Unlocks features already built
-- [x] **Anthropic API key** added to `.env` → conversational thesis intake works
-      (`npm run thesis -- --from "buy cash-flowing student rentals near UVA..."`).
+- [x] **Anthropic API key** added to `.env` (valid — authenticates).
+- [ ] **Add Anthropic billing/credits** — the key works but the account has **$0 credits**, so
+      conversational intake errors ("credit balance too low"). Fix: console.anthropic.com →
+      Plans & Billing → add a payment method / buy credits. (Guided + generic intake work now
+      without it; conversational `--from "<prose>"` needs credits.)
+- [ ] **(optional) HUD FMR API token** — only needed to *refresh* real rents annually or add
+      markets. The FY2026 Charlottesville numbers are already seeded from public data, so rent
+      reality works without it. Get one free at huduser.gov → Create New Token if/when you want
+      auto-refresh.
 - [ ] **Turn on the weekly automation** (the Scout/Radar loop on a schedule):
       GitHub repo → Settings → Secrets and variables → Actions → add `SUPABASE_DB_URL`
       (and optionally `ANTHROPIC_API_KEY`). Then Actions tab → enable workflows. The
