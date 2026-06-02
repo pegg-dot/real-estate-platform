@@ -13,6 +13,8 @@
     "changes": "tsx scripts/refresh-market.ts --changes",
     "radar": "tsx scripts/refresh-market.ts --radar",
     "leads": "tsx scripts/sourcing.ts",
+    "brief": "tsx scripts/brief.ts",
+    "learn": "tsx scripts/learn.ts",
     "thesis": "tsx scripts/thesis.ts"
   },
   "devDependencies": {
