@@ -5,6 +5,14 @@ const usd = (n: unknown) => (typeof n === "number" || (typeof n === "string" && 
   ? `$${Math.round(Number(n)).toLocaleString()}` : "—");
 const pct = (n: unknown) => (n != null && n !== "" ? `${(Number(n) * 100).toFixed(1)}%` : "—");
 
+interface OwnerData {
+  owner: { name: string | null; entity_type: string | null; is_absentee: boolean | null };
+  portfolio: { count: number; totalValue: number; byRoomLegal: number; distressCount: number;
+    parcels: Array<{ apn: string; address: string | null; est_market_value: string | null; distress: boolean }> };
+  intel: Array<{ category: string; source: string }>;
+  links: Array<{ label: string; url: string }>;
+}
+
 export default function DealPanel({ apn, onClose }: { apn: string; onClose: () => void }) {
   const [d, setD] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -13,6 +21,14 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
 
   const [dossierMd, setDossierMd] = useState<string | null>(null);
   const [loadingMd, setLoadingMd] = useState(false);
+  const [owner, setOwner] = useState<OwnerData | null>(null);
+  const [loadingOwner, setLoadingOwner] = useState(false);
+  async function loadOwner() {
+    setLoadingOwner(true);
+    const r = await fetch(`/api/owner?apn=${encodeURIComponent(apn)}`).then((x) => x.json());
+    setLoadingOwner(false);
+    if (!r.error) setOwner(r);
+  }
 
   async function track() {
     setTracking(true); setTrackMsg(null);
@@ -106,6 +122,35 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
                   Suppressed: {financing.suppressed.map((s) => String(s.structure).replace(/_/g, " ")).join(", ")} (don&apos;t fit).
                 </div>
               )}
+            </Section>
+          )}
+
+          {!owner && (
+            <button onClick={loadOwner} disabled={loadingOwner} style={{ width: "100%", padding: "7px", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, marginTop: 12 }}>
+              {loadingOwner ? "Looking up…" : "👤 Who is this owner? (portfolio + research)"}
+            </button>
+          )}
+          {owner && (
+            <Section title="Owner intelligence">
+              <div style={{ fontWeight: 600 }}>{owner.owner.name ?? "—"} <span className="muted">({owner.owner.entity_type ?? "?"}{owner.owner.is_absentee ? " · absentee" : ""})</span></div>
+              <div style={{ margin: "6px 0", padding: "6px 8px", background: "#eff6ff", borderRadius: 6 }}>
+                Owns <strong>{owner.portfolio.count}</strong> parcel(s) worth <strong>{usd(owner.portfolio.totalValue)}</strong>
+                {owner.portfolio.count > 1 ? " — a portfolio seller." : "."}{" "}
+                {owner.portfolio.byRoomLegal} by-room-legal · {owner.portfolio.distressCount} with distress.
+              </div>
+              {owner.portfolio.count > 1 && (
+                <div style={{ fontSize: 12, marginBottom: 6 }}>
+                  {owner.portfolio.parcels.slice(0, 6).map((p, i) => (
+                    <div key={i} className="muted">• {p.address ?? p.apn} ({usd(p.est_market_value)}){p.distress ? " ⚠️" : ""}</div>
+                  ))}
+                </div>
+              )}
+              <div style={{ fontSize: 12 }}>Research (no scraping — you click): {owner.links.map((l, i) => (
+                <a key={i} href={l.url} target="_blank" rel="noreferrer" style={{ marginRight: 8, textDecoration: "underline" }}>{l.label}</a>
+              ))}</div>
+              <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+                {owner.intel.length > 0 ? `Enriched: ${owner.intel.map((x) => x.source).join(", ")}.` : "Contact/skip-trace enrichment lights up when a vendor key is added. Not a consumer report."}
+              </div>
             </Section>
           )}
 
