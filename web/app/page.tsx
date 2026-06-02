@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const SECTIONS = [
   { href: "/ask", icon: "💬", name: "Ask LOT", desc: "Ask anything in plain English — strategies, what to say to a seller, what to do with a deal." },
@@ -19,12 +19,28 @@ const SECTIONS = [
 
 export default function Home() {
   const [q, setQ] = useState("");
+  const [autoMsg, setAutoMsg] = useState<string | null>(null);
+
+  // Self-running automation: on every visit, ask the server to update your data if it's gone stale
+  // (>1 week old). No command, nothing to remember — it just keeps itself fresh in the background.
+  useEffect(() => {
+    fetch("/api/automation", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })
+      .then((r) => r.json())
+      .then((j) => { if (j.triggered) setAutoMsg(`🔄 ${j.reason}`); })
+      .catch(() => {});
+  }, []);
+
   function ask(e: React.FormEvent) {
     e.preventDefault();
     if (q.trim()) { sessionStorage.setItem("lot_ask", q.trim()); window.location.href = "/ask"; }
   }
   return (
     <div className="page" style={{ maxWidth: 920 }}>
+      {autoMsg && (
+        <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 14, textAlign: "center" }}>
+          {autoMsg}
+        </div>
+      )}
       <div style={{ textAlign: "center", padding: "8px 0 22px" }}>
         <h1 style={{ fontSize: 28, marginBottom: 6 }}>LOT — your buying machine</h1>
         <p className="muted" style={{ fontSize: 15, maxWidth: 600, margin: "0 auto 18px" }}>

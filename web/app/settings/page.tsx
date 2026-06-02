@@ -2,13 +2,22 @@
 import { useEffect, useState } from "react";
 
 interface Config { weekly_mail_budget: number; lifetime_mail_cap: number; cooldown_days: number; outreach_enabled: boolean }
+interface Auto { autoEnabled: boolean; lastRefreshAgeDays: number | null; isDue: boolean }
 
 export default function SettingsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [out, setOut] = useState<{ key: string; text: string } | null>(null);
   const [cfg, setCfg] = useState<Config | null>(null);
+  const [auto, setAuto] = useState<Auto | null>(null);
 
-  useEffect(() => { fetch("/api/config").then((r) => r.json()).then(setCfg); }, []);
+  const loadAuto = () => fetch("/api/automation").then((r) => r.json()).then(setAuto);
+  useEffect(() => { fetch("/api/config").then((r) => r.json()).then(setCfg); loadAuto(); }, []);
+
+  async function toggleAuto(enabled: boolean) {
+    setAuto((a) => (a ? { ...a, autoEnabled: enabled } : a)); // optimistic
+    await fetch("/api/automation", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "toggle", enabled }) });
+    loadAuto();
+  }
 
   async function run(key: string, url: string, action?: Record<string, unknown>) {
     setBusy(key); setOut(null);
@@ -28,7 +37,28 @@ export default function SettingsPage() {
   return (
     <div className="page" style={{ maxWidth: 760 }}>
       <h1 style={{ fontSize: 18, marginBottom: 4 }}>Settings &amp; Run</h1>
-      <p className="muted" style={{ marginBottom: 18 }}>Everything that used to be a terminal command — now a button. (For the recurring update, enable the weekly GitHub Action; this is for on-demand.)</p>
+      <p className="muted" style={{ marginBottom: 18 }}>Everything that used to be a terminal command — now a button.</p>
+
+      {auto && (
+        <Section title="Automatic updates">
+          <div style={{ background: auto.autoEnabled ? "#ecfdf5" : "#f8fafc", border: `1px solid ${auto.autoEnabled ? "#a7f3d0" : "#e2e8f0"}`, borderRadius: 8, padding: "12px 14px", width: "100%", maxWidth: 480 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+              <input type="checkbox" checked={auto.autoEnabled} onChange={(e) => toggleAuto(e.target.checked)} />
+              Keep my data fresh automatically
+            </label>
+            <p className="muted" style={{ fontSize: 12, margin: "6px 0 0", lineHeight: 1.5 }}>
+              {auto.autoEnabled
+                ? "On — whenever you open LOT and the data is more than a week old, it updates itself in the background. You never have to remember anything."
+                : "Off — your data will only update when you click “Update everything” below."}
+              {" "}Last updated: <b>{auto.lastRefreshAgeDays == null ? "never" : auto.lastRefreshAgeDays < 1 ? "today" : `${Math.round(auto.lastRefreshAgeDays)} day(s) ago`}</b>
+              {auto.isDue && auto.autoEnabled ? " — an update is due and will run on your next visit." : ""}
+            </p>
+            <p className="muted" style={{ fontSize: 11, margin: "8px 0 0" }}>
+              Want it to run even when your laptop is closed? Enable the weekly cloud job (one-time, ~2 min) — see <a href="/dev">Developer</a>.
+            </p>
+          </div>
+        </Section>
+      )}
 
       <Section title="Keep the data fresh">
         <Btn busy={busy === "refresh"} onClick={() => run("refresh", "/api/refresh")}>↻ Update everything (county data + distress + re-score)</Btn>
