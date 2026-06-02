@@ -15,6 +15,7 @@
     "leads": "tsx scripts/sourcing.ts",
     "brief": "tsx scripts/brief.ts",
     "learn": "tsx scripts/learn.ts",
+    "rents": "tsx scripts/rents.ts",
     "thesis": "tsx scripts/thesis.ts"
   },
   "devDependencies": {

@@ -13,10 +13,12 @@ import { loadMarketAssumptions, proFormaFor, fmrScheduleFor, type MarketAssumpti
 import { scoreProperty, haversineMiles, type ScoreInput, type ScoreResult } from "../scoring/score.js";
 import { perBedroomRent } from "../scoring/rent.js";
 import { hudFmrMonthlyFloor, rentVsHudFloor } from "../scoring/fmr.js";
+import { estimateRealRent, type RentComp } from "../rent/comps.js";
 import { sensitivity, type SensitivityResult } from "../scoring/sensitivity.js";
 import { evaluateGates } from "../scoring/gates.js";
 import { dataConfidence } from "../scoring/confidence.js";
 import { recommendFinancing, type FinancingInput, type FinancingResult, type Structure } from "../financing/recommend.js";
+import { loadRentComps } from "../db/rentComps.js";
 
 export interface Thesis {
   version: number;
@@ -55,16 +57,24 @@ export interface ScoredRow {
   gates: { passed: boolean; failures: string[] };
   dataConfidence: number;
   rentFloor: RentFloor;          // HUD FMR real floor / sanity cross-check (004a)
+  rentSource: "modeled" | "real-comps";  // did real rent comps drive the per-bed rent? (013)
 }
 
 /** Score + finance a single scorable row — the shared per-property logic (pipeline + dossier). */
 export function scoreRow(
   row: ScorableRow, a: MarketAssumptions, thesis: Thesis, asOf: string, cash: number,
+  opts: { comps?: RentComp[] } = {},
 ): ScoredRow {
   const price = row.estMarketValue!;
   const distMiles = (row.lat != null && row.lng != null)
     ? haversineMiles(row.lat, row.lng, a.campus.lat, a.campus.lng) : null;
-  const perBed = perBedroomRent(distMiles, a.rentModel);   // spatially-aware modeled rent
+  // real rent comps override the modeled $/bed when they exist near this parcel (provenance real)
+  const realRent = (opts.comps && opts.comps.length && row.lat != null && row.lng != null)
+    ? estimateRealRent(row.lat, row.lng, opts.comps, { preferByRoom: true })
+    : null;
+  const modeledPerBed = perBedroomRent(distMiles, a.rentModel);  // spatially-aware modeled rent
+  const perBed = realRent?.perBedRent ?? modeledPerBed;
+  const rentSource = realRent ? "real-comps" as const : "modeled" as const;
   const wholeHouseMonthlyRent = row.beds != null
     ? row.beds * a.wholeHouseMonthlyRentPerBed
     : Math.round(price * a.wholeHouseFallbackMonthlyRentToPrice);
@@ -78,10 +88,13 @@ export function scoreRow(
   const pfa = proFormaFor(a, row.beds, row.estAnnualInsurance);
   const score = scoreProperty(scoreInput, thesis, pfa, { campus: a.campus });
 
-  const conf = dataConfidence({
+  const baseConf = dataConfidence({
     bedsReal: row.beds != null, armsLengthSale: row.lastArmsPrice != null,
     ownerKnown: row.ownerEntityType != null, byRoomLegalKnown: row.byRoomLegal != null,
   });
+  // real rent comps lift confidence past the modeled-rent ceiling (the rent is the biggest
+  // modeled input; when it's real, the pro-forma is genuinely more trustworthy)
+  const conf = realRent ? Math.min(0.97, baseConf + 0.07 * realRent.confidence) : baseConf;
   // sensitivity band on the headline model — thinner data => WIDER band (the range
   // honestly reflects how uncertain the modeled rent is for this deal)
   const sens = sensitivity(
@@ -120,7 +133,7 @@ export function scoreRow(
     cbsaName: fmrSched?.cbsaName ?? null,
   };
 
-  return { score, financing, sensitivity: sens, gates, dataConfidence: conf, rentFloor };
+  return { score, financing, sensitivity: sens, gates, dataConfidence: conf, rentFloor, rentSource };
 }
 
 export async function scoreMarket(
@@ -131,6 +144,7 @@ export async function scoreMarket(
   const asOf = opts.asOf ?? new Date().toISOString().slice(0, 10);
   const cash = opts.buyerCashAvailable ?? DEFAULT_BUYER_CASH;
   const rows = await readScorableProperties(sql, opts.market);
+  const comps = await loadRentComps(sql, opts.market);   // real rent comps override modeled $/bed
 
   let scored = 0, skipped = 0, nonTarget = 0, lowConfidence = 0;
   const records: ScoreRecord[] = [];
@@ -141,7 +155,7 @@ export async function scoreMarket(
     if (row.ownerEntityType === "institution") { nonTarget++; continue; }
 
     const { score: scoredRes, financing, sensitivity: sens, gates, dataConfidence: conf } =
-      scoreRow(row, a, opts.thesis, asOf, cash);
+      scoreRow(row, a, opts.thesis, asOf, cash, { comps });
     const top: Structure = financing.recommended[0]?.structure ?? "cash";
 
     records.push({

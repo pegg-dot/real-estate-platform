@@ -25,6 +25,15 @@
       `weekly-refresh` workflow runs Mondays + has a manual "Run workflow" button.
 
 ## 📊 Data sources — decide / sign up (accuracy upgrades, not blockers)
+- [ ] **RentCast key** (real rents) — free key at api.rentcast.io → `RENTCAST_API_KEY` in `.env`,
+      then `npm run rents -- --rentcast "<address>"`. Or enter manual comps now:
+      `npm run rents -- --add "<addr>" --lat .. --lng .. --beds N --rent M [--byroom]` ($0, immediate).
+- [ ] **(optional) scraping service** (Bright Data / ScraperAPI) — Craigslist/Zillow/Apartments
+      block direct scraping; a proxy/headless service would unlock them (the `rent_comp` table +
+      parser drop in). Your call on cost + legal posture.
+- [ ] **(optional) paid distress vendor** (PropStream/BatchData) — foreclosure / lis-pendens /
+      probate coverage; inserts into the same `distress_signal` table (no code change needed).
+
 - [ ] **Rent comps** — pick the path (see "How rent data works" below). Free baseline
       (HUD FMR + Census + a light UVA-listings scrape) costs $0; paid (RentCast free tier →
       paid, or Rentometer) is address-level. Until then, rents stay **modeled** (flagged).

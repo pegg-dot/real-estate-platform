@@ -12,6 +12,7 @@ export interface DossierDepth {
   gates?: { passed: boolean; failures: string[] };
   dataConfidence?: number;
   rentFloor?: { hudFmrMonthly: number | null; belowFloor: boolean; fmrYear: number | null; cbsaName: string | null };
+  rentSource?: "modeled" | "real-comps";
 }
 
 export interface DossierFacts {
@@ -101,7 +102,7 @@ export function renderDossier(
   if (f.stabilityFlag) out.push(`- ⚠️ **Stability flag:** ${f.stabilityFlag}`);
 
   // Underwriting
-  out.push(`\n## Underwriting (modeled financials over the real assessed value; all-cash)`);
+  out.push(`\n## Underwriting (${depth.rentSource === "real-comps" ? "**REAL rent comps**" : "modeled rents"} over the real assessed value; all-cash)`);
   out.push(proFormaBlock("By-the-room", score.proFormas.byRoom));
   out.push("");
   out.push(proFormaBlock("Whole-house", score.proFormas.wholeHouse));
