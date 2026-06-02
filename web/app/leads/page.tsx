@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
 export default async function LeadsPage() {
   const leads = await sql()<Array<{ id: string; motivation_score: number; stack_score: number | null;
     motivation_type: string | null; likely_bunny: string | null; recommended_structure: string | null;
-    approach: string | null; method: string | null; segment: string | null; status: string;
+    bunny_confidence: string | null; approach: string | null; method: string | null; segment: string | null; status: string;
     owner_name: string | null; address: string | null; distress: boolean }>>`
     select l.id, l.motivation_score, l.stack_score, l.motivation_type, l.likely_bunny,
-           l.recommended_structure, l.approach, l.method, l.segment, l.status,
+           l.recommended_structure, l.bunny_confidence, l.approach, l.method, l.segment, l.status,
            o.name as owner_name, p.address,
            exists(select 1 from distress_signal ds where ds.property_id = l.property_id) as distress
     from lead l
@@ -52,7 +52,13 @@ export default async function LeadsPage() {
                 <td>{l.address ?? "—"}</td>
                 <td>{l.owner_name ?? "—"}</td>
                 <td className="muted">{(l.motivation_type ?? l.segment ?? "—").replace(/_/g, " ")}{l.likely_bunny && l.likely_bunny !== "none" ? ` → ${l.likely_bunny.replace(/_/g, " ")}` : ""}</td>
-                <td className="muted">{(l.recommended_structure ?? "—").replace(/_/g, " ")}</td>
+                <td className="muted">
+                  {(l.recommended_structure ?? "—").replace(/_/g, " ")}
+                  {l.recommended_structure === "subject_to" && (
+                    <span title="Subject-to carries due-on-sale risk (Garn-St-Germain trust caveat) — see an attorney; never present as risk-free." style={{ color: "#b45309" }}> ⚖️</span>
+                  )}
+                  {l.bunny_confidence != null && <span style={{ fontSize: 10 }}> ({Math.round(Number(l.bunny_confidence) * 100)}%)</span>}
+                </td>
                 <td className="muted">{l.approach ?? "—"}{l.method ? ` · ${l.method}` : ""}</td>
                 <td>{l.distress ? <span className="pill flag">neglect</span> : <span className="muted">—</span>}</td>
                 <td><LeadActions leadId={l.id} /></td>

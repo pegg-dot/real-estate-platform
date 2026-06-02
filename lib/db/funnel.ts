@@ -18,9 +18,9 @@ export async function loadFunnelKpis(sql: Sql, market: string): Promise<FunnelKp
     select
       (select count(*)::int from lead l where l.market_id = (select id from m) and l.gate_state = 'mailable') as leads,
       (select count(*)::int from lead l where l.market_id = (select id from m) and l.times_mailed > 0) as mailed,
-      (select count(distinct oe.owner_id)::int from outreach_event oe
-         join lead l on l.owner_id = oe.owner_id and l.market_id = (select id from m)
-         where oe.status in ('replied')) as contacts,
+      -- a "contact" = an owner who replied (lead.status, not outreach_event.status which is
+      -- only drafted|approved|sent). Counting the wrong table made contacts always 0.
+      (select count(*)::int from lead l where l.market_id = (select id from m) and l.status = 'replied') as contacts,
       (select count(*)::int from deal d join property p on p.id = d.property_id
          where p.market_id = (select id from m) and d.stage in ('analyzing','offer','under_contract','owned','exited')) as appointments,
       (select count(*)::int from deal d join property p on p.id = d.property_id

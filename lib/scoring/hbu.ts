@@ -123,7 +123,7 @@ export function highestAndBestUse(
       const cost = addedUnits * a.buildCostPerUnit;
       const valueCreated = addedUnits * a.stabilizedValuePerUnit;
       const profit = valueCreated - cost;
-      const ret = (profit / (input.price + cost)) / a.developHorizonYears;
+      const ret = (profit / (input.price + cost)) / Math.max(1, a.developHorizonYears);
       add("develop", ret, { addedUnits, cost, valueCreated, profit, landShare });
     }
   }
@@ -139,7 +139,7 @@ export function highestAndBestUse(
     const arv = input.price * (1 + a.flipArvUplift);
     const rehab = input.price * a.flipRehabRate;
     const profit = arv - input.price - rehab - arv * a.saleCostRate;
-    const ret = (profit / (input.price + rehab)) / a.flipHorizonYears;
+    const ret = (profit / (input.price + rehab)) / Math.max(1, a.flipHorizonYears);
     add("flip", ret, { arv, rehab, profit });
   }
 

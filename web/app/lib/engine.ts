@@ -47,6 +47,7 @@ export function buildAction(action: string, p: Record<string, unknown>): { scrip
       return { script: "enrich.ts", args: ["--leads", String(Math.min(100, Math.max(1, Number(p.n) || 25)))], timeout: 180_000 };
     case "coach":
       // build the call playbook for a lead (spec 015); returns JSON the LeadActions panel renders
+      if (!isUuid(p.leadId)) throw new Error("coach: leadId must be a uuid");
       return { script: "coach.ts", args: [String(p.leadId), "--json"] };
     case "thesis-from":
       if (typeof p.prose !== "string" || !p.prose.trim()) throw new Error("describe your thesis first");

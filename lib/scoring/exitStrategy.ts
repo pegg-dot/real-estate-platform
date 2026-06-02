@@ -176,7 +176,9 @@ export function optimizeExitStrategies(
     const mgmtIntensity = INTENSITY[strategy];
     // thesis fit: raw yield discounted when a strategy is more hands-on than the investor wants
     const penaltyFactor = clamp(1 - Math.max(0, mgmtIntensity - appetite));
-    const thesisFit = proForma.cashOnCash * penaltyFactor;
+    // apply the penalty only to POSITIVE yield — penalizing a negative CoC would make a more
+    // hands-on strategy rank ABOVE a less-intensive one at the same loss (inverted).
+    const thesisFit = proForma.cashOnCash > 0 ? proForma.cashOnCash * penaltyFactor : proForma.cashOnCash;
 
     ranked.push({
       strategy, grossAnnualRent, proForma, mgmtIntensity, thesisFit,

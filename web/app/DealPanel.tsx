@@ -61,7 +61,7 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
   const gateFailures = (d?.gate_failures ?? []) as string[];
   const distress = (d?.distress ?? []) as Array<{ signal_type: string; severity: string }>;
   const exitMenu = (d?.exit_strategies ?? {}) as {
-    ranked?: Array<{ strategy: string; cashOnCash: number; rentBasis?: string }>;
+    ranked?: Array<{ strategy: string; cashOnCash: number; rentBasis?: string; guardrail?: string }>;
     excluded?: Array<{ strategy: string; reason: string }>;
   };
   const hbu = (d?.hbu ?? {}) as {
@@ -141,11 +141,15 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
             <Section title="Exit-strategy menu (ranked, spec 019)">
               <div className="muted" style={{ marginBottom: 4 }}>Recommended: <strong>{String(d.recommended_exit_strategy ?? "—").replace(/_/g, " ")}</strong></div>
               {exitMenu.ranked.map((s, i) => (
-                <Row key={i} k={`${i + 1}. ${s.strategy.replace(/_/g, " ")}${s.rentBasis === "hud_fmr" ? " (HUD FMR)" : ""}`} v={`${pct(s.cashOnCash)} CoC`} />
+                <div key={i}>
+                  <Row k={`${i + 1}. ${s.strategy.replace(/_/g, " ")}${s.rentBasis === "hud_fmr" ? " (HUD FMR)" : ""}`} v={`${pct(s.cashOnCash)} CoC`} />
+                  {s.guardrail && <div style={{ fontSize: 11, color: "#7c2d12", marginBottom: 4 }}>⚖️ {s.guardrail}</div>}
+                </div>
               ))}
               {exitMenu.excluded && exitMenu.excluded.length > 0 && (
                 <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Excluded: {exitMenu.excluded.map((e) => e.strategy).join(", ")}</div>
               )}
+              <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Per-strategy rents are modeled multipliers; Section 8 uses the real HUD FMR floor.</div>
             </Section>
           )}
 
