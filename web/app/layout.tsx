@@ -11,12 +11,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <nav>
-          <span className="brand">LOT</span>
+          <a href="/" className="brand">LOT</a>
+          <a href="/ask">💬 Ask</a>
           <a href="/brief">Brief</a>
-          <a href="/">Map</a>
+          <a href="/map">Map</a>
           <a href="/leads">Leads</a>
           <a href="/deals">Pipeline</a>
           <a href="/thesis">Thesis</a>
+          <a href="/playbook">Playbook</a>
           <span className="muted" style={{ opacity: 0.4 }}>·</span>
           <a href="/changes">Changes</a>
           <a href="/radar">Radar</a>

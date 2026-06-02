@@ -1,84 +1,57 @@
 "use client";
-import { useState, useCallback } from "react";
-import Map, { Source, Layer, type MapLayerMouseEvent } from "react-map-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-import DealPanel from "./DealPanel";
+import { useState } from "react";
 
-const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+const SECTIONS = [
+  { href: "/ask", icon: "💬", name: "Ask LOT", desc: "Ask anything in plain English — strategies, what to say to a seller, what to do with a deal." },
+  { href: "/brief", icon: "🗞️", name: "Brief", desc: "Your weekly to-do list: who to mail, which deals to act on, what just opened up." },
+  { href: "/map", icon: "🗺️", name: "Map", desc: "Every parcel on a map, red→green by how well it fits you. Filter by typing what you want." },
+  { href: "/leads", icon: "📇", name: "Leads", desc: "Ranked list of motivated, by-the-room-legal owners to contact — and a button to draft the letter." },
+  { href: "/deals", icon: "📋", name: "Pipeline", desc: "The deals you're pursuing, from watch → analyzing → offer → owned. Advance or pass each one." },
+  { href: "/thesis", icon: "🎯", name: "Thesis", desc: "Describe what you're looking for; the whole map re-ranks to it. Switch between versions." },
+  { href: "/playbook", icon: "📖", name: "Playbook", desc: "The creative-finance plays explained simply — what each is, when it fits, and what to say." },
+  { href: "/changes", icon: "🛰️", name: "Changes", desc: "What moved since last week — price drops, sales, deals crossing into your shortlist." },
+  { href: "/radar", icon: "🏛️", name: "Radar", desc: "Zoning changes turned into opportunity/risk — a zone that just legalized by-the-room renting." },
+  { href: "/learn", icon: "🧠", name: "Learn", desc: "LOT gets sharper from your advance/pass decisions and proposes thesis tweaks for your OK." },
+  { href: "/rents", icon: "🏷️", name: "Rents", desc: "Add real rent comps you know — they override the modeled rent and make scores more accurate." },
+  { href: "/outreach", icon: "✉️", name: "Outreach", desc: "The mailers you've approved, with their compliance receipt." },
+];
 
-const scorePaint = {
-  "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 2.5, 15, 6] as unknown as number,
-  "circle-color": [
-    "interpolate", ["linear"], ["get", "score"],
-    40, "#dc2626", 55, "#f59e0b", 70, "#84cc16", 85, "#16a34a",
-  ] as unknown as string,
-  "circle-opacity": 0.82,
-  "circle-stroke-width": ["case", ["==", ["get", "gatePassed"], false], 1.5, 0] as unknown as number,
-  "circle-stroke-color": "#92400e",
-};
-
-export default function MapPage() {
-  const [selectedApn, setSelectedApn] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [dataUrl, setDataUrl] = useState("/api/parcels");
-  const [filterMsg, setFilterMsg] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const onClick = useCallback((e: MapLayerMouseEvent) => {
-    const f = e.features?.[0];
-    if (f?.properties?.apn) setSelectedApn(String(f.properties.apn));
-  }, []);
-
-  async function applyFilter(e: React.FormEvent) {
+export default function Home() {
+  const [q, setQ] = useState("");
+  function ask(e: React.FormEvent) {
     e.preventDefault();
-    if (!query.trim()) return;
-    setBusy(true); setFilterMsg(null);
-    const r = await fetch("/api/filter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt: query }) }).then((x) => x.json());
-    setBusy(false);
-    if (!r.ok) { setFilterMsg(`⚠️ ${r.error}`); return; }
-    const f = r.filter as Record<string, unknown>;
-    const params = new URLSearchParams();
-    for (const [k, v] of Object.entries(f)) if (v != null) params.set(k, String(v));
-    setDataUrl(`/api/parcels?${params}`);
-    const applied = Object.entries(f).filter(([, v]) => v != null).map(([k, v]) => `${k}=${v}`);
-    setFilterMsg(applied.length ? `Filtered: ${applied.join(", ")}` : "No filters parsed from that.");
+    if (q.trim()) { sessionStorage.setItem("lot_ask", q.trim()); window.location.href = "/ask"; }
   }
-  function clearFilter() { setDataUrl("/api/parcels"); setQuery(""); setFilterMsg(null); }
-
-  if (!TOKEN) {
-    return <div className="page"><h2>Map needs a Mapbox token</h2>
-      <p className="muted">Set <code>NEXT_PUBLIC_MAPBOX_TOKEN</code> in the repo .env and restart.</p></div>;
-  }
-
   return (
-    <div style={{ position: "relative", height: "calc(100vh - 44px)" }}>
-      <Map
-        mapboxAccessToken={TOKEN}
-        initialViewState={{ longitude: -78.5036, latitude: 38.0356, zoom: 12.4 }}
-        mapStyle="mapbox://styles/mapbox/light-v11"
-        interactiveLayerIds={["parcels"]}
-        onClick={onClick}
-        cursor="pointer"
-      >
-        <Source id="parcels-src" type="geojson" data={dataUrl}>
-          <Layer id="parcels" type="circle" paint={scorePaint as never} />
-        </Source>
-      </Map>
-
-      <div style={{ position: "absolute", top: 12, left: 12, width: 420, background: "#fff", padding: "10px 12px",
-        borderRadius: 8, boxShadow: "0 1px 8px rgba(0,0,0,0.18)", fontSize: 13 }}>
-        <strong>Deal map</strong> — scored parcels, red→green by score. Click a dot for the dossier.
-        <form onSubmit={applyFilter} style={{ display: "flex", gap: 6, marginTop: 8 }}>
-          <input value={query} onChange={(e) => setQuery(e.target.value)}
-            placeholder='Ask: "by-room-legal under $400k within 1mi with a neglect flag"'
-            style={{ flex: 1, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 12 }} />
-          <button type="submit" disabled={busy} style={{ padding: "6px 10px", border: "1px solid #0f172a", background: "#0f172a", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>{busy ? "…" : "Filter"}</button>
-          {dataUrl !== "/api/parcels" && <button type="button" onClick={clearFilter} style={{ padding: "6px 8px", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>Clear</button>}
+    <div className="page" style={{ maxWidth: 920 }}>
+      <div style={{ textAlign: "center", padding: "8px 0 22px" }}>
+        <h1 style={{ fontSize: 28, marginBottom: 6 }}>LOT — your buying machine</h1>
+        <p className="muted" style={{ fontSize: 15, maxWidth: 600, margin: "0 auto 18px" }}>
+          Find, score, and finance buy-and-hold rentals in Charlottesville. New here? Just ask it anything,
+          or pick a section below — each one says what it does.
+        </p>
+        <form onSubmit={ask} style={{ display: "flex", gap: 8, maxWidth: 560, margin: "0 auto" }}>
+          <input value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder='Ask LOT anything — "what financing fits a tired landlord?"'
+            style={{ flex: 1, padding: "12px 14px", border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 15 }} />
+          <button type="submit" style={{ padding: "12px 22px", border: "none", background: "#0f172a", color: "#fff", borderRadius: 10, cursor: "pointer", fontSize: 15, fontWeight: 600 }}>Ask</button>
         </form>
-        {filterMsg && <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>{filterMsg}</div>}
       </div>
 
-      {selectedApn && <DealPanel apn={selectedApn} onClose={() => setSelectedApn(null)} />}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 12 }}>
+        {SECTIONS.map((s) => (
+          <a key={s.href} href={s.href} style={{ display: "block", border: "1px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", transition: "box-shadow .15s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)")}
+            onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{s.icon} {s.name}</div>
+            <div className="muted" style={{ fontSize: 13, lineHeight: 1.45 }}>{s.desc}</div>
+          </a>
+        ))}
+      </div>
+
+      <p className="muted" style={{ fontSize: 12, marginTop: 20, textAlign: "center" }}>
+        New to creative financing? Start with the <a href="/playbook">Playbook</a>. Everything is informational, not legal or financial advice.
+      </p>
     </div>
   );
 }
