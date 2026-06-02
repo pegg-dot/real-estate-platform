@@ -113,6 +113,7 @@ export async function selectMailBatch(sql: Sql, market: string): Promise<MailBat
     where m.name = ${market} and l.gate_state = 'mailable' and l.opted_out = false
       and l.times_mailed < ${cfg.lifetimeMailCap}
       and (l.do_not_mail_until is null or l.do_not_mail_until <= now())
+      and o.mailing_address is not null   -- only surface actually-mailable leads in the budget
     order by l.motivation_score desc
     limit ${cfg.weeklyMailBudget}`;
   return rows.map((r) => ({ leadId: r.lead_id, ownerId: r.owner_id, propertyId: r.property_id,
@@ -128,11 +129,22 @@ export async function selectMailBatch(sql: Sql, market: string): Promise<MailBat
 export async function approveMailer(sql: Sql, market: string, leadId: string): Promise<string> {
   const cfg = await getSourcingConfig(sql, market);
   const [lead] = await sql<Array<{ owner_id: string; property_id: string | null; opted_out: boolean;
-    times_mailed: number; owner_name: string | null; mailing_address: string | null }>>`
+    times_mailed: number; owner_name: string | null; mailing_address: string | null;
+    gate_state: string; do_not_mail_until: string | null }>>`
     select l.owner_id, l.property_id, l.opted_out, l.times_mailed, o.name as owner_name,
-           o.mailing_address
+           o.mailing_address, l.gate_state, l.do_not_mail_until
     from lead l join owner o on o.id = l.owner_id where l.id = ${leadId}`;
   if (!lead) throw new Error(`no lead ${leadId}`);
+
+  // structurally enforce the routing decisions at the APPROVAL boundary (not just in the queue):
+  // estate -> manual_review, excluded, and cooldown can never be auto-mailed even if approveMailer
+  // is called directly with a lead id.
+  if (lead.gate_state !== "mailable") {
+    throw new Error(`lead ${leadId} is '${lead.gate_state}', not mailable (estate/probate -> manual review; institution/illegal -> excluded)`);
+  }
+  if (lead.do_not_mail_until && new Date(lead.do_not_mail_until) > new Date()) {
+    throw new Error(`lead ${leadId} is in cooldown until ${lead.do_not_mail_until} — do not mail yet`);
+  }
 
   // the gate THROWS if not compliant — nothing past here runs on a violation
   const receipt = assertCompliant({
@@ -182,9 +194,17 @@ export async function recordInbound(
   await sql`update lead set status = 'replied' where id = ${opts.leadId}`;
   if (!lead.property_id) return { dealId: null };
 
+  // funnel link: if the caller didn't pass the mailer id, resolve the lead's most recent one
+  let outreachId = opts.outreachId ?? null;
+  if (!outreachId) {
+    const [evt] = await sql<{ id: string }[]>`
+      select id from outreach_event where lead_id = ${opts.leadId} order by created_at desc limit 1`;
+    outreachId = evt?.id ?? null;
+  }
+
   const dealId = await createDeal(sql, {
     propertyId: lead.property_id, ownerId: lead.owner_id,
-    sourceOutreachId: opts.outreachId ?? null,
+    sourceOutreachId: outreachId,
     reasonChip: "inbound_reply", note: opts.note,
   });
   return { dealId };
