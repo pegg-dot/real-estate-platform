@@ -44,4 +44,9 @@ describe("isBuyAhead — low-priced parcel in a rising corridor", () => {
   it("does NOT flag a cheap parcel in a flat corridor (no growth thesis)", () => {
     expect(isBuyAhead({ parcelValue: 300_000, areaMedianValue: 450_000, corridorScore: 30 }).flag).toBe(false);
   });
+
+  it("does NOT flag a tiny-value parcel (data artifact: sliver/common area/vacant)", () => {
+    // a $100 'parcel' in a $450k-median rising corridor is a data artifact, not a buy-ahead
+    expect(isBuyAhead({ parcelValue: 100, areaMedianValue: 450_000, corridorScore: 90 }).flag).toBe(false);
+  });
 });

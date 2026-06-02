@@ -20,6 +20,7 @@
     "enrich": "tsx scripts/enrich.ts",
     "ingest-source": "tsx scripts/ingest-source.ts",
     "coach": "tsx scripts/coach.ts",
+    "growth": "tsx scripts/growth.ts",
     "thesis": "tsx scripts/thesis.ts"
   },
   "devDependencies": {

@@ -32,26 +32,31 @@ const W = { valueTrend: 0.35, permit: 0.25, corridor: 0.20, enrollment: 0.10, ne
 
 export function corridorScore(s: AreaSignals): CorridorScore {
   const reasons: string[] = [];
-  // normalize each signal to 0..1 against a plausible ceiling
-  const valueTrend = clamp((s.valueTrendSlope ?? 0) / 0.06);   // ~6%/yr -> full marks
-  const permit = clamp((s.permitVelocity ?? 0) / 15);          // ~15 net permits/yr -> full marks
-  const corridor = clamp(s.corridorProximity ?? 0);
-  const enrollment = clamp((s.enrollmentGrowth ?? 0) / 0.05);  // ~5%/yr -> full marks
-  const newCon = clamp(s.newConstructionMix ?? 0);
+  // each signal: [name, weight, normalized 0..1, present?]. ABSENT signals (permits/enrollment not
+  // yet ingested) are EXCLUDED from the blend and the weights renormalized over what's present — so
+  // a strong area isn't capped low just because a leading signal is missing; confidence carries that.
+  const sig: Array<{ name: string; w: number; norm: number; present: boolean }> = [
+    { name: "valueTrend", w: W.valueTrend, norm: clamp((s.valueTrendSlope ?? 0) / 0.06), present: s.valueTrendSlope != null },
+    { name: "permitVelocity", w: W.permit, norm: clamp((s.permitVelocity ?? 0) / 15), present: s.permitVelocity != null },
+    { name: "corridorProximity", w: W.corridor, norm: clamp(s.corridorProximity ?? 0), present: true },
+    { name: "enrollmentGrowth", w: W.enrollment, norm: clamp((s.enrollmentGrowth ?? 0) / 0.05), present: s.enrollmentGrowth != null },
+    { name: "newConstruction", w: W.newConstruction, norm: clamp(s.newConstructionMix ?? 0), present: s.newConstructionMix != null },
+  ];
+  const presentWeight = sig.filter((x) => x.present).reduce((a, x) => a + x.w, 0) || 1;
 
-  const c: Record<string, number> = {
-    valueTrend: W.valueTrend * valueTrend * 100,
-    permitVelocity: W.permit * permit * 100,
-    corridorProximity: W.corridor * corridor * 100,
-    enrollmentGrowth: W.enrollment * enrollment * 100,
-    newConstruction: W.newConstruction * newCon * 100,
-  };
-  if (valueTrend > 0.5) reasons.push(`value slope ~${((s.valueTrendSlope ?? 0) * 100).toFixed(1)}%/yr`);
+  const c: Record<string, number> = {};
+  let total = 0;
+  for (const x of sig) {
+    const pts = x.present ? (x.w / presentWeight) * x.norm * 100 : 0;
+    c[x.name] = pts;
+    total += pts;
+  }
+  if ((s.valueTrendSlope ?? 0) > 0.03) reasons.push(`value slope ~${((s.valueTrendSlope ?? 0) * 100).toFixed(1)}%/yr`);
   if ((s.permitVelocity ?? 0) > 0) reasons.push(`permit velocity ${s.permitVelocity}/yr`);
-  if (corridor >= 0.5) reasons.push("near a planned/upzoned corridor");
-  if (enrollment > 0.4) reasons.push("rising enrollment (demand)");
+  if ((s.corridorProximity ?? 0) >= 0.5) reasons.push("inside a planned/upzoned corridor");
+  if ((s.enrollmentGrowth ?? 0) > 0.02) reasons.push("rising enrollment (demand)");
 
-  const score = Math.round(clamp(Object.values(c).reduce((a, b) => a + b, 0), 0, 100));
+  const score = Math.round(clamp(total, 0, 100));
 
   // confidence: the value-trend (history) is the floor; leading signals add certainty when present
   let confidence = s.valueTrendSlope != null ? 0.6 : 0.3;
@@ -73,11 +78,14 @@ export interface BuyAheadInput {
  * the area median (hasn't repriced yet). `discount` = how far below the area median it sits.
  */
 export function isBuyAhead(
-  i: BuyAheadInput, opts: { minCorridor?: number; minDiscount?: number } = {},
+  i: BuyAheadInput, opts: { minCorridor?: number; minDiscount?: number; minValue?: number } = {},
 ): { flag: boolean; reason: string; discount: number } {
   const minCorridor = opts.minCorridor ?? 60;
   const minDiscount = opts.minDiscount ?? 0.15;
+  const minValue = opts.minValue ?? 50_000;          // below this is a data artifact, not a buy-ahead
   const discount = i.areaMedianValue > 0 ? 1 - i.parcelValue / i.areaMedianValue : 0;
+  // a too-cheap "parcel" is a vacant sliver / common area / assessed-only record, not an opportunity
+  if (i.parcelValue < minValue) return { flag: false, reason: "value too low — likely a sliver/common-area artifact, not a buy-ahead", discount };
   const flag = i.corridorScore >= minCorridor && discount >= minDiscount;
   const reason = flag
     ? `priced ${(discount * 100).toFixed(0)}% below area median in a rising corridor (score ${i.corridorScore}) — buy ahead`
