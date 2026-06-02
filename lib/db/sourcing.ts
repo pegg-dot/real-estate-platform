@@ -11,6 +11,7 @@ import type postgres from "postgres";
 import type { Sql } from "./client.js";
 import { motivationScore } from "../sourcing/motivation.js";
 import { inferBunny } from "../sourcing/bunny.js";
+import { stackScore } from "../sourcing/stack.js";
 import { assertCompliant } from "../outreach/complianceGate.js";
 import { draftMailer } from "../outreach/draft.js";
 import { createDeal } from "./deal.js";
@@ -85,6 +86,12 @@ export async function generateLeads(sql: Sql, market: string): Promise<number> {
       entityType: r.entity_type, estEquityPct: r.equity_pct != null ? Number(r.equity_pct) : null,
       byRoomLegal: true,
     });
+    // stack the held signals so multi-signal parcels rise above single-signal ones (spec 015)
+    const stack = stackScore({
+      motivationScore: mot.score, distressScore: r.distress_score != null ? Number(r.distress_score) : null,
+      estEquityPct: r.equity_pct != null ? Number(r.equity_pct) : null,
+      isAbsentee: r.is_absentee, tenureYears: r.tenure_years, portfolioSize: r.portfolio_size,
+    });
     return {
       market_id: m.id, owner_id: r.owner_id, property_id: r.property_id,
       motivation_score: mot.score,
@@ -93,6 +100,7 @@ export async function generateLeads(sql: Sql, market: string): Promise<number> {
       gate_state: gateState, segment, thesis_version: r.thesis_version,
       motivation_type: bunny.motivationType, likely_bunny: bunny.likelyBunny,
       recommended_structure: bunny.recommendedStructure, bunny_confidence: bunny.confidence,
+      stack_score: stack.score, stack_components: sql.json(stack.components as Json),
     };
   });
 
@@ -103,13 +111,15 @@ export async function generateLeads(sql: Sql, market: string): Promise<number> {
     await sql`
       insert into lead ${sql(slice, "market_id", "owner_id", "property_id", "motivation_score",
         "score_provenance", "gate_state", "segment", "thesis_version",
-        "motivation_type", "likely_bunny", "recommended_structure", "bunny_confidence")}
+        "motivation_type", "likely_bunny", "recommended_structure", "bunny_confidence",
+        "stack_score", "stack_components")}
       on conflict (owner_id) do update set
         property_id = excluded.property_id, motivation_score = excluded.motivation_score,
         score_provenance = excluded.score_provenance, gate_state = excluded.gate_state,
         segment = excluded.segment, thesis_version = excluded.thesis_version,
         motivation_type = excluded.motivation_type, likely_bunny = excluded.likely_bunny,
-        recommended_structure = excluded.recommended_structure, bunny_confidence = excluded.bunny_confidence`;
+        recommended_structure = excluded.recommended_structure, bunny_confidence = excluded.bunny_confidence,
+        stack_score = excluded.stack_score, stack_components = excluded.stack_components`;
   }
   return records.length;
 }
