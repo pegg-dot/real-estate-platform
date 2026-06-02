@@ -1,5 +1,9 @@
 # Spec 007 — Exit-Strategy Optimizer (the buy-and-hold menu)
 
+> ⚠️ **SUPERSEDED (2026-06-02) by `007-strategy-and-seller-engine.md`**, which merges this
+> (Part A) with `008-motivation-and-outreach.md` (Part B) and reconciles both against shipped
+> code. Kept for history; build from the reconciled spec, not this one.
+
 **Status:** ready to build · **Depends on:** 003 (scoring/underwrite), 002 (beds, zoning)
 **Unlocks:** the podcast's core insight — "buy and hold is a *menu* of exit strategies"
 

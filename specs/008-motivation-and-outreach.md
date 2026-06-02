@@ -1,5 +1,9 @@
 # Spec 008 — Motivation Typing + "Bunny" Inference + Outreach (the seller side)
 
+> ⚠️ **SUPERSEDED (2026-06-02) by `007-strategy-and-seller-engine.md`**, which merges this
+> (Part B) with `007-exit-strategy-optimizer.md` (Part A) and reconciles both against shipped
+> code. Most of this Part B shipped under specs 009/012/014. Build from the reconciled spec.
+
 **Status:** ready to build (tiered) · **Depends on:** 002 (owner/tenure), 004 (NEED/GREED), 006 (scout)
 **Unlocks:** the podcast's #1 lesson — "every deal starts with a motivated seller; find the bunny"
 
