@@ -8,6 +8,7 @@
  */
 import type { ProFormaAssumptions } from "../scoring/underwrite.js";
 import type { RentModel } from "../scoring/rent.js";
+import type { FmrSchedule } from "../scoring/fmr.js";
 
 import charlottesville from "../../config/market-assumptions/charlottesville.json" with { type: "json" };
 
@@ -28,8 +29,25 @@ export interface MarketAssumptions {
   vacancyRate: number;
   capGainsRate: number;
   currentMarketRate: number;
+  /** REAL HUD FMR schedule (raw JSON shape); used as a rent floor, not the headline. */
+  fmr?: {
+    cbsaName: string; fmrYear: number; sourceUrl?: string;
+    upliftFactorAbove4: number; byBedroom: Record<string, number>;
+  };
   campus: { name: string; lat: number; lng: number };
   confidence: "modeled" | "real";
+}
+
+/** Build the typed FmrSchedule from a market's config (null if the market has no FMR yet). */
+export function fmrScheduleFor(a: MarketAssumptions): FmrSchedule | null {
+  if (!a.fmr) return null;
+  // JSON object keys are strings; normalize to numeric bedroom keys for the floor lookup
+  const byBedroom: Record<number, number> = {};
+  for (const [k, v] of Object.entries(a.fmr.byBedroom)) byBedroom[Number(k)] = v;
+  return {
+    byBedroom, upliftFactorAbove4: a.fmr.upliftFactorAbove4,
+    fmrYear: a.fmr.fmrYear, cbsaName: a.fmr.cbsaName, sourceUrl: a.fmr.sourceUrl,
+  };
 }
 
 const REGISTRY: Record<string, MarketAssumptions> = {

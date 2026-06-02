@@ -11,6 +11,7 @@ export interface DossierDepth {
   sensitivity?: SensitivityResult;
   gates?: { passed: boolean; failures: string[] };
   dataConfidence?: number;
+  rentFloor?: { hudFmrMonthly: number | null; belowFloor: boolean; fmrYear: number | null; cbsaName: string | null };
 }
 
 export interface DossierFacts {
@@ -109,6 +110,16 @@ export function renderDossier(
     const s = depth.sensitivity;
     out.push(`\n**Sensitivity** — headline CoC ${pct(s.cocBase)} · **range ${pct(s.cocLow)}–${pct(s.cocHigh)}** ` +
       `across ±rent/±vacancy (the number isn't fragile — or it is, if the range is wide).`);
+  }
+
+  // HUD FMR real floor (004a): a free-government reality check on the MODELED whole-house rent.
+  if (depth.rentFloor?.hudFmrMonthly != null) {
+    const rf = depth.rentFloor;
+    out.push(`\n**HUD FMR floor (real)** — ${rf.cbsaName} FY${rf.fmrYear}: **${usd(rf.hudFmrMonthly)}/mo** whole-house ` +
+      `for ${f.beds ?? "?"} bed(s) (40th-pct gross rent; a defensible FLOOR, not the student headline). ` +
+      (rf.belowFloor
+        ? `⚠️ Our modeled whole-house rent sits **below** this real floor — the rent model looks low for this parcel; verify.`
+        : `Our modeled rent clears it.`));
   }
 
   // Score breakdown

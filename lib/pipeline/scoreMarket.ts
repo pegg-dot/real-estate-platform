@@ -9,9 +9,10 @@
  */
 import type { Sql } from "../db/client.js";
 import { readScorableProperties, upsertScore, type ScorableRow, type ScoreRecord } from "../db/properties.js";
-import { loadMarketAssumptions, proFormaFor, type MarketAssumptions } from "../config/assumptions.js";
+import { loadMarketAssumptions, proFormaFor, fmrScheduleFor, type MarketAssumptions } from "../config/assumptions.js";
 import { scoreProperty, haversineMiles, type ScoreInput, type ScoreResult } from "../scoring/score.js";
 import { perBedroomRent } from "../scoring/rent.js";
+import { hudFmrMonthlyFloor, rentVsHudFloor } from "../scoring/fmr.js";
 import { sensitivity, type SensitivityResult } from "../scoring/sensitivity.js";
 import { evaluateGates } from "../scoring/gates.js";
 import { dataConfidence } from "../scoring/confidence.js";
@@ -40,12 +41,20 @@ const yearsSince = (iso: string, asOf: string) =>
  * the single-parcel dossier path so it can't drift between them. */
 export const DEFAULT_BUYER_CASH = 5_000_000;
 
+export interface RentFloor {
+  hudFmrMonthly: number | null;   // real HUD whole-house FMR for this bed count
+  belowFloor: boolean;            // modeled whole-house rent dips below the HUD floor (flag)
+  fmrYear: number | null;
+  cbsaName: string | null;
+}
+
 export interface ScoredRow {
   score: ScoreResult;
   financing: FinancingResult;
   sensitivity: SensitivityResult;
   gates: { passed: boolean; failures: string[] };
   dataConfidence: number;
+  rentFloor: RentFloor;          // HUD FMR real floor / sanity cross-check (004a)
 }
 
 /** Score + finance a single scorable row — the shared per-property logic (pipeline + dossier). */
@@ -93,7 +102,21 @@ export function scoreRow(
     buyerCashAvailable: cash, currentMarketRate: a.currentMarketRate,
     noi: score.headline.proForma.noi, asOf, capGainsRate: a.capGainsRate,
   });
-  return { score, financing, sensitivity: sens, gates, dataConfidence: conf };
+
+  // HUD FMR real floor / sanity cross-check (004a): does the MODELED whole-house rent dip
+  // below the real voucher floor? If so the rent model is suspect for this parcel.
+  const fmrSched = fmrScheduleFor(a);
+  const vsFloor = fmrSched
+    ? rentVsHudFloor(score.proFormas.wholeHouse.grossAnnualRent, row.beds, fmrSched)
+    : { floorAnnual: null, belowFloor: false };
+  const rentFloor: RentFloor = {
+    hudFmrMonthly: fmrSched ? hudFmrMonthlyFloor(row.beds, fmrSched) : null,
+    belowFloor: vsFloor.belowFloor,
+    fmrYear: fmrSched?.fmrYear ?? null,
+    cbsaName: fmrSched?.cbsaName ?? null,
+  };
+
+  return { score, financing, sensitivity: sens, gates, dataConfidence: conf, rentFloor };
 }
 
 export async function scoreMarket(

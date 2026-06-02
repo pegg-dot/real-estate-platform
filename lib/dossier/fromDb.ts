@@ -36,7 +36,7 @@ export async function renderDossierForApn(
 
   const a = loadMarketAssumptions(market);
   const when = asOf ?? new Date().toISOString().slice(0, 10);
-  const { score, financing, sensitivity, gates, dataConfidence } =
+  const { score, financing, sensitivity, gates, dataConfidence, rentFloor } =
     scoreRow(row, a, thesis, when, DEFAULT_BUYER_CASH);
 
   const ruleSlugs = [...new Set(financing.recommended.flatMap((o) => o.citedRules))];
@@ -49,5 +49,5 @@ export async function renderDossierForApn(
     ownerEntityType: row.ownerEntityType, isAbsentee: row.isAbsentee,
     lastSalePrice: row.lastArmsPrice, lastSaleDate: row.lastArmsDate, confidence: "modeled",
   };
-  return renderDossier(facts, score, financing, rules, { sensitivity, gates, dataConfidence });
+  return renderDossier(facts, score, financing, rules, { sensitivity, gates, dataConfidence, rentFloor });
 }

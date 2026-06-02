@@ -20,6 +20,14 @@
   "vacancyRate": 0.12,
   "capGainsRate": 0.20,
   "currentMarketRate": 0.07,
+  "fmr": {
+    "$comment": "REAL HUD Fair Market Rents FY2026 for the Charlottesville, VA MSA (40th-pct gross rent, metro-level so the city + Albemarle share these). Used as a defensible FLOOR / sanity cross-check, NOT as the headline rent — the voucher number understates near-campus market rent. Refresh annually via `python -m ingestion.fmr` (needs a free HUD token) or paste the new FY block here. Source: huduser.gov FMR FY2026.",
+    "cbsaName": "Charlottesville, VA MSA",
+    "fmrYear": 2026,
+    "sourceUrl": "https://www.huduser.gov/portal/datasets/fmr.html",
+    "upliftFactorAbove4": 0.15,
+    "byBedroom": { "0": 1421, "1": 1602, "2": 1824, "3": 2218, "4": 2731 }
+  },
   "campus": { "name": "UVA", "lat": 38.0356, "lng": -78.5036 },
   "confidence": "modeled"
 }
