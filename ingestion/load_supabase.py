@@ -233,6 +233,16 @@ def load_properties(conn, market_id: str, properties: list[dict]) -> dict:
                 sale_params)
         counts["sale"] = len(sale_params)
 
+    # owner.portfolio_size = parcels held per owner in this market (spec 019 Part B; the
+    # tired-landlord gate). Persisted here so it stays fresh on every load, not just at read time.
+    with conn.cursor() as cur:
+        cur.execute(
+            "update owner o set portfolio_size = sub.n "
+            "from (select owner_id, count(*)::int n from property "
+            "        where owner_id is not null and market_id = %s group by owner_id) sub "
+            "where sub.owner_id = o.id and (o.portfolio_size is distinct from sub.n)",
+            (market_id,))
+
     conn.commit()
     return counts
 
