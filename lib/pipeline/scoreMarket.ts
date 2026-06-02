@@ -13,7 +13,7 @@ import { loadMarketAssumptions, proFormaFor, fmrScheduleFor, type MarketAssumpti
 import { scoreProperty, haversineMiles, type ScoreInput, type ScoreResult } from "../scoring/score.js";
 import { perBedroomRent } from "../scoring/rent.js";
 import { hudFmrMonthlyFloor, rentVsHudFloor } from "../scoring/fmr.js";
-import { optimizeExitStrategies, type ExitOptimization, type ExitStrategy, type ExitThesis } from "../scoring/exitStrategy.js";
+import { optimizeExitStrategies, DEFAULT_EXIT_THESIS, type ExitOptimization, type ExitStrategy, type ExitThesis } from "../scoring/exitStrategy.js";
 import { estimateRealRent, type RentComp } from "../rent/comps.js";
 import { sensitivity, type SensitivityResult } from "../scoring/sensitivity.js";
 import { evaluateGates } from "../scoring/gates.js";
@@ -32,12 +32,6 @@ export interface Thesis {
     rent_multipliers?: Record<string, number>;
   };
 }
-
-// Hands-off default when the thesis omits exit_strategy (matches the Zod schema default).
-const DEFAULT_EXIT_THESIS: ExitThesis = {
-  management_appetite: 0.25,
-  allowed_exit_strategies: ["ltr", "by_room", "mtr", "str", "section8"],
-};
 
 export interface ScoreMarketResult {
   market: string;
@@ -195,6 +189,8 @@ export async function scoreMarket(
         cashOnCash: Number(r.proForma.cashOnCash.toFixed(4)),
         mgmtIntensity: r.mgmtIntensity,
         thesisFit: Number(r.thesisFit.toFixed(4)),
+        rentBasis: r.rentBasis,                 // 'hud_fmr' for Section 8, else 'modeled'
+        ...(r.guardrail ? { guardrail: r.guardrail } : {}),
       })),
       excluded: exitStrategy.excluded,
     };

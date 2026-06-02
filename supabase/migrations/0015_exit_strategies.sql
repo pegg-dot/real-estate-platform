@@ -37,7 +37,9 @@ left join risk_profile r on r.property_id = p.id
 left join lateral (
   select * from property_score ps2
   where ps2.property_id = p.id
-  order by ps2.thesis_version desc
+  -- preserve 0004's fix: surface the ACTIVE thesis's score, not max(thesis_version)
+  order by (ps2.thesis_version = (select version from thesis where is_active limit 1)) desc nulls last,
+           ps2.thesis_version desc
   limit 1
 ) ps on true;
 

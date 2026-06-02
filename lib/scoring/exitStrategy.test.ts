@@ -69,10 +69,27 @@ describe("optimizeExitStrategies", () => {
   it("models Section 8 on the HUD FMR floor, not market rent", () => {
     const thesis: ExitThesis = { management_appetite: 0.5, allowed_exit_strategies: ALL };
     const out = optimizeExitStrategies(nearGrounds({ beds: 3 }), thesis, ASSUMPTIONS, FMR);
-    const s8 = [...out.ranked, ...[]].find((r) => r.strategy === "section8");
+    const s8 = out.ranked.find((r) => r.strategy === "section8");
     expect(s8).toBeDefined();
     expect(s8!.grossAnnualRent).toBe(1_800 * 12);          // HUD 3BR FMR * 12
     expect(s8!.grossAnnualRent).not.toBe(2_800 * 12);      // not the modeled market rent
+  });
+
+  it("tags Section 8 rent as the real HUD FMR basis, market strategies as modeled", () => {
+    const thesis: ExitThesis = { management_appetite: 0.5, allowed_exit_strategies: ALL };
+    const out = optimizeExitStrategies(nearGrounds({ beds: 3 }), thesis, ASSUMPTIONS, FMR);
+    expect(out.ranked.find((r) => r.strategy === "section8")!.rentBasis).toBe("hud_fmr");
+    expect(out.ranked.find((r) => r.strategy === "ltr")!.rentBasis).toBe("modeled");
+  });
+
+  it("attaches a legality/licensing guardrail to assisted-living (never asserts it is legal)", () => {
+    const thesis: ExitThesis = {
+      management_appetite: 0.9, allowed_exit_strategies: [...ALL, "assisted"],
+    };
+    const out = optimizeExitStrategies(nearGrounds({ strAllowed: true }), thesis, ASSUMPTIONS, FMR);
+    const a = out.ranked.find((r) => r.strategy === "assisted");
+    expect(a).toBeDefined();
+    expect(a!.guardrail).toMatch(/licens|attorney/i);
   });
 
   it("excludes by-room where it is not legal", () => {

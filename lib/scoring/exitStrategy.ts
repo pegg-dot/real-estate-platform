@@ -49,6 +49,10 @@ export interface StrategyResult {
   mgmtIntensity: number;
   /** ranking score: cash-on-cash penalized by intensity-over-appetite */
   thesisFit: number;
+  /** where the gross rent came from: a modeled multiplier vs the REAL HUD FMR floor */
+  rentBasis: "modeled" | "hud_fmr";
+  /** legal/licensing caveat surfaced (not asserted) for licensed uses; undefined when none */
+  guardrail?: string;
 }
 
 export interface ExcludedStrategy {
@@ -61,6 +65,17 @@ export interface ExitOptimization {
   recommended: ExitStrategy | null;         // ranked[0], or null if nothing feasible
   excluded: ExcludedStrategy[];             // every gated strategy + machine-readable reason
 }
+
+// Hands-off default applied when a thesis omits exit_strategy (mirrors the Zod schema default).
+export const DEFAULT_EXIT_THESIS: ExitThesis = {
+  management_appetite: 0.25,
+  allowed_exit_strategies: ["ltr", "by_room", "mtr", "str", "section8"],
+};
+
+// Real legal gate we can't yet check on data — surfaced, never asserted (golden rule #3/#4).
+const ASSISTED_GUARDRAIL =
+  "Licensed use: requires operator licensing, zoning, and fire-marshal approval — see an " +
+  "attorney. Not gated on parcel data (no licensing field); feasibility is the operator's to confirm.";
 
 // Operating intensity per strategy (the "how much work" axis the thesis weighs).
 const INTENSITY: Record<ExitStrategy, number> = {
@@ -157,7 +172,11 @@ export function optimizeExitStrategies(
     const penaltyFactor = clamp(1 - Math.max(0, mgmtIntensity - appetite));
     const thesisFit = proForma.cashOnCash * penaltyFactor;
 
-    ranked.push({ strategy, grossAnnualRent, proForma, mgmtIntensity, thesisFit });
+    ranked.push({
+      strategy, grossAnnualRent, proForma, mgmtIntensity, thesisFit,
+      rentBasis: strategy === "section8" ? "hud_fmr" : "modeled",
+      guardrail: strategy === "assisted" ? ASSISTED_GUARDRAIL : undefined,
+    });
   }
 
   ranked.sort((a, b) => b.thesisFit - a.thesisFit);
