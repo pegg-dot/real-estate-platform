@@ -21,6 +21,7 @@
     "ingest-source": "tsx scripts/ingest-source.ts",
     "coach": "tsx scripts/coach.ts",
     "growth": "tsx scripts/growth.ts",
+    "portfolio": "tsx scripts/portfolio.ts",
     "thesis": "tsx scripts/thesis.ts"
   },
   "devDependencies": {
