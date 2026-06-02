@@ -3,6 +3,19 @@
 > The agent can't click dashboards, sign up for accounts, rotate secrets, or hold a credit
 > card. This is the running list of those. Checked = done. Keep it short; prune when done.
 
+## 📋 Your review queue
+- [ ] **Review + merge the `feat/lot-strategy-and-property-intelligence` branch** — specs 019
+      (exit-strategy optimizer + seller engine), 020 (highest-and-best-use), 016 (expert-mind
+      learning layer), 015 (acquire-coach + lead stacking). ~30 commits, all code-reviewed +
+      live-verified, nothing merged to `main` yet. Open a PR from the branch on GitHub and merge
+      when you're happy. Then the **visual design pass** (Claude design) can polish the new UI:
+      the deal panel's exit-menu + HBU, the leads stack/bunny/channel + funnel line, the coach
+      playbook, and a development-upside map layer (data ready via `/api/parcels?developOnly=true`).
+- [ ] **Two calibration dials to eyeball** (working, just judgment calls): exit-strategy mix
+      (by-room 56% / MTR 31% / Section 8 9% — tune `exit_strategy` in the thesis if you disagree);
+      and HBU develop returns are annualized *screening proxies*, not IRRs (an underwriter-grade
+      model is a future upgrade).
+
 ## 🔐 Security — do soon
 - [ ] **Rotate the Supabase DB password** — it was shared in chat (Supabase → Settings →
       Database → Reset password), then update `SUPABASE_DB_URL` in `.env`.
@@ -11,10 +24,14 @@
 
 ## ✅ Unlocks features already built
 - [x] **Anthropic API key** added to `.env` (valid — authenticates).
-- [ ] **Add Anthropic billing/credits** — the key works but the account has **$0 credits**, so
-      conversational intake errors ("credit balance too low"). Fix: console.anthropic.com →
-      Plans & Billing → add a payment method / buy credits. (Guided + generic intake work now
-      without it; conversational `--from "<prose>"` needs credits.)
+- [ ] **Add Anthropic billing/credits** — the key works but the account has **$0 credits**. This
+      now gates SEVERAL fully-built features (they degrade cleanly until then):
+      Fix: console.anthropic.com → Plans & Billing → add a payment method / buy credits. Unlocks:
+      • conversational thesis intake (`--from "<prose>"`) + the NL map filter + Ask LOT
+      • **expert-mind transcript distillation** (`npm run ingest-source -- <transcript.txt>`) —
+        auto-extracts cited rules/exemplars/params; the offline `.json` path works without credits
+      • **negotiation roleplay** (the seller-persona drill + rubric scoring; spec 015) —
+        `lib/coach/roleplayLlm.ts` is built and wired, just needs the model to run.
 - [ ] **(optional) HUD FMR API token** — only needed to *refresh* real rents annually or add
       markets. The FY2026 Charlottesville numbers are already seeded from public data, so rent
       reality works without it. Get one free at huduser.gov → Create New Token if/when you want
