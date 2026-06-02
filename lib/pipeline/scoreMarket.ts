@@ -63,7 +63,7 @@ export function scoreRow(
     apn: row.apn, price, beds: row.beds, byRoomLegal: row.byRoomLegal, lat: row.lat, lng: row.lng,
     tenureYears: row.lastArmsDate ? yearsSince(row.lastArmsDate, asOf) : null,
     isAbsentee: row.isAbsentee, perBedroomRent: perBed, wholeHouseMonthlyRent,
-    appreciation: a.appreciation, risk: { isCondo: row.isCondo ?? false, floodZone: row.floodZone },
+    risk: { isCondo: row.isCondo ?? false, floodZone: row.floodZone },
   };
   const pfa = proFormaFor(a, row.beds);
   const score = scoreProperty(scoreInput, thesis, pfa, { campus: a.campus });

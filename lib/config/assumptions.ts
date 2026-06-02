@@ -28,7 +28,6 @@ export interface MarketAssumptions {
   vacancyRate: number;
   capGainsRate: number;
   currentMarketRate: number;
-  appreciation: number;
   campus: { name: string; lat: number; lng: number };
   confidence: "modeled" | "real";
 }

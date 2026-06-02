@@ -19,7 +19,8 @@ export interface ScoreInput {
   isAbsentee: boolean | null;
   perBedroomRent: number;              // modeled until a rent-comp source exists
   wholeHouseMonthlyRent: number;       // modeled
-  appreciation?: number;               // 0..1 modeled signal (default neutral 0.5)
+  // appreciation is no longer an input: it's derived per-property by appreciationProxy()
+  // (a market-wide constant couldn't re-rank a thesis — that was the audit's headline bug).
   risk?: { isCondo?: boolean; floodZone?: string | null; insuranceAnnual?: number };
 }
 

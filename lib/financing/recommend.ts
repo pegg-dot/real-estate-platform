@@ -223,6 +223,10 @@ export function recommendFinancing(input: FinancingInput): FinancingResult {
       structure, rank: 0,
       buyer: { cashInDeal, capitalEfficiency },
       sellerPitch,
+      // INVARIANT: assumptions must stay DEAL-LEVEL (identical across every offer) — the
+      // dossier prints them once (render.ts) instead of per-offer. Never push a
+      // structure-specific assumption here; if a structure needs its own caveat, put it in
+      // sellerPitch/legalGuardrail. The on-market push below is deal-level (applies to all).
       assumptions: [
         `assumed basis = last sale $${(input.lastSalePrice ?? 0).toLocaleString()}`,
         `cap-gains rate = ${(cgRate * 100).toFixed(0)}%`,

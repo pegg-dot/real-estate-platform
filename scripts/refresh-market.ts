@@ -102,6 +102,13 @@ async function main() {
     order by score * coalesce(data_confidence, 0.5) desc
     limit 12`;
   const lowCount = res.lowConfidence;
+  // flag-don't-hide: count gate-flagged confident deals that DIDN'T make the top 12, so Nate
+  // knows they exist (they're shown, just below the cut) rather than silently dropped.
+  const flaggedInTop = top.filter((r) => !r.gate_passed).length;
+  const [{ flagged_total }] = await sql<{ flagged_total: number }[]>`
+    select count(*)::int as flagged_total from deal_genome
+    where market = ${market} and score is not null and low_confidence = false and gate_passed = false`;
+  const flaggedBelowCut = Number(flagged_total) - flaggedInTop;
   if (top.length === 0) {
     console.log(`[3/3] no confident opportunities in this slice (${lowCount} low-confidence — need beds/rent data).`);
     console.log(`      tip: target residential parcels, e.g. --where "StreetName LIKE '%GRADY%'"`);
@@ -120,6 +127,10 @@ async function main() {
       `byroom=${r.by_room_legal ? "Y" : r.by_room_legal === false ? "N" : "?"}  ` +
       `fin=${(r.recommended_structure ?? "—").padEnd(14)} ` +
       `owner=${r.owner_entity_type ?? "?"}${r.is_absentee ? " (abs)" : ""}${flag}`);
+  }
+  if (flaggedBelowCut > 0) {
+    console.log(`\n  …plus ${flaggedBelowCut} more constraint-flagged deal(s) ranked below the top 12 ` +
+      `(shown, not hidden — run \`npm run dossier -- --dossier <apn>\` to inspect any).`);
   }
   await sql.end();
   console.log(`\n✓ refresh complete.`);
