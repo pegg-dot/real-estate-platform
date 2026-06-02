@@ -21,6 +21,13 @@ async function activeThesisVersion(tx: Tx): Promise<number> {
   return r.version;
 }
 
+/** The engine score for this parcel under this thesis, captured at decision time (frozen). */
+async function frozenScore(tx: Tx, propertyId: string, thesisVersion: number): Promise<number | null> {
+  const [r] = await tx<{ score: string | null }[]>`
+    select score from property_score where property_id = ${propertyId} and thesis_version = ${thesisVersion}`;
+  return r?.score != null ? Number(r.score) : null;
+}
+
 export interface CreateDealOpts {
   propertyId: string;
   ownerId?: string | null;
@@ -38,9 +45,10 @@ export async function createDeal(sql: Sql, o: CreateDealOpts): Promise<string> {
       insert into deal (property_id, owner_id, source_outreach_id, stage)
       values (${o.propertyId}, ${o.ownerId ?? null}, ${o.sourceOutreachId ?? null}, 'watch') returning id`;
     const dealId = d!.id;
+    const fscore = await frozenScore(tx, o.propertyId, tv);
     await tx`
-      insert into deal_decision (deal_id, property_id, thesis_version, from_stage, to_stage, action, actor, reason_chip, note)
-      values (${dealId}, ${o.propertyId}, ${tv}, null, 'watch', 'create', ${o.actor ?? "nate"}, ${o.reasonChip ?? null}, ${o.note ?? null})`;
+      insert into deal_decision (deal_id, property_id, thesis_version, frozen_score, from_stage, to_stage, action, actor, reason_chip, note)
+      values (${dealId}, ${o.propertyId}, ${tv}, ${fscore}, null, 'watch', 'create', ${o.actor ?? "nate"}, ${o.reasonChip ?? null}, ${o.note ?? null})`;
     return dealId;
   }) as Promise<string>;
 }
@@ -94,11 +102,12 @@ export async function transitionDeal(sql: Sql, o: TransitionOpts): Promise<{ fro
     } else {
       await tx`update deal set stage = ${to}, updated_at = now() where id = ${o.dealId}`;
     }
+    const fscore = await frozenScore(tx, deal.property_id, tv);
     await tx`
       insert into deal_decision
-        (deal_id, property_id, thesis_version, from_stage, to_stage, action, actor,
+        (deal_id, property_id, thesis_version, frozen_score, from_stage, to_stage, action, actor,
          reason_chip, reason_is_thesis_relevant, exogenous, guardrail_ack, note)
-      values (${o.dealId}, ${deal.property_id}, ${tv}, ${from}, ${to}, ${actionFor(from, to)},
+      values (${o.dealId}, ${deal.property_id}, ${tv}, ${fscore}, ${from}, ${to}, ${actionFor(from, to)},
               ${o.actor ?? "nate"}, ${o.reasonChip ?? null}, ${o.reasonIsThesisRelevant ?? false},
               ${o.exogenous ?? false}, ${o.guardrailAck ? tx.json(o.guardrailAck as Json) : null}, ${o.note ?? null})`;
     return { from, to };

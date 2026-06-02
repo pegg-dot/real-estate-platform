@@ -13,11 +13,13 @@ retuner never runs on a thin/synthetic sample, and never auto-applies.
   — `cash_flow_thin`, `risk_too_high`, `by_room_upside`, …) vs EXOGENOUS chips (`seller_wont_engage`,
   `lost_to_buyer`, `regulatory_kill`, `no_time`, …). Only TASTE decisions may ever feed a retune;
   unknown chips are conservatively NOT thesis-relevant. (5 tests)
-- **Divergence report** (`lib/learn/divergence.ts`, read-only): re-derives each decision's FROZEN
-  score from `property_score` on the captured `thesis_version` (immutable — no snapshot table),
-  measures whether Nate PASSES high-scorers / ADVANCES low-scorers, and REPORTS it. Proposes a
-  retune only at/above the floor (~40) AND with visible divergence — and even then it's a
-  human-approved diff, never auto-applied. (5 tests)
+- **Divergence report** (`lib/learn/divergence.ts`, read-only): uses the score FROZEN onto each
+  decision at write time (`deal_decision.frozen_score`, migration 0008 — genuinely immutable,
+  unlike re-deriving from `property_score`, which `upsertScore` overwrites in place on re-score).
+  Collapses to ONE decision per deal (its latest advance/pass disposition), measures whether Nate
+  PASSES high-scorers / ADVANCES low-scorers, and REPORTS it. Proposes a retune only at/above the
+  floor (~40) AND with visible divergence — and even then a human-approved diff, never auto-applied.
+  (5 tests)
 - `lib/db/learn.ts` (`divergenceReport`), surfaced in the Monday Brief + `npm run learn`.
 
 ## The deferred retuner (specced, gated off until n ≥ minDecisions)
