@@ -94,7 +94,10 @@ function expenseProfile(strategy: ExitStrategy, base: ProFormaAssumptions): ProF
     case "mtr": return { ...base, mgmtRate: Math.max(base.mgmtRate, 0.15), vacancyRate: base.vacancyRate + 0.03 };
     case "str": return { ...base, mgmtRate: 0.25, vacancyRate: 0.20 };
     case "assisted": return { ...base, mgmtRate: 0.30, vacancyRate: 0.10 };
-    default: return base; // ltr, by_room, section8 use the parcel's base profile
+    // Section 8: the real advantage is a guaranteed, on-time government payment -> low vacancy /
+    // near-zero bad debt. That (not a higher rent) is why it can beat market on a soft parcel.
+    case "section8": return { ...base, vacancyRate: Math.min(base.vacancyRate, 0.05) };
+    default: return base; // ltr, by_room use the parcel's base profile
   }
 }
 
@@ -127,7 +130,10 @@ function grossMonthly(
       if (input.beds == null) return { reason: "no bed count — cannot look up HUD FMR" };
       const floor = hudFmrMonthlyFloor(input.beds, fmr);
       if (floor == null) return { reason: "no HUD FMR for this bedroom count" };
-      return floor; // REAL HUD Fair Market Rent, not market rent
+      // HUD rent-reasonableness: a voucher's contract rent CANNOT exceed comparable market rent,
+      // so the achievable Section 8 rent is min(FMR payment standard, market). Section 8's real
+      // edge is income STABILITY (modeled as lower vacancy in expenseProfile), not a higher rent.
+      return Math.min(floor, input.wholeHouseMonthlyRent);
     }
     case "assisted":
       // licensing/operator gate is real; only offered when the thesis opts in (checked earlier)

@@ -75,6 +75,14 @@ describe("optimizeExitStrategies", () => {
     expect(s8!.grossAnnualRent).not.toBe(2_800 * 12);      // not the modeled market rent
   });
 
+  it("caps Section 8 at market rent when HUD FMR exceeds it (rent reasonableness)", () => {
+    const thesis: ExitThesis = { management_appetite: 0.5, allowed_exit_strategies: ALL };
+    // 3BR FMR is 1800/mo; here the unit's market rent is only 1200/mo -> voucher can't pay more
+    const out = optimizeExitStrategies(nearGrounds({ beds: 3, wholeHouseMonthlyRent: 1200 }), thesis, ASSUMPTIONS, FMR);
+    const s8 = out.ranked.find((r) => r.strategy === "section8")!;
+    expect(s8.grossAnnualRent).toBe(1200 * 12);   // capped at market, NOT 1800*12
+  });
+
   it("tags Section 8 rent as the real HUD FMR basis, market strategies as modeled", () => {
     const thesis: ExitThesis = { management_appetite: 0.5, allowed_exit_strategies: ALL };
     const out = optimizeExitStrategies(nearGrounds({ beds: 3 }), thesis, ASSUMPTIONS, FMR);
