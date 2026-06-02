@@ -35,6 +35,15 @@ describe("diffArtifacts — the 'what I learned' diff (never silent overwrite)",
     expect(d.summary.conflict).toBe(1);
   });
 
+  it("keeps surfacing a cross-source conflict even when the same source revises its value", () => {
+    // Book X says 0.08, Pace says 0.10; Pace re-ingests at 0.11 — the Book-X disagreement must
+    // still be flagged, not masked as a same-source 'update'.
+    const existing = [a({ value: "0.08", source: "Book X" }), a({ value: "0.10", source: "Pace Morby Ep.1" })];
+    const d = diffArtifacts([a({ value: "0.11", source: "Pace Morby Ep.1" })], existing);
+    expect(d.entries[0]!.status).toBe("conflict");
+    expect(d.summary.conflict).toBe(1);
+  });
+
   it("keys identity by (kind, key) so a param and an exemplar with the same key don't collide", () => {
     const existing = [a({ kind: "param", key: "k", value: "1" })];
     const d = diffArtifacts([a({ kind: "exemplar", key: "k", value: "resp", source: a({}).source })], existing);

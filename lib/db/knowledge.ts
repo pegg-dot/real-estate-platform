@@ -62,11 +62,14 @@ export async function storeArtifacts(sql: Sql, entries: DiffEntry[]): Promise<{ 
         values (${a.key}, ${a.key}, ${a.value}, ${a.source}, ${conf}::confidence_level, ${a.asOf ?? null})
         on conflict (key, source) do update set response = excluded.response, confidence = excluded.confidence, as_of = excluded.as_of, updated_at = now()`;
     } else if (a.kind === "rule") {
+      // condition is the human-readable "when this applies"; the slug stays in `slug`, the
+      // recommendation in `recommendation` (don't render a slug where a condition belongs).
       await sql`insert into knowledge_rule (slug, condition, recommendation, confidence, source)
-        values (${a.key}, ${a.key}, ${a.value}, ${conf}::confidence_level, ${a.source})
-        on conflict (slug) do update set recommendation = excluded.recommendation, confidence = excluded.confidence, source = excluded.source, updated_at = now()`;
-    } else { // concept -> note
-      await sql`insert into knowledge_note (title, body, source) values (${a.key}, ${a.value}, ${a.source})`;
+        values (${a.key}, ${a.condition ?? a.value}, ${a.value}, ${conf}::confidence_level, ${a.source})
+        on conflict (slug) do update set condition = excluded.condition, recommendation = excluded.recommendation, confidence = excluded.confidence, source = excluded.source, updated_at = now()`;
+    } else { // concept -> note (deduped on title+source, see migration 0020)
+      await sql`insert into knowledge_note (title, body, source) values (${a.key}, ${a.value}, ${a.source})
+        on conflict (title, source) do update set body = excluded.body`;
     }
     stored++;
   }

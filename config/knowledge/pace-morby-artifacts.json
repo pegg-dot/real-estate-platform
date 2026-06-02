@@ -10,6 +10,6 @@
     { "kind": "param", "key": "stale_on_market_days", "value": "100", "confidence": "modeled" },
     { "kind": "exemplar", "key": "objection#not-interested", "value": "Totally fair — most folks aren't, and I'm not here to twist your arm. If you ever want a no-hassle option where I handle the tenants and repairs, keep my number.", "confidence": "modeled" },
     { "kind": "exemplar", "key": "situation#tired-landlord", "value": "Sounds like the tenants and the repairs have worn you down. What if you kept the income as monthly payments and never took another midnight call?", "confidence": "modeled" },
-    { "kind": "rule", "key": "creative-finance#tired-landlord-structure", "value": "A tired, long-tenure landlord with equity -> lead with seller-finance (keep their income, defer their capital gains); otherwise offer cash for speed and certainty.", "confidence": "modeled" }
+    { "kind": "rule", "key": "creative-finance#tired-landlord-structure", "condition": "Tired, long-tenure landlord (15+ yr hold, small portfolio, absentee) with meaningful equity", "value": "Lead with seller-finance (keep their income, defer their capital gains); otherwise offer cash for speed and certainty.", "confidence": "modeled" }
   ]
 }

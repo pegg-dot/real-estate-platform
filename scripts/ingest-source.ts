@@ -18,9 +18,16 @@ function loadFromJson(path: string): Artifact[] {
     source?: string; speaker?: string; as_of?: string; artifacts?: Array<Partial<Artifact>>;
   };
   const src = j.source ?? path;
-  // file-level source/speaker/as_of are defaults; a per-artifact source (if present) overrides
+  // as_of must be ISO (YYYY-MM-DD) — resolveParamValue's recency tie-break does a string compare,
+  // so a malformed date would sort wrong. Reject non-ISO to null rather than silently mis-rank.
+  const iso = (d: string | null | undefined): string | null =>
+    (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d : null;
+  const fileAsOf = iso(j.as_of);
+  if (j.as_of && !fileAsOf) console.warn(`  ⚠ ignoring non-ISO as_of "${j.as_of}" (expected YYYY-MM-DD)`);
+  // file-level source/speaker are defaults; a per-artifact field (if present) overrides; asOf is
+  // computed last so it's always ISO-or-null regardless of where it came from.
   return (j.artifacts ?? []).map((a) => ({
-    source: src, speaker: j.speaker ?? null, asOf: j.as_of ?? null, ...a,
+    source: src, speaker: j.speaker ?? null, ...a, asOf: iso((a as Artifact).asOf ?? fileAsOf),
   })) as Artifact[];
 }
 
