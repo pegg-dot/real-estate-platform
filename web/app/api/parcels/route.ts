@@ -18,16 +18,19 @@ export async function GET(req: Request) {
 
   const minScore = num("minScore"), maxPrice = num("maxPrice"), minBeds = num("minBeds");
   const byRoomOnly = bool("byRoomLegalOnly"), absenteeOnly = bool("absenteeOnly"), distressOnly = bool("distressOnly");
+  const developOnly = bool("developOnly");   // the development-upside layer (spec 020)
   const maxDist = num("maxDistanceMiles");
 
   const rows = await sql()<Array<{
     apn: string; address: string | null; lat: number; lng: number; score: number;
     headline_coc: number | null; by_room_legal: boolean | null; gate_passed: boolean;
     est_market_value: string | null; beds: number | null; is_absentee: boolean | null;
-    recommended_structure: string | null; distress: boolean;
+    recommended_structure: string | null; recommended_use: string | null;
+    exit_strategy: string | null; distress: boolean;
   }>>`
     select g.apn, g.address, g.lat, g.lng, g.score, g.headline_coc, g.by_room_legal, g.gate_passed,
            g.est_market_value, g.beds, g.is_absentee, g.recommended_structure,
+           g.recommended_use, g.recommended_exit_strategy as exit_strategy,
            exists(select 1 from distress_signal ds where ds.property_id = g.id) as distress
     from deal_genome g
     where g.market = ${MARKET} and g.score is not null and g.lat is not null and g.lng is not null
@@ -40,6 +43,7 @@ export async function GET(req: Request) {
 
   const features = rows
     .filter((r) => (!distressOnly || r.distress))
+    .filter((r) => (!developOnly || r.recommended_use === "develop"))
     .filter((r) => (maxDist == null || miles(r.lat, r.lng, UVA.lat, UVA.lng) <= maxDist))
     .map((r) => ({
       type: "Feature" as const,
@@ -48,7 +52,8 @@ export async function GET(req: Request) {
         apn: r.apn, address: r.address, score: Number(r.score),
         coc: r.headline_coc != null ? Number(r.headline_coc) : null,
         byRoom: r.by_room_legal, gatePassed: r.gate_passed,
-        structure: r.recommended_structure, distress: r.distress,
+        structure: r.recommended_structure, use: r.recommended_use,
+        exitStrategy: r.exit_strategy, distress: r.distress,
       },
     }));
 
