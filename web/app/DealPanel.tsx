@@ -60,6 +60,14 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
   };
   const gateFailures = (d?.gate_failures ?? []) as string[];
   const distress = (d?.distress ?? []) as Array<{ signal_type: string; severity: string }>;
+  const exitMenu = (d?.exit_strategies ?? {}) as {
+    ranked?: Array<{ strategy: string; cashOnCash: number; rentBasis?: string }>;
+    excluded?: Array<{ strategy: string; reason: string }>;
+  };
+  const hbu = (d?.hbu ?? {}) as {
+    landSharePct?: number | null;
+    ranked?: Array<{ use: string; annualizedReturn: number; upsideVsHold: number }>;
+  };
 
   return (
     <div style={{ position: "absolute", top: 0, right: 0, height: "100%", width: 380, background: "#fff",
@@ -126,6 +134,29 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
                   Suppressed: {financing.suppressed.map((s) => String(s.structure).replace(/_/g, " ")).join(", ")} (don&apos;t fit).
                 </div>
               )}
+            </Section>
+          )}
+
+          {exitMenu.ranked && exitMenu.ranked.length > 0 && (
+            <Section title="Exit-strategy menu (ranked, spec 019)">
+              <div className="muted" style={{ marginBottom: 4 }}>Recommended: <strong>{String(d.recommended_exit_strategy ?? "—").replace(/_/g, " ")}</strong></div>
+              {exitMenu.ranked.map((s, i) => (
+                <Row key={i} k={`${i + 1}. ${s.strategy.replace(/_/g, " ")}${s.rentBasis === "hud_fmr" ? " (HUD FMR)" : ""}`} v={`${pct(s.cashOnCash)} CoC`} />
+              ))}
+              {exitMenu.excluded && exitMenu.excluded.length > 0 && (
+                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Excluded: {exitMenu.excluded.map((e) => e.strategy).join(", ")}</div>
+              )}
+            </Section>
+          )}
+
+          {hbu.ranked && hbu.ranked.length > 0 && (
+            <Section title="Best use of the dirt (HBU, spec 020)">
+              <Row k="Recommended use" v={String(d.recommended_use ?? "—")} />
+              {hbu.landSharePct != null && <Row k="Land share" v={`${Number(hbu.landSharePct).toFixed(0)}%`} />}
+              {hbu.ranked.map((u, i) => (
+                <Row key={i} k={u.use} v={`${pct(u.annualizedReturn)}/yr${u.upsideVsHold > 0 ? ` (+${pct(u.upsideVsHold)} vs hold)` : ""}`} />
+              ))}
+              <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>modeled screening estimate — not an appraisal</div>
             </Section>
           )}
 

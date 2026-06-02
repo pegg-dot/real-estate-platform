@@ -8,9 +8,10 @@ import { getSql } from "../lib/db/client.js";
 import { buildPlaybookForLead } from "../lib/coach/forLead.js";
 
 async function main() {
+  const asJson = process.argv.includes("--json");
   const sql = getSql();
   try {
-    let leadId = process.argv[2];
+    let leadId = process.argv.find((a, i) => i >= 2 && !a.startsWith("--"));
     if (!leadId) {
       const [top] = await sql<Array<{ id: string }>>`
         select id from lead where gate_state = 'mailable' order by stack_score desc nulls last limit 1`;
@@ -18,6 +19,7 @@ async function main() {
       leadId = top.id;
     }
     const p = await buildPlaybookForLead(sql, leadId);
+    if (asJson) { console.log(JSON.stringify(p)); return; }
     console.log(`\n=== Call playbook (lead ${leadId}) ===`);
     for (const s of p.sections) {
       console.log(`\n## ${s.title}`);

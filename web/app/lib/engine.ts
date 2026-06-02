@@ -7,7 +7,7 @@ import path from "node:path";
 const execFileAsync = promisify(execFile);   // execFile = NO shell; args are an array, never interpolated
 const REPO = path.resolve(process.cwd(), "..");          // web/ -> repo root
 const TSX = path.join(REPO, "node_modules", ".bin", "tsx");
-const ALLOWED = new Set(["sourcing.ts", "learn.ts", "rents.ts", "brief.ts", "thesis.ts", "deal.ts", "refresh-market.ts", "enrich.ts"]);
+const ALLOWED = new Set(["sourcing.ts", "learn.ts", "rents.ts", "brief.ts", "thesis.ts", "deal.ts", "refresh-market.ts", "enrich.ts", "coach.ts"]);
 
 export async function runEngine(script: string, args: string[], timeoutMs = 120_000): Promise<string> {
   if (!ALLOWED.has(script)) throw new Error(`script not allowed: ${script}`);
@@ -45,6 +45,9 @@ export function buildAction(action: string, p: Record<string, unknown>): { scrip
       return { script: "learn.ts", args: ["--apply"] };
     case "enrich-leads":
       return { script: "enrich.ts", args: ["--leads", String(Math.min(100, Math.max(1, Number(p.n) || 25)))], timeout: 180_000 };
+    case "coach":
+      // build the call playbook for a lead (spec 015); returns JSON the LeadActions panel renders
+      return { script: "coach.ts", args: [String(p.leadId), "--json"] };
     case "thesis-from":
       if (typeof p.prose !== "string" || !p.prose.trim()) throw new Error("describe your thesis first");
       return { script: "thesis.ts", args: ["--from", noFlag(p.prose.trim(), 4000, "thesis description")], timeout: 90_000 };
