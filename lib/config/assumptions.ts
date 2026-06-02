@@ -9,8 +9,10 @@
 import type { ProFormaAssumptions } from "../scoring/underwrite.js";
 import type { RentModel } from "../scoring/rent.js";
 import type { FmrSchedule } from "../scoring/fmr.js";
+import type { HbuAssumptions } from "../scoring/hbu.js";
 
 import charlottesville from "../../config/market-assumptions/charlottesville.json" with { type: "json" };
+import zoningCville from "../../config/zoning/charlottesville.json" with { type: "json" };
 
 export interface MarketAssumptions {
   market: string;
@@ -34,6 +36,8 @@ export interface MarketAssumptions {
     cbsaName: string; fmrYear: number; sourceUrl?: string;
     upliftFactorAbove4: number; byBedroom: Record<string, number>;
   };
+  /** MODELED develop/flip economics for the highest-and-best-use optimizer (spec 020) */
+  develop: HbuAssumptions;
   campus: { name: string; lat: number; lng: number };
   confidence: "modeled" | "real";
 }
@@ -53,6 +57,27 @@ export function fmrScheduleFor(a: MarketAssumptions): FmrSchedule | null {
 const REGISTRY: Record<string, MarketAssumptions> = {
   Charlottesville: charlottesville as MarketAssumptions,
 };
+
+// Curated zoning capacity per market (spec 020): allowed units + ADU per zone, '*'-style default.
+// Same source JSON the ingest seeds from; capacity is config (not per-parcel data), resolved here.
+const ZONING_CONFIG: Record<string, { default?: Record<string, unknown>; zones?: Record<string, Record<string, unknown>> }> = {
+  Charlottesville: zoningCville as unknown as { default?: Record<string, unknown>; zones?: Record<string, Record<string, unknown>> },
+};
+
+export interface ZoneCapacity { allowedUnits: number | null; aduAllowed: boolean | null; }
+
+/** Resolve a zone's redevelopment capacity (exact zone, else the market default). Unknown -> null
+ * (the HBU optimizer gates develop off rather than assuming density). */
+export function zoningCapacityFor(market: string, zoneCode: string | null): ZoneCapacity {
+  const z = ZONING_CONFIG[market];
+  const rule = ((zoneCode && z?.zones?.[zoneCode]) || z?.default || {}) as { allowed_units?: number; adu_allowed?: boolean };
+  return { allowedUnits: rule.allowed_units ?? null, aduAllowed: rule.adu_allowed ?? null };
+}
+
+/** The HBU develop/flip assumptions for a market (spec 020). */
+export function hbuAssumptionsFor(a: MarketAssumptions): HbuAssumptions {
+  return a.develop;
+}
 
 export function loadMarketAssumptions(market: string): MarketAssumptions {
   const a = REGISTRY[market];

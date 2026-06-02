@@ -28,6 +28,20 @@
     "upliftFactorAbove4": 0.15,
     "byBedroom": { "0": 1421, "1": 1602, "2": 1824, "3": 2218, "4": 2731 }
   },
+  "$develop_comment": "MODELED develop/flip economics for the highest-and-best-use optimizer (spec 020). Build cost, ARV uplift, and stabilized per-unit value are rough Charlottesville figures — replace with real GC bids / comps before acting. Informational, NOT a construction estimate or appraisal.",
+  "develop": {
+    "landShareRedevelopThreshold": 0.55,
+    "buildCostPerUnit": 250000,
+    "stabilizedValuePerUnit": 350000,
+    "developHorizonYears": 2,
+    "flipRehabRate": 0.15,
+    "flipArvUplift": 0.22,
+    "flipHorizonYears": 1,
+    "flipMaxYearBuilt": 1975,
+    "saleCostRate": 0.10,
+    "wholesaleSpreadRate": 0.05,
+    "intensity": { "hold": 0.1, "develop": 0.9, "flip": 0.8, "wholesale": 0.4 }
+  },
   "campus": { "name": "UVA", "lat": 38.0356, "lng": -78.5036 },
   "confidence": "modeled"
 }

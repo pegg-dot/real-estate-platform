@@ -23,6 +23,7 @@ describe("scoreRow exit-strategy optimization (spec 019, pure)", () => {
     strAllowed: false, lat: 38.039952, lng: -78.495544, isAbsentee: true,
     ownerEntityType: "person", lastArmsPrice: 300_000, lastArmsDate: "2007-06-01",
     floodZone: null, isCondo: false, estAnnualInsurance: null,
+    assessedLand: 300_000, assessedTotal: 489_600, zoneCode: "R-A", yearBuilt: 1955,
   };
 
   it("attaches a ranked exit-strategy menu with a recommendation", () => {
@@ -35,6 +36,13 @@ describe("scoreRow exit-strategy optimization (spec 019, pure)", () => {
     const out = scoreRow(row, a, thesis, "2026-06-01", 5_000_000);
     expect(out.exitStrategy.excluded.find((e) => e.strategy === "str")).toBeTruthy();
     expect(out.exitStrategy.ranked.some((r) => r.strategy === "str")).toBe(false);
+  });
+
+  it("attaches a highest-and-best-use read with a recommendation and land share", () => {
+    const out = scoreRow(row, a, thesis, "2026-06-01", 5_000_000);
+    expect(out.hbu.recommended).toBeTruthy();
+    expect(out.hbu.ranked.some((u) => u.use === "hold")).toBe(true); // hold always feasible
+    expect(out.hbu.landSharePct).not.toBeNull();
   });
 });
 
@@ -52,6 +60,7 @@ d("scoreMarket — the ingest -> score bridge (integration)", () => {
     await sql.unsafe(migration("supabase/migrations/0002_score_and_genome.sql"));
     await sql.unsafe(migration("supabase/migrations/0003_scoring_depth.sql"));
     await sql.unsafe(migration("supabase/migrations/0015_exit_strategies.sql"));
+    await sql.unsafe(migration("supabase/migrations/0018_hbu.sql"));
     const [m] = await sql<{ id: string }[]>`
       insert into market (name, state) values ('Charlottesville','VA') returning id`;
     // 1305 Grady — off-prime SFR, long-tenure owner (seller-finance candidate)

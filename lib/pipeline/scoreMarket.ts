@@ -9,7 +9,8 @@
  */
 import type { Sql } from "../db/client.js";
 import { readScorableProperties, upsertScore, type ScorableRow, type ScoreRecord } from "../db/properties.js";
-import { loadMarketAssumptions, proFormaFor, fmrScheduleFor, type MarketAssumptions } from "../config/assumptions.js";
+import { loadMarketAssumptions, proFormaFor, fmrScheduleFor, hbuAssumptionsFor, zoningCapacityFor, type MarketAssumptions } from "../config/assumptions.js";
+import { highestAndBestUse, type HbuResult } from "../scoring/hbu.js";
 import { scoreProperty, haversineMiles, type ScoreInput, type ScoreResult } from "../scoring/score.js";
 import { perBedroomRent } from "../scoring/rent.js";
 import { hudFmrMonthlyFloor, rentVsHudFloor } from "../scoring/fmr.js";
@@ -65,6 +66,7 @@ export interface ScoredRow {
   rentFloor: RentFloor;          // HUD FMR real floor / sanity cross-check (004a)
   rentSource: "modeled" | "real-comps";  // did real rent comps drive the per-bed rent? (013)
   exitStrategy: ExitOptimization;        // the ranked exit-strategy menu + recommendation (019)
+  hbu: HbuResult;                        // highest-and-best-use of the dirt: hold/flip/develop/wholesale (020)
 }
 
 /** Score + finance a single scorable row — the shared per-property logic (pipeline + dossier). */
@@ -157,7 +159,19 @@ export function scoreRow(
     },
     exitThesis, pfa, fmrSched);
 
-  return { score, financing, sensitivity: sens, gates, dataConfidence: conf, rentFloor, rentSource, exitStrategy };
+  // Highest-and-best-use of the dirt (spec 020): hold vs flip vs develop (ADU/add-units) vs
+  // wholesale, gated on land-vs-improvement + zoning capacity, ranked by the same management
+  // appetite. The hold baseline is the headline CoC we just computed.
+  const cap = zoningCapacityFor(a.market, row.zoneCode);
+  const hbu = highestAndBestUse(
+    {
+      price, assessedLand: row.assessedLand, assessedTotal: row.assessedTotal, yearBuilt: row.yearBuilt,
+      holdCashOnCash: score.headline.proForma.cashOnCash, currentUnits: 1,
+      allowedUnits: cap.allowedUnits, aduAllowed: cap.aduAllowed,
+    },
+    hbuAssumptionsFor(a), { management_appetite: exitThesis.management_appetite });
+
+  return { score, financing, sensitivity: sens, gates, dataConfidence: conf, rentFloor, rentSource, exitStrategy, hbu };
 }
 
 export async function scoreMarket(
@@ -178,9 +192,20 @@ export async function scoreMarket(
     // institutions/government (UVA, the City) are never acquisition targets — don't score them
     if (row.ownerEntityType === "institution") { nonTarget++; continue; }
 
-    const { score: scoredRes, financing, sensitivity: sens, gates, dataConfidence: conf, exitStrategy } =
+    const { score: scoredRes, financing, sensitivity: sens, gates, dataConfidence: conf, exitStrategy, hbu } =
       scoreRow(row, a, opts.thesis, asOf, cash, { comps });
     const top: Structure = financing.recommended[0]?.structure ?? "cash";
+    // compact HBU menu for the genome/dev-upside map (full numbers live in `detail`)
+    const hbuMenu = {
+      recommended: hbu.recommended,
+      landSharePct: hbu.landSharePct,
+      ranked: hbu.ranked.map((u) => ({
+        use: u.use, annualizedReturn: Number(u.annualizedReturn.toFixed(4)),
+        upsideVsHold: Number(u.upsideVsHold.toFixed(4)), intensity: u.intensity,
+        thesisFit: Number(u.thesisFit.toFixed(4)),
+      })),
+      excluded: hbu.excluded,
+    };
     // compact, queryable menu for the genome/dossier (full pro-formas stay in `proformas`)
     const exitMenu = {
       ranked: exitStrategy.ranked.map((r) => ({
@@ -213,6 +238,8 @@ export async function scoreMarket(
       recommendedStructure: top,
       recommendedExitStrategy: exitStrategy.recommended,
       exitStrategies: exitMenu,
+      recommendedUse: hbu.recommended,
+      hbu: hbuMenu,
       financing,
       lowConfidence: scoredRes.lowConfidence,
     });

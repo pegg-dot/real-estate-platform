@@ -11,12 +11,14 @@
     "rooming_house_allowed": true,
     "str_allowed": false,
     "str_note": "Charlottesville restricts non-owner-occupied whole-house short-term rentals (homestay/transient-occupancy permit regime); modeled as NOT allowed by default. Informational, confirm per parcel.",
+    "allowed_units": 2,
+    "adu_allowed": true,
     "note": "The 2024 Development Code removed unrelated-occupant caps citywide (a July 2024 zoning determination approved a 9-10 bedroom dwelling as one 'household'). Applied as the citywide default; treat as 'modeled', confirm per parcel."
   },
   "zones": {
     "$comment": "Explicit per-zone entries (auditable + let a SQL join hit the zone row directly instead of the '*' fallback). The residential zones in the off-prime shortlist are seeded true; add a zone here as FALSE only when the zoning-analyst confirms it does not permit dwellings — do not guess.",
-    "RN-A": {"by_room_legal": true, "max_unrelated_occupants": null, "rooming_house_allowed": true, "str_allowed": false, "note": "RN-A (Residential Neighborhood): by-the-room legal under the 2024 Development Code (unrelated-occupant caps removed). Confirm per-parcel post-2025 settlement."},
-    "R-A": {"by_room_legal": true, "max_unrelated_occupants": null, "rooming_house_allowed": true, "str_allowed": false, "note": "R-A (Residential): by-the-room legal under the 2024 Development Code. Confirm per-parcel post-2025 settlement."},
-    "RX-5": {"by_room_legal": true, "max_unrelated_occupants": null, "rooming_house_allowed": true, "str_allowed": false, "note": "RX-5 (Residential Mixed): by-the-room legal under the 2024 Development Code. Confirm per-parcel post-2025 settlement."}
+    "RN-A": {"by_room_legal": true, "max_unrelated_occupants": null, "rooming_house_allowed": true, "str_allowed": false, "allowed_units": 3, "adu_allowed": true, "note": "RN-A (Residential Neighborhood): by-the-room legal under the 2024 Development Code (unrelated-occupant caps removed). Confirm per-parcel post-2025 settlement."},
+    "R-A": {"by_room_legal": true, "max_unrelated_occupants": null, "rooming_house_allowed": true, "str_allowed": false, "allowed_units": 3, "adu_allowed": true, "note": "R-A (Residential): by-the-room legal under the 2024 Development Code. Confirm per-parcel post-2025 settlement."},
+    "RX-5": {"by_room_legal": true, "max_unrelated_occupants": null, "rooming_house_allowed": true, "str_allowed": false, "allowed_units": 5, "adu_allowed": true, "note": "RX-5 (Residential Mixed): by-the-room legal under the 2024 Development Code. Confirm per-parcel post-2025 settlement."}
   }
 }
