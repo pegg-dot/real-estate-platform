@@ -15,6 +15,6 @@
     "$comment": "Explicit per-zone entries (auditable + let a SQL join hit the zone row directly instead of the '*' fallback). The residential zones in the off-prime shortlist are seeded true; add a zone here as FALSE only when the zoning-analyst confirms it does not permit dwellings — do not guess.",
     "RN-A": {"by_room_legal": true, "max_unrelated_occupants": null, "rooming_house_allowed": true, "note": "RN-A (Residential Neighborhood): by-the-room legal under the 2024 Development Code (unrelated-occupant caps removed). Confirm per-parcel post-2025 settlement."},
     "R-A": {"by_room_legal": true, "max_unrelated_occupants": null, "rooming_house_allowed": true, "note": "R-A (Residential): by-the-room legal under the 2024 Development Code. Confirm per-parcel post-2025 settlement."},
-    "RX-5": {"by_room_legal": false, "max_unrelated_occupants": null, "rooming_house_allowed": true, "note": "RX-5 (Residential Mixed): by-the-room legal under the 2024 Development Code. Confirm per-parcel post-2025 settlement."}
+    "RX-5": {"by_room_legal": true, "max_unrelated_occupants": null, "rooming_house_allowed": true, "note": "RX-5 (Residential Mixed): by-the-room legal under the 2024 Development Code. Confirm per-parcel post-2025 settlement."}
   }
 }
