@@ -46,12 +46,20 @@ export function loadMarketAssumptions(market: string): MarketAssumptions {
   return a;
 }
 
-/** Pick the ProFormaAssumptions for a property given its bed count (SFR vs multifamily). */
-export function proFormaFor(a: MarketAssumptions, beds: number | null): ProFormaAssumptions {
+/**
+ * Pick the ProFormaAssumptions for a property given its bed count (SFR vs multifamily).
+ * `realInsurance` (risk_profile.est_annual_insurance) overrides the modeled constant when
+ * known — a real per-parcel insurance cost so a $9k-flood/condo parcel no longer underwrites
+ * identically to a $2k one (004a insurance truth). Null/omitted falls back to the constant.
+ */
+export function proFormaFor(
+  a: MarketAssumptions, beds: number | null, realInsurance?: number | null,
+): ProFormaAssumptions {
   const isMF = beds != null && beds >= a.multifamilyBedThreshold;
+  const modeledInsurance = isMF ? a.insuranceAnnual.multifamily : a.insuranceAnnual.sfr;
   return {
     taxRate: a.taxRate,
-    insurance: isMF ? a.insuranceAnnual.multifamily : a.insuranceAnnual.sfr,
+    insurance: realInsurance != null ? realInsurance : modeledInsurance,
     maintenance: isMF ? a.maintenanceAnnual.multifamily : a.maintenanceAnnual.sfr,
     mgmtRate: a.mgmtRate,
     vacancyRate: a.vacancyRate,

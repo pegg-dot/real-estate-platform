@@ -21,6 +21,7 @@ export interface ScorableRow {
   lastArmsDate: string | null;   // ISO date
   floodZone: string | null;
   isCondo: boolean | null;
+  estAnnualInsurance: number | null;   // real per-parcel insurance (risk_profile), null -> modeled
 }
 
 /** One row per property in a market, with the joined signals the engines need. */
@@ -42,7 +43,8 @@ export async function readScorableProperties(sql: Sql, market: string): Promise<
          where s.property_id = p.id and s.is_arms_length
          order by s.sale_date desc limit 1)                as "lastArmsDate",
       r.flood_zone                                         as "floodZone",
-      r.is_condo                                           as "isCondo"
+      r.is_condo                                           as "isCondo",
+      r.est_annual_insurance                               as "estAnnualInsurance"
     from property p
     join market m on m.id = p.market_id
     left join owner o on o.id = p.owner_id

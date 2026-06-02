@@ -65,7 +65,8 @@ export function scoreRow(
     isAbsentee: row.isAbsentee, perBedroomRent: perBed, wholeHouseMonthlyRent,
     risk: { isCondo: row.isCondo ?? false, floodZone: row.floodZone },
   };
-  const pfa = proFormaFor(a, row.beds);
+  // real per-parcel insurance (risk_profile) when known, else the modeled constant (004a)
+  const pfa = proFormaFor(a, row.beds, row.estAnnualInsurance);
   const score = scoreProperty(scoreInput, thesis, pfa, { campus: a.campus });
 
   const conf = dataConfidence({
