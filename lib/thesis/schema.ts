@@ -7,12 +7,19 @@ import { z } from "zod";
 
 import example from "../../config/thesis.example.json" with { type: "json" };
 
+import type { ExitThesis, ExitStrategy } from "../scoring/exitStrategy.js";
+
 export const WEIGHT_KEYS = [
   "cash_on_cash", "by_room_upside", "appreciation_potential", "campus_proximity",
   "occupancy_legal_clearance", "management_simplicity", "owner_motivation",
   "risk_penalty_insurance_flood_condo",
 ] as const;
 export type WeightKey = (typeof WEIGHT_KEYS)[number];
+
+// The exit strategies the optimizer (spec 019) can run a parcel as. assisted is opt-in only.
+export const EXIT_STRATEGY_KEYS = [
+  "ltr", "by_room", "mtr", "str", "section8", "assisted",
+] as const;
 
 const weight = z.number().min(0).max(1);
 const ScoringWeights = z.object({
@@ -56,6 +63,14 @@ export const ThesisSchema = z.object({
     by_room_requires_legal_clearance: z.boolean(),
   }),
   scoring_weights: ScoringWeights,
+  // Exit-strategy optimizer config (spec 019). management_appetite is operating CAPACITY (0..1)
+  // — distinct from the management_simplicity scoring weight; it down-ranks high-touch plays.
+  exit_strategy: z.object({
+    management_appetite: z.number().min(0).max(1).default(0.25),
+    allowed_exit_strategies: z.array(z.enum(EXIT_STRATEGY_KEYS))
+      .default(["ltr", "by_room", "mtr", "str", "section8"]),
+    rent_multipliers: z.record(z.string(), z.number()).optional(),
+  }).default({ management_appetite: 0.25, allowed_exit_strategies: ["ltr", "by_room", "mtr", "str", "section8"] }),
   hard_constraints: z.record(z.string(), z.unknown()).optional(),
   financing: z.object({
     default: z.enum(["cash", "conventional", "seller_finance", "subject_to"]),
@@ -77,3 +92,13 @@ export function validateThesis(obj: unknown): Thesis {
 }
 
 export const EXAMPLE_THESIS = example;
+
+/** Project a full validated Thesis onto the optimizer's focused ExitThesis input (spec 019). */
+export function exitThesisFromThesis(t: Thesis): ExitThesis {
+  return {
+    management_appetite: t.exit_strategy.management_appetite,
+    allowed_exit_strategies: t.exit_strategy.allowed_exit_strategies as ExitStrategy[],
+    strategy_rent_multipliers:
+      t.exit_strategy.rent_multipliers as ExitThesis["strategy_rent_multipliers"],
+  };
+}
