@@ -13,6 +13,7 @@ import { loadMarketAssumptions, proFormaFor, fmrScheduleFor, type MarketAssumpti
 import { scoreProperty, haversineMiles, type ScoreInput, type ScoreResult } from "../scoring/score.js";
 import { perBedroomRent } from "../scoring/rent.js";
 import { hudFmrMonthlyFloor, rentVsHudFloor } from "../scoring/fmr.js";
+import { optimizeExitStrategies, type ExitOptimization, type ExitStrategy, type ExitThesis } from "../scoring/exitStrategy.js";
 import { estimateRealRent, type RentComp } from "../rent/comps.js";
 import { sensitivity, type SensitivityResult } from "../scoring/sensitivity.js";
 import { evaluateGates } from "../scoring/gates.js";
@@ -25,7 +26,18 @@ export interface Thesis {
   goal: { preferred_cash_on_cash?: number; min_cash_on_cash?: number };
   scoring_weights: Record<string, number>;
   hard_constraints?: Record<string, unknown>;
+  exit_strategy?: {                       // spec 019: optimizer config (defaults applied if absent)
+    management_appetite: number;
+    allowed_exit_strategies: string[];
+    rent_multipliers?: Record<string, number>;
+  };
 }
+
+// Hands-off default when the thesis omits exit_strategy (matches the Zod schema default).
+const DEFAULT_EXIT_THESIS: ExitThesis = {
+  management_appetite: 0.25,
+  allowed_exit_strategies: ["ltr", "by_room", "mtr", "str", "section8"],
+};
 
 export interface ScoreMarketResult {
   market: string;
@@ -58,6 +70,7 @@ export interface ScoredRow {
   dataConfidence: number;
   rentFloor: RentFloor;          // HUD FMR real floor / sanity cross-check (004a)
   rentSource: "modeled" | "real-comps";  // did real rent comps drive the per-bed rent? (013)
+  exitStrategy: ExitOptimization;        // the ranked exit-strategy menu + recommendation (019)
 }
 
 /** Score + finance a single scorable row — the shared per-property logic (pipeline + dossier). */
@@ -133,7 +146,24 @@ export function scoreRow(
     cbsaName: fmrSched?.cbsaName ?? null,
   };
 
-  return { score, financing, sensitivity: sens, gates, dataConfidence: conf, rentFloor, rentSource };
+  // Exit-strategy optimizer (spec 019): underwrite every legal+feasible way to run the parcel
+  // (LTR/by-room/MTR/STR/Section8/assisted) and rank by thesis fit. Reuses the SAME modeled
+  // per-bed/whole-house rents, HUD FMR floor, and per-parcel expense profile as the headline.
+  const exitThesis: ExitThesis = thesis.exit_strategy
+    ? {
+        management_appetite: thesis.exit_strategy.management_appetite,
+        allowed_exit_strategies: thesis.exit_strategy.allowed_exit_strategies as ExitStrategy[],
+        strategy_rent_multipliers: thesis.exit_strategy.rent_multipliers as ExitThesis["strategy_rent_multipliers"],
+      }
+    : DEFAULT_EXIT_THESIS;
+  const exitStrategy = optimizeExitStrategies(
+    {
+      price, beds: row.beds, byRoomLegal: row.byRoomLegal, strAllowed: row.strAllowed,
+      distMiles, perBedroomMonthlyRent: perBed, wholeHouseMonthlyRent,
+    },
+    exitThesis, pfa, fmrSched);
+
+  return { score, financing, sensitivity: sens, gates, dataConfidence: conf, rentFloor, rentSource, exitStrategy };
 }
 
 export async function scoreMarket(
@@ -154,9 +184,20 @@ export async function scoreMarket(
     // institutions/government (UVA, the City) are never acquisition targets — don't score them
     if (row.ownerEntityType === "institution") { nonTarget++; continue; }
 
-    const { score: scoredRes, financing, sensitivity: sens, gates, dataConfidence: conf } =
+    const { score: scoredRes, financing, sensitivity: sens, gates, dataConfidence: conf, exitStrategy } =
       scoreRow(row, a, opts.thesis, asOf, cash, { comps });
     const top: Structure = financing.recommended[0]?.structure ?? "cash";
+    // compact, queryable menu for the genome/dossier (full pro-formas stay in `proformas`)
+    const exitMenu = {
+      ranked: exitStrategy.ranked.map((r) => ({
+        strategy: r.strategy,
+        grossAnnualRent: r.grossAnnualRent,
+        cashOnCash: Number(r.proForma.cashOnCash.toFixed(4)),
+        mgmtIntensity: r.mgmtIntensity,
+        thesisFit: Number(r.thesisFit.toFixed(4)),
+      })),
+      excluded: exitStrategy.excluded,
+    };
 
     records.push({
       propertyId: row.id,
@@ -174,6 +215,8 @@ export async function scoreMarket(
       components: scoredRes.components,
       proformas: scoredRes.proFormas,
       recommendedStructure: top,
+      recommendedExitStrategy: exitStrategy.recommended,
+      exitStrategies: exitMenu,
       financing,
       lowConfidence: scoredRes.lowConfidence,
     });

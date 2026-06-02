@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
 import { getSql, type Sql } from "../db/client.js";
-import { scoreMarket, type Thesis } from "./scoreMarket.js";
+import { scoreMarket, scoreRow, type Thesis } from "./scoreMarket.js";
+import { loadMarketAssumptions } from "../config/assumptions.js";
+import type { ScorableRow } from "../db/properties.js";
 import thesisJson from "../../config/thesis.example.json" with { type: "json" };
 
 const DSN = process.env.TEST_DATABASE_URL;
@@ -12,6 +14,29 @@ const thesis: Thesis = {
   goal: { preferred_cash_on_cash: thesisJson.goal.preferred_cash_on_cash },
   scoring_weights: thesisJson.scoring_weights,
 };
+
+// Pure (no DB): the exit-strategy optimizer is attached to every scored row.
+describe("scoreRow exit-strategy optimization (spec 019, pure)", () => {
+  const a = loadMarketAssumptions("Charlottesville");
+  const row: ScorableRow = {
+    id: "x", apn: "040005000", estMarketValue: 489_600, beds: 5, byRoomLegal: true,
+    strAllowed: false, lat: 38.039952, lng: -78.495544, isAbsentee: true,
+    ownerEntityType: "person", lastArmsPrice: 300_000, lastArmsDate: "2007-06-01",
+    floodZone: null, isCondo: false, estAnnualInsurance: null,
+  };
+
+  it("attaches a ranked exit-strategy menu with a recommendation", () => {
+    const out = scoreRow(row, a, thesis, "2026-06-01", 5_000_000);
+    expect(out.exitStrategy.recommended).toBeTruthy();
+    expect(out.exitStrategy.ranked.length).toBeGreaterThan(0);
+  });
+
+  it("excludes STR when str_allowed is false (illegal/unknown never assumed legal)", () => {
+    const out = scoreRow(row, a, thesis, "2026-06-01", 5_000_000);
+    expect(out.exitStrategy.excluded.find((e) => e.strategy === "str")).toBeTruthy();
+    expect(out.exitStrategy.ranked.some((r) => r.strategy === "str")).toBe(false);
+  });
+});
 
 d("scoreMarket — the ingest -> score bridge (integration)", () => {
   let sql: Sql;
@@ -26,6 +51,7 @@ d("scoreMarket — the ingest -> score bridge (integration)", () => {
     await sql.unsafe(migration("supabase/migrations/0001_core_schema.sql"));
     await sql.unsafe(migration("supabase/migrations/0002_score_and_genome.sql"));
     await sql.unsafe(migration("supabase/migrations/0003_scoring_depth.sql"));
+    await sql.unsafe(migration("supabase/migrations/0015_exit_strategies.sql"));
     const [m] = await sql<{ id: string }[]>`
       insert into market (name, state) values ('Charlottesville','VA') returning id`;
     // 1305 Grady — off-prime SFR, long-tenure owner (seller-finance candidate)
