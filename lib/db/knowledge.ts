@@ -28,3 +28,58 @@ export async function resolveRules(sql: Sql, slugs: string[]): Promise<
     select slug, condition, recommendation, source
     from knowledge_rule where slug = any(${sql.array(slugs)})`;
 }
+
+// ── Expert-mind knowledge artifacts (spec 016) ───────────────────────────────────────────────
+import type { Artifact, DiffEntry } from "../knowledge/distill.js";
+import type { ParamCandidate } from "../knowledge/retrieve.js";
+
+/** Load the existing distilled artifacts (params + exemplars) as the diff baseline. */
+export async function loadArtifacts(sql: Sql): Promise<Artifact[]> {
+  const params = await sql<Array<{ name: string; value: string; source: string | null; confidence: string; as_of: string | null }>>`
+    select name, value::text as value, source, confidence::text as confidence, to_char(as_of,'YYYY-MM-DD') as as_of from knowledge_param`;
+  const exemplars = await sql<Array<{ key: string; response: string; source: string | null; confidence: string; as_of: string | null }>>`
+    select key, response, source, confidence::text as confidence, to_char(as_of,'YYYY-MM-DD') as as_of from knowledge_exemplar`;
+  return [
+    ...params.map((p): Artifact => ({ kind: "param", key: p.name, value: p.value, source: p.source ?? "", confidence: p.confidence as Artifact["confidence"], asOf: p.as_of })),
+    ...exemplars.map((e): Artifact => ({ kind: "exemplar", key: e.key, value: e.response, source: e.source ?? "", confidence: e.confidence as Artifact["confidence"], asOf: e.as_of })),
+  ];
+}
+
+/** Persist a distillation diff: stores new/updated/unchanged artifacts; SKIPS conflicts (those are
+ * surfaced for human resolution, never auto-merged). Returns how many landed vs were held back. */
+export async function storeArtifacts(sql: Sql, entries: DiffEntry[]): Promise<{ stored: number; conflicts: number }> {
+  let stored = 0, conflicts = 0;
+  for (const { artifact: a, status } of entries) {
+    if (status === "conflict") { conflicts++; continue; }
+    if (status === "unchanged") { stored++; continue; }
+    const conf = (a.confidence) as string;
+    if (a.kind === "param") {
+      await sql`insert into knowledge_param (name, value, source, confidence, as_of)
+        values (${a.key}, ${Number(a.value)}, ${a.source}, ${conf}::confidence_level, ${a.asOf ?? null})
+        on conflict (name, source) do update set value = excluded.value, confidence = excluded.confidence, as_of = excluded.as_of, updated_at = now()`;
+    } else if (a.kind === "exemplar") {
+      await sql`insert into knowledge_exemplar (key, situation, response, source, confidence, as_of)
+        values (${a.key}, ${a.key}, ${a.value}, ${a.source}, ${conf}::confidence_level, ${a.asOf ?? null})
+        on conflict (key, source) do update set response = excluded.response, confidence = excluded.confidence, as_of = excluded.as_of, updated_at = now()`;
+    } else if (a.kind === "rule") {
+      await sql`insert into knowledge_rule (slug, condition, recommendation, confidence, source)
+        values (${a.key}, ${a.key}, ${a.value}, ${conf}::confidence_level, ${a.source})
+        on conflict (slug) do update set recommendation = excluded.recommendation, confidence = excluded.confidence, source = excluded.source, updated_at = now()`;
+    } else { // concept -> note
+      await sql`insert into knowledge_note (title, body, source) values (${a.key}, ${a.value}, ${a.source})`;
+    }
+    stored++;
+  }
+  return { stored, conflicts };
+}
+
+/** Candidate cited values for a parameter (for resolveParamValue). */
+export async function loadParamCandidates(sql: Sql, name: string): Promise<ParamCandidate[]> {
+  const rows = await sql<Array<{ value: string; source: string | null; confidence: string; corroboration: number; weight: string; as_of: string | null }>>`
+    select value::text as value, source, confidence::text as confidence, corroboration, weight::text as weight, to_char(as_of,'YYYY-MM-DD') as as_of
+    from knowledge_param where name = ${name}`;
+  return rows.map((r) => ({
+    value: Number(r.value), source: r.source ?? "unknown", confidence: r.confidence as ParamCandidate["confidence"],
+    corroboration: r.corroboration, weight: Number(r.weight), asOf: r.as_of,
+  }));
+}

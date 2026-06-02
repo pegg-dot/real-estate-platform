@@ -18,6 +18,7 @@
     "rents": "tsx scripts/rents.ts",
     "deal": "tsx scripts/deal.ts",
     "enrich": "tsx scripts/enrich.ts",
+    "ingest-source": "tsx scripts/ingest-source.ts",
     "thesis": "tsx scripts/thesis.ts"
   },
   "devDependencies": {
