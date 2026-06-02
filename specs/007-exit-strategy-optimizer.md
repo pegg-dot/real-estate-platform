@@ -1,6 +1,6 @@
 # Spec 007 — Exit-Strategy Optimizer (the buy-and-hold menu)
 
-> ⚠️ **SUPERSEDED (2026-06-02) by `007-strategy-and-seller-engine.md`**, which merges this
+> ⚠️ **SUPERSEDED (2026-06-02) by `019-strategy-and-seller-engine.md`**, which merges this
 > (Part A) with `008-motivation-and-outreach.md` (Part B) and reconciles both against shipped
 > code. Kept for history; build from the reconciled spec, not this one.
 

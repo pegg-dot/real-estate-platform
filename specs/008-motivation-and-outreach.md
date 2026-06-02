@@ -1,6 +1,6 @@
 # Spec 008 — Motivation Typing + "Bunny" Inference + Outreach (the seller side)
 
-> ⚠️ **SUPERSEDED (2026-06-02) by `007-strategy-and-seller-engine.md`**, which merges this
+> ⚠️ **SUPERSEDED (2026-06-02) by `019-strategy-and-seller-engine.md`**, which merges this
 > (Part B) with `007-exit-strategy-optimizer.md` (Part A) and reconciles both against shipped
 > code. Most of this Part B shipped under specs 009/012/014. Build from the reconciled spec.
 
