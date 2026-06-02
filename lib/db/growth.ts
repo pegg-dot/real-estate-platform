@@ -12,6 +12,7 @@ import corridorsCfg from "../../config/growth/charlottesville.json" with { type:
 
 type Json = postgres.JSONValue;
 
+const clampN = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 const GRID = 0.005;                                   // ~0.5km cells
 const cell = (v: number) => Math.round(v / GRID) * GRID;
 const gridKey = (lat: number, lng: number) => `${cell(lat).toFixed(3)}_${cell(lng).toFixed(3)}`;
@@ -39,10 +40,13 @@ interface ParcelRow { lat: number; lng: number; emv: number | null; ev: number |
 async function loadParcels(sql: Sql, market: string): Promise<ParcelRow[]> {
   return sql<ParcelRow[]>`
     select p.lat, p.lng, p.est_market_value::float as emv,
-      (select a.assessed_total::float from assessment a where a.property_id = p.id and a.assessed_total > 0 order by a.year asc  limit 1) as ev,
-      (select a.year       from assessment a where a.property_id = p.id and a.assessed_total > 0 order by a.year asc  limit 1) as ey,
-      (select a.assessed_total::float from assessment a where a.property_id = p.id and a.assessed_total > 0 order by a.year desc limit 1) as lv,
-      (select a.year       from assessment a where a.property_id = p.id and a.assessed_total > 0 order by a.year desc limit 1) as ly
+      -- the year-is-not-null guard matters: the denormalized current value is stored with a NULL
+      -- year, and Postgres sorts NULLs FIRST on DESC, so without it the latest-year subquery returns
+      -- NULL and the slope is computed off the wrong rows (it produced bogus negative appreciation).
+      (select a.assessed_total::float from assessment a where a.property_id = p.id and a.assessed_total > 0 and a.year is not null order by a.year asc  limit 1) as ev,
+      (select a.year       from assessment a where a.property_id = p.id and a.assessed_total > 0 and a.year is not null order by a.year asc  limit 1) as ey,
+      (select a.assessed_total::float from assessment a where a.property_id = p.id and a.assessed_total > 0 and a.year is not null order by a.year desc limit 1) as lv,
+      (select a.year       from assessment a where a.property_id = p.id and a.assessed_total > 0 and a.year is not null order by a.year desc limit 1) as ly
     from property p join market m on m.id = p.market_id
     where m.name = ${market} and p.lat is not null and p.lng is not null and p.is_active`;
 }
@@ -55,9 +59,12 @@ export async function computeGrowthAreas(sql: Sql, market: string): Promise<{ ar
     const key = gridKey(r.lat, r.lng);
     const a = areas.get(key) ?? { lat: cell(r.lat), lng: cell(r.lng), slopes: [], values: [] };
     if (r.emv) a.values.push(r.emv);
-    if (r.ev && r.lv && r.ey && r.ly && r.ly > r.ey && r.ev > 0) {
+    // require a real baseline (≥$10k, not a land-only stub) + a ≥3-yr span, and CLAMP the CAGR to a
+    // sane band — a tiny earliest assessment otherwise yields CAGR>1000, which overflows numeric(7,4)
+    // and aborts the whole run. Clamp keeps it a plausible appreciation rate.
+    if (r.ev && r.lv && r.ey && r.ly && (r.ly - r.ey) >= 3 && r.ev >= 10_000) {
       const cagr = Math.pow(r.lv / r.ev, 1 / (r.ly - r.ey)) - 1;
-      if (Number.isFinite(cagr)) a.slopes.push(cagr);
+      if (Number.isFinite(cagr)) a.slopes.push(clampN(cagr, -0.5, 2));
     }
     areas.set(key, a);
   }

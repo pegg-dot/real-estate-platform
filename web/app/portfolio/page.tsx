@@ -46,6 +46,10 @@ export default async function PortfolioPage() {
           </p>
 
           <h2 style={{ fontSize: 15, marginBottom: 8 }}>Best next buy</h2>
+          <p className="muted" style={{ fontSize: 11, marginBottom: 8 }}>
+            Indicative only — recommendations respect the financing/legal guardrails (see each deal&apos;s
+            financing) and are not investment advice. Numbers are modeled until real comps/closings exist.
+          </p>
           <table>
             <thead><tr><th>Parcel</th><th>Portfolio fit</th><th>Standalone</th><th>Market / strategy</th><th>Why</th></tr></thead>
             <tbody>

@@ -25,10 +25,13 @@ export interface RankedCandidate extends Candidate {
 const SWING = 40;
 
 export function rankNextBuy(
-  candidates: Candidate[], portfolio: PortfolioModel, opts: { swing?: number } = {},
+  candidates: Candidate[], portfolio: PortfolioModel, opts: { swing?: number; minShare?: number } = {},
 ): RankedCandidate[] {
   const swing = opts.swing ?? SWING;
-  const top = portfolio.topConcentration;
+  // only diversify a MEANINGFUL concentration — don't churn a near-balanced portfolio (review #5)
+  const minShare = opts.minShare ?? 0.4;
+  const top = portfolio.topConcentration && portfolio.topConcentration.share >= minShare
+    ? portfolio.topConcentration : null;
 
   const ranked = candidates.map((c): RankedCandidate => {
     const reasons: string[] = [];

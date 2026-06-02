@@ -27,40 +27,40 @@ export interface CorridorScore {
 
 const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
 
-// weights sum to 1; value-trend is the real, always-available anchor
-const W = { valueTrend: 0.35, permit: 0.25, corridor: 0.20, enrollment: 0.10, newConstruction: 0.10 };
+// MOMENTUM signals (renormalized over whichever are present); corridor proximity is NOT a momentum
+// signal — it's a bonus ON TOP of real momentum, so map-box membership alone can't manufacture a
+// high score from zero growth evidence.
+const MW = { valueTrend: 0.45, permit: 0.30, enrollment: 0.13, newConstruction: 0.12 };
+const CORRIDOR_BONUS = 0.20;   // proximity adds up to 20 pts; momentum carries the other 80
 
 export function corridorScore(s: AreaSignals): CorridorScore {
   const reasons: string[] = [];
-  // each signal: [name, weight, normalized 0..1, present?]. ABSENT signals (permits/enrollment not
-  // yet ingested) are EXCLUDED from the blend and the weights renormalized over what's present — so
-  // a strong area isn't capped low just because a leading signal is missing; confidence carries that.
-  const sig: Array<{ name: string; w: number; norm: number; present: boolean }> = [
-    { name: "valueTrend", w: W.valueTrend, norm: clamp((s.valueTrendSlope ?? 0) / 0.06), present: s.valueTrendSlope != null },
-    { name: "permitVelocity", w: W.permit, norm: clamp((s.permitVelocity ?? 0) / 15), present: s.permitVelocity != null },
-    { name: "corridorProximity", w: W.corridor, norm: clamp(s.corridorProximity ?? 0), present: true },
-    { name: "enrollmentGrowth", w: W.enrollment, norm: clamp((s.enrollmentGrowth ?? 0) / 0.05), present: s.enrollmentGrowth != null },
-    { name: "newConstruction", w: W.newConstruction, norm: clamp(s.newConstructionMix ?? 0), present: s.newConstructionMix != null },
+  const mom: Array<{ name: string; w: number; norm: number; present: boolean }> = [
+    { name: "valueTrend", w: MW.valueTrend, norm: clamp((s.valueTrendSlope ?? 0) / 0.06), present: s.valueTrendSlope != null },
+    { name: "permitVelocity", w: MW.permit, norm: clamp((s.permitVelocity ?? 0) / 15), present: s.permitVelocity != null },
+    { name: "enrollmentGrowth", w: MW.enrollment, norm: clamp((s.enrollmentGrowth ?? 0) / 0.05), present: s.enrollmentGrowth != null },
+    { name: "newConstruction", w: MW.newConstruction, norm: clamp(s.newConstructionMix ?? 0), present: s.newConstructionMix != null },
   ];
-  const presentWeight = sig.filter((x) => x.present).reduce((a, x) => a + x.w, 0) || 1;
+  // renormalize momentum over the PRESENT signals (absent ones don't drag it down or prop it up)
+  const presentW = mom.filter((x) => x.present).reduce((a, x) => a + x.w, 0);
+  const momentum = presentW > 0 ? mom.filter((x) => x.present).reduce((a, x) => a + (x.w / presentW) * x.norm, 0) : 0;
+  const prox = clamp(s.corridorProximity ?? 0);
 
   const c: Record<string, number> = {};
-  let total = 0;
-  for (const x of sig) {
-    const pts = x.present ? (x.w / presentWeight) * x.norm * 100 : 0;
-    c[x.name] = pts;
-    total += pts;
-  }
+  for (const x of mom) c[x.name] = (x.present && presentW > 0) ? (x.w / presentW) * x.norm * (1 - CORRIDOR_BONUS) * 100 : 0;
+  c.corridorProximity = prox * CORRIDOR_BONUS * 100;
+  const score = Math.round(clamp(momentum * (1 - CORRIDOR_BONUS) * 100 + prox * CORRIDOR_BONUS * 100, 0, 100));
+
   if ((s.valueTrendSlope ?? 0) > 0.03) reasons.push(`value slope ~${((s.valueTrendSlope ?? 0) * 100).toFixed(1)}%/yr`);
   if ((s.permitVelocity ?? 0) > 0) reasons.push(`permit velocity ${s.permitVelocity}/yr`);
-  if ((s.corridorProximity ?? 0) >= 0.5) reasons.push("inside a planned/upzoned corridor");
+  if (prox >= 0.5) reasons.push("inside a planned/upzoned corridor");
   if ((s.enrollmentGrowth ?? 0) > 0.02) reasons.push("rising enrollment (demand)");
+  if (presentW === 0) reasons.push("no momentum evidence yet — score is corridor-membership only (low confidence)");
 
-  const score = Math.round(clamp(total, 0, 100));
-
-  // confidence: the value-trend (history) is the floor; leading signals add certainty when present
-  let confidence = s.valueTrendSlope != null ? 0.6 : 0.3;
-  if (s.permitVelocity != null) confidence += 0.25;
+  // confidence reflects how much real momentum evidence backs the score
+  let confidence = presentW > 0 ? 0.4 : 0.2;
+  if (s.valueTrendSlope != null) confidence += 0.25;
+  if (s.permitVelocity != null) confidence += 0.2;
   if (s.enrollmentGrowth != null) confidence += 0.1;
   if (s.newConstructionMix != null) confidence += 0.05;
 

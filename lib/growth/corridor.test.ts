@@ -23,6 +23,13 @@ describe("corridorScore — growth momentum per area", () => {
     expect(Number.isFinite(noPermits.score)).toBe(true);
   });
 
+  it("does NOT score high on corridor membership alone (no momentum evidence)", () => {
+    // in a corridor box but zero growth evidence -> a low score + low confidence, never ~100
+    const r = corridorScore({ valueTrendSlope: null, corridorProximity: 1, permitVelocity: null, enrollmentGrowth: null, newConstructionMix: null });
+    expect(r.score).toBeLessThanOrEqual(25);
+    expect(r.confidence).toBeLessThan(0.5);
+  });
+
   it("clamps score to 0..100", () => {
     const r = corridorScore({ valueTrendSlope: 1, permitVelocity: 999, corridorProximity: 1, enrollmentGrowth: 1, newConstructionMix: 1 });
     expect(r.score).toBeLessThanOrEqual(100);
