@@ -24,6 +24,7 @@ async function activeThesisVersion(tx: Tx): Promise<number> {
 export interface CreateDealOpts {
   propertyId: string;
   ownerId?: string | null;
+  sourceOutreachId?: string | null;   // the mailer this inbound reply came from (funnel link)
   reasonChip?: string;
   note?: string;
   actor?: string;        // 'nate' | 'system' | 'calibration'
@@ -34,8 +35,8 @@ export async function createDeal(sql: Sql, o: CreateDealOpts): Promise<string> {
   return sql.begin(async (tx) => {
     const tv = await activeThesisVersion(tx);
     const [d] = await tx<{ id: string }[]>`
-      insert into deal (property_id, owner_id, stage)
-      values (${o.propertyId}, ${o.ownerId ?? null}, 'watch') returning id`;
+      insert into deal (property_id, owner_id, source_outreach_id, stage)
+      values (${o.propertyId}, ${o.ownerId ?? null}, ${o.sourceOutreachId ?? null}, 'watch') returning id`;
     const dealId = d!.id;
     await tx`
       insert into deal_decision (deal_id, property_id, thesis_version, from_stage, to_stage, action, actor, reason_chip, note)
