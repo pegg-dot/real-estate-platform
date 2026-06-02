@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPlaybook, type PlaybookInput } from "./playbook.js";
+import { buildPlaybook, sellerFinanceCapGains, type PlaybookInput } from "./playbook.js";
 
 const exemplars = [
   { key: "objection#not-interested", response: "Totally fair — keep my number for a no-hassle option.", source: "Pace Morby" },
@@ -42,6 +42,14 @@ describe("buildPlaybook — the call coach", () => {
     const p = buildPlaybook({ ...tiredLandlord, recommendedStructure: "subject_to", capGainsBenefit: null });
     const offer = p.sections.find((s) => /offer|framing/i.test(s.title))!.lines.join(" ");
     expect(offer.toLowerCase()).toMatch(/due-on-sale|attorney/);
+  });
+
+  it("pulls cap-gains from the seller-finance offer, not recommended[0] (need/neutral paths)", () => {
+    // need-path ordering: subject_to first, seller_finance later — must still find the cap-gains
+    const fin = { recommended: [{ structure: "subject_to" }, { structure: "seller_finance", capGains: { sellerBenefit: 30_000 } }] };
+    expect(sellerFinanceCapGains(fin)).toBe(30_000);
+    expect(sellerFinanceCapGains({ recommended: [{ structure: "cash" }] })).toBeNull();
+    expect(sellerFinanceCapGains(null)).toBeNull();
   });
 
   it("carries a modeled confidence flag (review before anything goes out)", () => {

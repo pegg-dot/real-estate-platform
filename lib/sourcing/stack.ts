@@ -24,30 +24,22 @@ export interface StackResult {
 
 const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
 
-// The motivated-seller composite already folds in tenure/absentee/entity, so it's the anchor at
-// half weight; the rest are additive LIFTS so STACKING signals (not any one) is what elevates.
+// The motivated-seller composite ALREADY folds in hold-duration, absentee, entity, and a distress
+// lift — so it's the anchor (0.7 weight), and we lift only the signals it OMITS: equity and a
+// small (tired-landlord-band) portfolio. This avoids double-counting tenure/absentee/distress
+// while still letting genuinely multi-signal parcels rise. Components are surfaced for the human.
 export function stackScore(s: StackSignals): StackResult {
   const reasons: string[] = [];
   const c: Record<string, number> = {};
 
-  c.motivation = 0.5 * clamp(s.motivationScore / 100) * 100;          // up to 50
-  reasons.push(`motivated-seller composite ${Math.round(s.motivationScore)}`);
-
-  const distress = clamp(s.distressScore ?? 0);
-  c.distress = distress * 15;                                          // up to 15
-  if (distress > 0) reasons.push(`distress/neglect signal (${Math.round(distress * 100)}%)`);
+  c.motivation = 0.7 * clamp(s.motivationScore / 100) * 100;          // up to 70 (owns tenure/absentee/distress)
+  reasons.push(`motivated-seller composite ${Math.round(s.motivationScore)} (tenure/absentee/distress)`);
 
   const equity = clamp(s.estEquityPct ?? 0);
-  c.equity = equity * 15;                                              // up to 15 (free-and-clear)
+  c.equity = equity * 20;                                              // up to 20 — not in the composite
   if (equity >= 0.6) reasons.push(`high equity (${Math.round(equity * 100)}%)`);
 
-  c.absentee = s.isAbsentee === true ? 8 : 0;
-  if (s.isAbsentee === true) reasons.push("absentee owner");
-
-  c.tenure = clamp((s.tenureYears ?? 0) / 20) * 7;                     // up to 7
-  if ((s.tenureYears ?? 0) >= 15) reasons.push(`long hold (~${Math.round(s.tenureYears!)}yr)`);
-
-  c.portfolio = (s.portfolioSize != null && s.portfolioSize >= 1 && s.portfolioSize <= 3) ? 5 : 0;
+  c.portfolio = (s.portfolioSize != null && s.portfolioSize >= 1 && s.portfolioSize <= 3) ? 10 : 0;
   if (c.portfolio > 0) reasons.push("small portfolio (tired-landlord band)");
 
   const score = Math.round(clamp(Object.values(c).reduce((a, b) => a + b, 0), 0, 100));

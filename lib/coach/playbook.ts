@@ -31,6 +31,16 @@ export interface Playbook {
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 
+/**
+ * The seller-finance offer's quantified cap-gains benefit (004), if one exists. Selects the
+ * seller_finance offer SPECIFICALLY — not recommended[0], which is subject-to/cash on the
+ * need/neutral underwriting paths — so the cap-gains line isn't silently dropped.
+ */
+export function sellerFinanceCapGains(financing: unknown): number | null {
+  const recs = (financing as { recommended?: Array<{ structure?: string; capGains?: { sellerBenefit?: number } }> } | null | undefined)?.recommended;
+  return recs?.find((o) => o.structure === "seller_finance")?.capGains?.sellerBenefit ?? null;
+}
+
 function offerFraming(i: PlaybookInput): string[] {
   switch (i.recommendedStructure) {
     case "seller_finance": {

@@ -4,7 +4,7 @@
  * number (004), and cited objection exemplars (016), then hands them to the pure buildPlaybook.
  */
 import type { Sql } from "../db/client.js";
-import { buildPlaybook, type Playbook, type ObjectionExemplar } from "./playbook.js";
+import { buildPlaybook, sellerFinanceCapGains, type Playbook, type ObjectionExemplar } from "./playbook.js";
 
 export async function buildPlaybookForLead(sql: Sql, leadId: string): Promise<Playbook> {
   const [lead] = await sql<Array<{
@@ -19,11 +19,12 @@ export async function buildPlaybookForLead(sql: Sql, leadId: string): Promise<Pl
   const [sit] = await sql<Array<{ detail: { approach?: string } }>>`
     select detail from owner_intel where owner_id = ${lead.owner_id} and category = 'situation' limit 1`;
 
-  const [fin] = await sql<Array<{ financing: { recommended?: Array<{ capGains?: { sellerBenefit?: number } }> } }>>`
+  const [fin] = await sql<Array<{ financing: unknown }>>`
     select financing from property_score
     where property_id = ${lead.property_id} and thesis_version = (select version from thesis where is_active limit 1)
     limit 1`;
-  const capGains = fin?.financing?.recommended?.[0]?.capGains?.sellerBenefit ?? null;
+  // the seller-finance offer's cap-gains benefit specifically (not recommended[0])
+  const capGains = sellerFinanceCapGains(fin?.financing);
 
   // cited objection exemplars from the expert-mind layer, best-weighted first (outcome loop)
   const exemplars = await sql<ObjectionExemplar[]>`
