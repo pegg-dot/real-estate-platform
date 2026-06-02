@@ -6,7 +6,7 @@
 import { getSql } from "../lib/db/client.js";
 import { computeGrowthAreas, buyAheadShortlist } from "../lib/db/growth.js";
 
-const MARKET = process.argv[2] ?? "Charlottesville";
+const MARKET = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "Charlottesville";
 
 async function main() {
   const sql = getSql();

@@ -7,7 +7,8 @@
 import { getSql } from "../lib/db/client.js";
 import { advisePortfolio } from "../lib/db/portfolio.js";
 
-const MARKET = process.argv[2] ?? "Charlottesville";
+// first NON-flag arg is the market (so `--json` isn't read as the market name)
+const MARKET = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "Charlottesville";
 const usd = (n: number) => `$${Math.round(n).toLocaleString()}`;
 
 async function main() {
