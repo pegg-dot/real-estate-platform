@@ -5,6 +5,7 @@
    route through /api/chat (Explainer in-process; Operator/Interrogator/Coach via the engine bridge). */
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { AGENTS, agentById } from "./agents";
+import { getContext, removeContext, subscribeContext, type CtxEntity } from "./contextStore";
 
 interface Proposal { action: string; params: Record<string, unknown>; summary: string; compliance?: string[] }
 interface Msg { role: "user" | "assistant"; content: string; tools?: string[]; proposals?: Proposal[] }
@@ -26,7 +27,11 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
+  const [ctx, setCtx] = useState<CtxEntity[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // the context-feed: entities attached via "＋ Add to chat" on other pages (localStorage-backed)
+  useEffect(() => { setCtx(getContext()); return subscribeContext(() => setCtx(getContext())); }, []);
 
   const active = convs.find((c) => c.id === activeId) ?? convs[0];
   const agent = agentById(active.agent);
@@ -95,7 +100,8 @@ export default function ChatPage() {
     persist(id, { role: "user", agent: agentId, content: q });
 
     const history = [...conv.msgs, userMsg].map((m) => ({ role: m.role, content: m.content }));
-    const r = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ agent: agentId, messages: history }) })
+    const context = ctx.map(({ type, id }) => ({ type, id }));   // attached parcels/leads → grounded server-side
+    const r = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ agent: agentId, messages: history, context }) })
       .then((x) => x.json()).catch((e) => ({ error: String(e) }));
     setBusy(false);
     const assistant: Msg = r.error
@@ -185,6 +191,18 @@ export default function ChatPage() {
             </select>
             <span className="muted" style={{ fontSize: 11 }}>{agent.blurb}</span>
           </div>
+          {ctx.length > 0 && (
+            <div className="ctxtray">
+              <span className="eyebrow" style={{ alignSelf: "center" }}>context</span>
+              {ctx.map((e) => (
+                <span key={`${e.type}:${e.id}`} className="ctxchip">
+                  <i className={`ti ti-${e.type === "parcel" ? "map-pin" : "user"}`} style={{ fontSize: 12 }} />
+                  {e.label}
+                  <i className="ti ti-x" onClick={() => removeContext(e.type, e.id)} title="Remove" />
+                </span>
+              ))}
+            </div>
+          )}
           <form onSubmit={(e) => { e.preventDefault(); send(input); }} className="composer">
             <i className={`ti ti-${agent.icon}`} aria-hidden />
             <input value={input} onChange={(e) => setInput(e.target.value)} disabled={busy} placeholder={agent.placeholder} />

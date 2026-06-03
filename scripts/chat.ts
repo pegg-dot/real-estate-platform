@@ -22,14 +22,14 @@ async function main() {
   const context = readJson<ContextRef[]>("--context") ?? [];
   if (!agent) throw new Error("usage: chat.ts --agent <id> --history <file> [--context <file>] --json");
 
-  // operator manages its own sql; interrogator/coach need one we open + close here
-  const needsSql = agent === "interrogator" || agent === "coach";
-  const sql = needsSql ? getSql() : (null as never);
+  // open a connection for context resolution + the interrogator/coach queries (the operator's own
+  // tool loop opens its own connection separately)
+  const sql = getSql();
   try {
     const out = await dispatchChat(sql, agent, messages, context);
     console.log(JSON.stringify(out));
   } finally {
-    if (needsSql && sql) await sql.end();
+    await sql.end();
   }
 }
 

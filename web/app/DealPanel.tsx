@@ -4,6 +4,7 @@
    md). LOT-DECISION rule#1: visual-only restyle — every fetch/handler/field is unchanged. */
 import { useEffect, useState, type ReactNode } from "react";
 import { Score, Sev, Eyebrow, tierOf, barColor } from "./ui";
+import { addContext } from "./chat/contextStore";
 
 const usd = (n: unknown) => (typeof n === "number" || (typeof n === "string" && n !== "")
   ? `$${Math.round(Number(n)).toLocaleString()}` : "—");
@@ -35,6 +36,7 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
   const [loading, setLoading] = useState(true);
   const [tracking, setTracking] = useState(false);
   const [trackMsg, setTrackMsg] = useState<string | null>(null);
+  const [addedToChat, setAddedToChat] = useState(false);
 
   const [dossierMd, setDossierMd] = useState<string | null>(null);
   const [loadingMd, setLoadingMd] = useState(false);
@@ -130,9 +132,15 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
               </div>
             )}
 
-            <button onClick={track} disabled={tracking} className="btn-primary" style={{ width: "100%", justifyContent: "center", marginBottom: 6 }}>
-              {tracking ? "Tracking…" : "＋ Track this deal"}
-            </button>
+            <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+              <button onClick={track} disabled={tracking} className="btn-primary" style={{ flex: 1, justifyContent: "center" }}>
+                {tracking ? "Tracking…" : "＋ Track this deal"}
+              </button>
+              <button className="btn" title="Attach this parcel to the chat (then open Chat and ask the agents about it)"
+                onClick={() => { addContext({ type: "parcel", id: apn, label: String(d.address ?? apn) }); setAddedToChat(true); setTimeout(() => setAddedToChat(false), 1800); }}>
+                {addedToChat ? "✓ added" : "💬 Add to chat"}
+              </button>
+            </div>
             {trackMsg && <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{trackMsg} <a href="/deals">→ Pipeline</a></div>}
 
             <Section title="Snapshot" badge={<Sev kind="ok">real</Sev>}>

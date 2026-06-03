@@ -12,6 +12,7 @@ import { buildPlaybookForLead } from "../coach/forLead.js";
 import type { Proposal } from "../agent/tools.js";
 import type { DualPersonaReview } from "../interrogate/personas.js";
 import type { Playbook } from "../coach/playbook.js";
+import { resolveContext, buildContextBlock, appendToLastUser } from "./buildContext.js";
 
 export type ChatAgentId = "explainer" | "operator" | "interrogator" | "coach";
 const ENGINE = new Set<ChatAgentId>(["operator", "interrogator", "coach"]);
@@ -42,7 +43,12 @@ export async function dispatchChat(
   if (agent === "explainer") throw new Error("the explainer runs in-process, not on the engine");
   if (!isEngineAgent(agent)) throw new Error(`unknown chat agent: ${agent}`);
 
-  if (agent === "operator") return runAgent(messages);   // manages its own sql + tools
+  if (agent === "operator") {
+    // attached parcels/leads become a grounded, cited block on the last user message
+    let msgs = messages;
+    if (context.length) msgs = appendToLastUser(messages, buildContextBlock(await resolveContext(sql, context)));
+    return runAgent(msgs);   // runAgent manages its own sql + tools
+  }
 
   if (agent === "interrogator") {
     const apn = context.find((c) => c.type === "parcel")?.id ?? extractApn(lastUser(messages));

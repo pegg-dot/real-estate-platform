@@ -61,7 +61,7 @@ export default async function LeadsPage() {
                 </td>
                 <td className="muted">{l.approach ?? "—"}{l.method ? ` · ${l.method}` : ""}</td>
                 <td>{l.distress ? <span className="pill flag">neglect</span> : <span className="muted">—</span>}</td>
-                <td><LeadActions leadId={l.id} /></td>
+                <td><LeadActions leadId={l.id} label={l.address ?? l.owner_name ?? undefined} /></td>
               </tr>
             ))}
           </tbody>

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { addContext } from "../chat/contextStore";
 
 interface Playbook {
   sections: Array<{ title: string; lines: string[] }>;
@@ -7,10 +8,11 @@ interface Playbook {
   note: string;
 }
 
-export default function LeadActions({ leadId }: { leadId: string }) {
+export default function LeadActions({ leadId, label }: { leadId: string; label?: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [playbook, setPlaybook] = useState<Playbook | null>(null);
+  const [added, setAdded] = useState(false);
 
   async function act(action: string) {
     setBusy(action); setMsg(null);
@@ -29,6 +31,9 @@ export default function LeadActions({ leadId }: { leadId: string }) {
       <button onClick={() => act("draft-mailer")} disabled={!!busy} className="btn btn-sm">{busy === "draft-mailer" ? "…" : "✉️ Draft"}</button>
       <button onClick={() => act("coach")} disabled={!!busy} className="btn btn-sm">{busy === "coach" ? "…" : "🎯 Coach"}</button>
       <button onClick={() => act("record-inbound")} disabled={!!busy} className="btn btn-sm">{busy === "record-inbound" ? "…" : "📥 Reply"}</button>
+      <button title="Attach this lead to the chat (then open Chat and ask the Coach/Operator about it)"
+        onClick={() => { addContext({ type: "lead", id: leadId, label: label ?? leadId }); setAdded(true); setTimeout(() => setAdded(false), 1800); }}
+        className="btn btn-sm">{added ? "✓ added" : "💬 Chat"}</button>
       {msg && <span className="muted" style={{ fontSize: 11 }}>{msg}</span>}
       {playbook && (
         <div style={{ flexBasis: "100%", marginTop: 8, padding: 10, border: "1px solid var(--border-soft)", borderRadius: "var(--radius-sm)", background: "var(--bg-panel)", fontSize: 12 }}>
