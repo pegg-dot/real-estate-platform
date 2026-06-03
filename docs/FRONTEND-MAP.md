@@ -1,5 +1,11 @@
 # LOT Frontend Map — IA, backend↔frontend coverage, and the Claude-design brief
 
+> 🎨 **Design system: fully applied (2026-06-02).** Phase 1 = Map + deal drawer; Phase 2 = every
+> other screen (Home, Brief, Pipeline, Leads, Settings, Ask, Agent, Thesis, Playbook, Changes,
+> Radar, Learn, Rents, Outreach, Dev) restyled to the dark "operational terminal" — shared topbar,
+> tokens in `web/app/tokens.css`, atoms in `web/app/ui.tsx`, ported classes in `globals.css`.
+> Visual-only; all data wiring + guardrails + disclaimers preserved.
+
 **This is the single source of truth for the UI:** what pages exist and *why*, what data + actions
 each needs, and — critically — **what's wired vs. what's a GAP.** It answers two fears directly:
 1. *"How do I know the backend is wired to the frontend / what if we skip stuff?"* → the **Coverage
