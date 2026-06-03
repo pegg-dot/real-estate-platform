@@ -8,11 +8,13 @@
       (acquire-coach + lead stacking), 016 (expert-mind learning), 017 (path-of-progress /
       land-banking), 018 (portfolio advisor), 019 (exit-strategy + seller engine), 020
       (highest-and-best-use). ~38 commits, all code-reviewed + live-verified, nothing merged to
-      `main` yet. Open a PR from the branch on GitHub and merge when you're happy. Then the
-      **visual design pass** (Claude design) can polish the new UI: the deal panel's exit-menu +
-      HBU, the leads stack/bunny/channel + funnel line, the coach playbook, the **growth-corridor
-      heat layer** (data ready via `/api/growth`), the **/portfolio dashboard**, and a
-      development-upside map layer (`/api/parcels?developOnly=true`).
+      `main` yet. Open a PR from the branch on GitHub and merge when you're happy. ✅ The
+      **visual design pass is DONE** — the whole app is restyled to the LOT dark "operational
+      terminal" design system (Phase 1 map + deal drawer; Phase 2 every other screen). Deal drawer
+      has score-breakdown bars + REAL/MODELED provenance badges; the map rail has the lens selector,
+      development-upside toggle, "what changed" feed, and Top matches. Tokens in `web/app/tokens.css`.
+      (Still open as future polish: a growth-corridor heat map layer via `/api/growth`, and wiring
+      the 3D map view — both noted but not blocking.)
       New CLIs to try: `npm run growth` (land-banking buy-ahead shortlist), `npm run portfolio`
       (best-next-buy), `npm run coach` (call playbook), `npm run ingest-source` (distill a source),
       `npm run interrogate -- <apn>` (Pace structures / Grant challenges / synthesis — spec 023; also
