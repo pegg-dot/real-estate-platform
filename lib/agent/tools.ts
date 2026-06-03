@@ -10,6 +10,8 @@ import type { Sql } from "../db/client.js";
 import { prepareReadQuery } from "./safeQuery.js";
 import { advisePortfolio } from "../db/portfolio.js";
 import { buyAheadShortlist } from "../db/growth.js";
+import { interrogateForApn } from "../interrogate/forDeal.js";
+import { buildPlaybookForLead } from "../coach/forLead.js";
 
 const MARKET = "Charlottesville";
 
@@ -37,6 +39,16 @@ export async function queryDb(sql: Sql, args: { query: string }): Promise<{ rows
 export async function getParcel(sql: Sql, args: { apn: string }): Promise<unknown> {
   const [row] = await sql`select * from deal_genome where market = ${MARKET} and apn = ${args.apn} limit 1`;
   return row ?? { error: `no parcel ${args.apn}` };
+}
+
+export async function getInterrogation(sql: Sql, args: { apn: string }): Promise<unknown> {
+  try { const { address, review } = await interrogateForApn(sql, MARKET, args.apn); return { address, ...review }; }
+  catch (e) { return { error: (e as Error).message }; }
+}
+
+export async function getCoaching(sql: Sql, args: { leadId: string }): Promise<unknown> {
+  try { return await buildPlaybookForLead(sql, args.leadId); }
+  catch (e) { return { error: (e as Error).message }; }
 }
 
 export async function listLeads(sql: Sql, args: { limit?: number; motivationType?: string }): Promise<readonly unknown[]> {
@@ -102,6 +114,16 @@ export function agentTools(sql: Sql) {
       description: "Land-banking shortlist: low-priced parcels in rising growth corridors (spec 017).",
       inputSchema: z.object({ limit: z.number().optional() }),
       execute: (args) => buyAheadShortlist(sql, MARKET, Math.min(args.limit ?? 15, 50)),
+    }),
+    get_interrogation: tool({
+      description: "Interrogate a deal by APN (spec 023): Pace structures it, Grant challenges it, returns the synthesis verdict + open risks. Deterministic.",
+      inputSchema: z.object({ apn: z.string() }),
+      execute: (args) => getInterrogation(sql, args),
+    }),
+    get_coaching: tool({
+      description: "A cited call playbook + objection prep for a lead by leadId (spec 015). Deterministic.",
+      inputSchema: z.object({ leadId: z.string() }),
+      execute: (args) => getCoaching(sql, args),
     }),
     // ── propose-only actions (the user approves before anything runs/sends) ──
     propose_generate_leads: tool({ description: "Propose regenerating the lead list (requires approval).", inputSchema: z.object({}), execute: async () => ({ proposal: proposeGenerateLeads() }) }),

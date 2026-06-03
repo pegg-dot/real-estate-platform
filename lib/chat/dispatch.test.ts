@@ -13,6 +13,7 @@ describe("chat dispatch (spec 024)", () => {
   });
 
   it("knows which agents run on the engine vs in-process", () => {
+    expect(isEngineAgent("auto")).toBe(true);          // the neutral default — full toolset on the engine
     expect(isEngineAgent("operator")).toBe(true);
     expect(isEngineAgent("interrogator")).toBe(true);
     expect(isEngineAgent("coach")).toBe(true);

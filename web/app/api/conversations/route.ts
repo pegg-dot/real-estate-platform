@@ -2,7 +2,7 @@ import { sql } from "../../lib/db";
 
 export const dynamic = "force-dynamic";
 
-const AGENTS = new Set(["explainer", "operator", "interrogator", "coach"]);
+const AGENTS = new Set(["auto", "explainer", "operator", "interrogator", "coach"]);
 const normAgent = (a: unknown): string => (typeof a === "string" && AGENTS.has(a) ? a : "explainer");
 
 // Saved chat conversations (spec 024 Phase 2). GET = list (newest first); POST = create a new one.

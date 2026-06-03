@@ -14,8 +14,8 @@ import type { DualPersonaReview } from "../interrogate/personas.js";
 import type { Playbook } from "../coach/playbook.js";
 import { resolveContext, buildContextBlock, appendToLastUser } from "./buildContext.js";
 
-export type ChatAgentId = "explainer" | "operator" | "interrogator" | "coach";
-const ENGINE = new Set<ChatAgentId>(["operator", "interrogator", "coach"]);
+export type ChatAgentId = "auto" | "explainer" | "operator" | "interrogator" | "coach";
+const ENGINE = new Set<ChatAgentId>(["auto", "operator", "interrogator", "coach"]);
 export const isEngineAgent = (id: string): boolean => ENGINE.has(id as ChatAgentId);
 
 export interface ChatMsg { role: "user" | "assistant"; content: string }
@@ -43,7 +43,8 @@ export async function dispatchChat(
   if (agent === "explainer") throw new Error("the explainer runs in-process, not on the engine");
   if (!isEngineAgent(agent)) throw new Error(`unknown chat agent: ${agent}`);
 
-  if (agent === "operator") {
+  if (agent === "operator" || agent === "auto") {
+    // the neutral Auto agent shares the operator's full toolset (DB + interrogate + coach + propose)
     // attached parcels/leads become a grounded, cited block on the last user message
     let msgs = messages;
     if (context.length) msgs = appendToLastUser(messages, buildContextBlock(await resolveContext(sql, context)));

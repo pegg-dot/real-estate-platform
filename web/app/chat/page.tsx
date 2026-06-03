@@ -12,7 +12,7 @@ interface Msg { role: "user" | "assistant"; content: string; tools?: string[]; p
 interface Conv { id: string; title: string; agent: string; msgs: Msg[]; loaded: boolean; saved: boolean }
 
 let seq = 0;
-const draftConv = (): Conv => ({ id: `draft-${Date.now()}-${seq++}`, title: "New chat", agent: "explainer", msgs: [], loaded: true, saved: false });
+const draftConv = (): Conv => ({ id: `draft-${Date.now()}-${seq++}`, title: "New chat", agent: "auto", msgs: [], loaded: true, saved: false });
 
 // minimal markdown: **bold** + line breaks (the Interrogator/Coach format with markdown)
 function md(text: string): ReactNode {

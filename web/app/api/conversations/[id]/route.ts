@@ -3,7 +3,7 @@ import { sql } from "../../../lib/db";
 export const dynamic = "force-dynamic";
 
 const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-const AGENTS = new Set(["explainer", "operator", "interrogator", "coach"]);
+const AGENTS = new Set(["auto", "explainer", "operator", "interrogator", "coach"]);
 
 // GET = a conversation's full message thread (spec 024 Phase 2).
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
