@@ -31,10 +31,16 @@
       🔌 **Connectors you can wire later** (one-time, your accounts) to make execution real: a Gmail/
       Resend transport (actually send the drafted emails) and Google Calendar (sync the scheduled
       events). Until then the drafts/events persist in-app for review.
-- [ ] **Two calibration dials to eyeball** (working, just judgment calls): exit-strategy mix
-      (by-room 56% / MTR 31% / Section 8 9% — tune `exit_strategy` in the thesis if you disagree);
-      and HBU develop returns are annualized *screening proxies*, not IRRs (an underwriter-grade
-      model is a future upgrade).
+- [ ] **Make the two calibration dials ADAPTIVE (not just tunable config).** Today the exit-strategy
+      mix (by-room 56% / MTR 31% / Section 8 9%) is an *emergent* result of the exit optimizer + your
+      thesis `management_appetite` + the modeled rent multipliers (MTR 1.4× / STR 2.5×) — and the HBU
+      develop returns are annualized screening *proxies*, not IRRs. These are sensible **priors**, not
+      learned values. The scoring **weights already adapt** to your advance/pass decisions via the
+      LEARN loop (`lib/learn/retune.ts`, ≥40 decisions, you approve). The upgrade: extend that loop to
+      also learn the **exit-strategy preference + appetite** (so the mix shifts toward what you
+      actually pursue), and add an **outcome loop** — when a deal closes, feed the realized rent/return
+      back to calibrate the multipliers + the HBU model (replace priors with evidence). Needs your
+      decision/outcome data to learn from (cold-start) — see the Adaptive scoring item under Future.
 
 ## 🔌 Multi-user + real connectors (spec 026) — YOUR setup (code is inert until done)
 > Goal: you + your brother each log in, connect your own Gmail + Calendar, and the agents' drafts/
