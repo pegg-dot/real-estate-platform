@@ -102,6 +102,16 @@ describe("recommendFinancing — NEED vs GREED", () => {
     expect(cg.deferredTaxPV).toBeGreaterThanOrEqual(cg.recaptureTax);
   });
 
+  it("emits numeric cashInDeal even when estMarketValue arrives as a DB string (postgres numeric)", () => {
+    // postgres.js returns numeric columns as STRINGS; the type says number but runtime can be a string.
+    // The persisted financing JSON must carry clean numbers, not "790400.00".
+    const r = recommendFinancing({ ...WERTLAND_1301, estMarketValue: "1077800" as unknown as number });
+    for (const o of r.recommended) {
+      expect(typeof o.buyer.cashInDeal, `${o.structure} cashInDeal must be a number`).toBe("number");
+      expect(Number.isFinite(o.buyer.cashInDeal)).toBe(true);
+    }
+  });
+
   it("subject-to on a 5+ unit (commercial) property carries a TOXIC-DEBT balloon/reset warning", () => {
     // commercial MF financing is usually a short-term balloon or adjustable note — sub2 inherits a
     // balloon that can come due. We can't see the loan terms, so we FLAG (don't silently recommend).

@@ -170,6 +170,17 @@ function assertGuardrail(s: Structure): { text: string; attorney: boolean; rules
 }
 
 export function recommendFinancing(input: FinancingInput): FinancingResult {
+  // postgres.js returns numeric columns as STRINGS, so the DB-sourced money fields can arrive as
+  // strings despite their `number` type. Normalize once here so every downstream computation — and
+  // the persisted financing JSON (e.g. buyer.cashInDeal) — carries clean numbers, not "790400.00".
+  input = {
+    ...input,
+    estMarketValue: Number(input.estMarketValue),
+    lastSalePrice: input.lastSalePrice == null ? null : Number(input.lastSalePrice),
+    noi: Number(input.noi),
+    buyerCashAvailable: Number(input.buyerCashAvailable),
+  };
+
   const asOf = input.asOf ?? new Date().toISOString().slice(0, 10);
   const cgRate = input.capGainsRate ?? 0.2;       // capital-gains tax rate (NOT a real-estate cap rate)
   const armsLength = (input.lastSalePrice ?? 0) > 0;
