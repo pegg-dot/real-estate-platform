@@ -89,7 +89,7 @@ export function buildPlaybook(i: PlaybookInput): Playbook {
     {
       title: "Objection handling (cited)",
       lines: objections.length
-        ? objections.map((o) => `• ${o.key.replace(/^objection#/, "")}: "${o.response}"  [${o.source}]`)
+        ? objections.map((o) => `• ${o.key.replace(/^(objection|situation)#/, "")}: "${o.response}"  [${o.source}]`)
         : ["• (no cited exemplars yet — ingest a source via spec 016 to populate)"],
     },
     {

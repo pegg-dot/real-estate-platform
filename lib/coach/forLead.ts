@@ -31,6 +31,20 @@ export async function buildPlaybookForLead(sql: Sql, leadId: string): Promise<Pl
     select key, response, coalesce(source, 'unknown') as source from knowledge_exemplar
     where key like 'objection#%' order by weight desc, corroboration desc limit 4`;
 
+  // situation-MATCHED exemplars (foreclosure/legacy scripts surface only for the fitting lead, not
+  // every call): pull the situation# exemplars that match this lead's motivation/structure.
+  const mt = lead.motivation_type ?? "";
+  const sitKeys: string[] = [];
+  if (mt === "pre_foreclosure" || mt === "tax_delinquent" || lead.recommended_structure === "subject_to")
+    sitKeys.push("situation#pre-foreclosure-subject-to");
+  if (mt === "long_tenure_elderly" || mt === "high_equity" || lead.recommended_structure === "seller_finance")
+    sitKeys.push("situation#legacy-annuity");
+  const sitExemplars = sitKeys.length
+    ? await sql<ObjectionExemplar[]>`
+        select key, response, coalesce(source, 'unknown') as source from knowledge_exemplar
+        where key = any(${sql.array(sitKeys)})`
+    : [];
+
   return buildPlaybook({
     ownerName: lead.owner_name,
     motivationType: lead.motivation_type ?? "none",
@@ -38,6 +52,7 @@ export async function buildPlaybookForLead(sql: Sql, leadId: string): Promise<Pl
     recommendedStructure: (lead.recommended_structure ?? "cash") as "cash" | "seller_finance" | "subject_to",
     approach: sit?.detail?.approach ?? "A simple, no-pressure cash option: speed and certainty.",
     capGainsBenefit: capGains,
-    objectionExemplars: exemplars,
+    // situation-matched first (more specific to this seller), then the best general objections
+    objectionExemplars: [...sitExemplars, ...exemplars],
   });
 }
