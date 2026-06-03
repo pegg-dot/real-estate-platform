@@ -7,7 +7,7 @@ import path from "node:path";
 const execFileAsync = promisify(execFile);   // execFile = NO shell; args are an array, never interpolated
 const REPO = path.resolve(process.cwd(), "..");          // web/ -> repo root
 const TSX = path.join(REPO, "node_modules", ".bin", "tsx");
-const ALLOWED = new Set(["sourcing.ts", "learn.ts", "rents.ts", "brief.ts", "thesis.ts", "deal.ts", "refresh-market.ts", "enrich.ts", "coach.ts", "portfolio.ts", "agent.ts", "interrogate.ts", "chat.ts"]);
+const ALLOWED = new Set(["sourcing.ts", "learn.ts", "rents.ts", "brief.ts", "thesis.ts", "deal.ts", "refresh-market.ts", "enrich.ts", "coach.ts", "portfolio.ts", "agent.ts", "interrogate.ts", "chat.ts", "growth.ts"]);
 
 export async function runEngine(script: string, args: string[], timeoutMs = 120_000): Promise<string> {
   if (!ALLOWED.has(script)) throw new Error(`script not allowed: ${script}`);
