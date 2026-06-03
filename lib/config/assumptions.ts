@@ -19,6 +19,8 @@ export interface MarketAssumptions {
   state: string;
   perBedroomRent: number;
   wholeHouseMonthlyRentPerBed: number;
+  /** $/sqft of assessed improvement used as the baseline for the per-house rent quality factor (021) */
+  improvementBaselinePerSqft: number;
   rentModel: RentModel;
   taxRate: number;
   insuranceAnnual: { sfr: number; multifamily: number };

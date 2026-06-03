@@ -27,6 +27,7 @@ export interface ScorableRow {
   assessedTotal: number | null;        // latest-year assessed total
   zoneCode: string | null;             // for zoning-capacity lookup (HBU develop gate)
   yearBuilt: number | null;            // for the flip "dated building" gate
+  sqft: number | null;                 // for the per-house rent quality factor (spec 021)
 }
 
 /** One row per property in a market, with the joined signals the engines need. */
@@ -61,7 +62,8 @@ export async function readScorableProperties(sql: Sql, market: string): Promise<
       (select a.assessed_total from assessment a
          where a.property_id = p.id order by a.year desc nulls last limit 1)  as "assessedTotal",
       p.zone_code                                          as "zoneCode",
-      p.year_built                                         as "yearBuilt"
+      p.year_built                                         as "yearBuilt",
+      p.sqft
     from property p
     join market m on m.id = p.market_id
     left join owner o on o.id = p.owner_id

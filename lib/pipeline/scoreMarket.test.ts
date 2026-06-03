@@ -23,7 +23,7 @@ describe("scoreRow exit-strategy optimization (spec 019, pure)", () => {
     strAllowed: false, lat: 38.039952, lng: -78.495544, isAbsentee: true,
     ownerEntityType: "person", lastArmsPrice: 300_000, lastArmsDate: "2007-06-01",
     floodZone: null, isCondo: false, estAnnualInsurance: null,
-    assessedLand: 300_000, assessedTotal: 489_600, zoneCode: "R-A", yearBuilt: 1955,
+    assessedLand: 300_000, assessedTotal: 489_600, zoneCode: "R-A", yearBuilt: 1955, sqft: 1800,
   };
 
   it("attaches a ranked exit-strategy menu with a recommendation", () => {

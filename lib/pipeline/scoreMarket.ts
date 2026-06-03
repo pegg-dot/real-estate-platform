@@ -12,7 +12,7 @@ import { readScorableProperties, upsertScore, type ScorableRow, type ScoreRecord
 import { loadMarketAssumptions, proFormaFor, fmrScheduleFor, hbuAssumptionsFor, zoningCapacityFor, type MarketAssumptions } from "../config/assumptions.js";
 import { highestAndBestUse, type HbuResult } from "../scoring/hbu.js";
 import { scoreProperty, haversineMiles, type ScoreInput, type ScoreResult } from "../scoring/score.js";
-import { perBedroomRent } from "../scoring/rent.js";
+import { perBedroomRent, perHouseRentFactor } from "../scoring/rent.js";
 import { hudFmrMonthlyFloor, rentVsHudFloor } from "../scoring/fmr.js";
 import { optimizeExitStrategies, DEFAULT_EXIT_THESIS, type ExitOptimization, type ExitStrategy, type ExitThesis } from "../scoring/exitStrategy.js";
 import { estimateRealRent, type RentComp } from "../rent/comps.js";
@@ -81,11 +81,18 @@ export function scoreRow(
   const realRent = (opts.comps && opts.comps.length && row.lat != null && row.lng != null)
     ? estimateRealRent(row.lat, row.lng, opts.comps, { preferByRoom: true })
     : null;
-  const modeledPerBed = perBedroomRent(distMiles, a.rentModel);  // spatially-aware modeled rent
+  // per-HOUSE quality factor (spec 021) so two same-bed houses don't get identical modeled rents:
+  // a nicer house (more improvement value per sqft) rents above a plainer one. Applies to the
+  // MODELED rent only — a real comp is already per-house, so it skips the factor.
+  const qFactor = perHouseRentFactor({
+    improvementValue: (row.assessedTotal != null && row.assessedLand != null) ? row.assessedTotal - row.assessedLand : null,
+    sqft: row.sqft, yearBuilt: row.yearBuilt,
+  }, a.improvementBaselinePerSqft);
+  const modeledPerBed = Math.round(perBedroomRent(distMiles, a.rentModel) * qFactor);  // spatially-aware + per-house
   const perBed = realRent?.perBedRent ?? modeledPerBed;
   const rentSource = realRent ? "real-comps" as const : "modeled" as const;
   const wholeHouseMonthlyRent = row.beds != null
-    ? row.beds * a.wholeHouseMonthlyRentPerBed
+    ? Math.round(row.beds * a.wholeHouseMonthlyRentPerBed * qFactor)
     : Math.round(price * a.wholeHouseFallbackMonthlyRentToPrice);
   const scoreInput: ScoreInput = {
     apn: row.apn, price, beds: row.beds, byRoomLegal: row.byRoomLegal, lat: row.lat, lng: row.lng,

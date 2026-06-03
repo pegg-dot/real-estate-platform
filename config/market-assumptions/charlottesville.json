@@ -4,6 +4,7 @@
   "state": "VA",
   "perBedroomRent": 825,
   "wholeHouseMonthlyRentPerBed": 520,
+  "improvementBaselinePerSqft": 150,
   "rentModel": {
     "$comment": "MODELED, spatially-aware: per-bed rent decays with distance to campus. Calibrated so ~0.5mi off-prime ≈ $825/bed and stays within the $735-900 research band. Replace with a real rent-comp source when available.",
     "baseRent": 800,
