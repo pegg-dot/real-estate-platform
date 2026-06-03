@@ -19,11 +19,18 @@
       (best-next-buy), `npm run coach` (call playbook), `npm run ingest-source` (distill a source),
       `npm run interrogate -- <apn>` (Pace structures / Grant challenges / synthesis — spec 023; also
       the "🔎 Interrogate this deal" button on the deal panel).
-      ✨ NEW — the **unified Chat** (`/chat`, spec 024): one ChatGPT-style chat with four agents
-      (Explainer / Operator / Interrogator / Coach), saved history, and a context-feed — hit
-      "💬 Add to chat" on a deal panel or leads row to attach parcels/leads, then ask the agents about
-      them. The Interrogator + Coach work **without Anthropic credits** (they're deterministic);
-      Explainer + Operator need credits. (Replaces the old /ask + /agent, which now redirect.)
+      ✨ NEW — the **unified Chat** (`/chat`, specs 024+025): one ChatGPT-style chat with a **fleet of
+      9 agents** + saved history + a context-feed ("💬 Add to chat" on a deal panel / leads row attaches
+      parcels/leads). Agents: **Auto** (the neutral do-anything default) · Explainer · Operator ·
+      Deal Interrogator · Coach · **Outreach Writer** (drafts CAN-SPAM owner emails → review on
+      `/outreach`) · **Scheduler** (proposes calls/follow-ups/visits → `/schedule`) · **Analyst**
+      (read-only SQL Q&A) · **Negotiation Simulator** (practice the call, get scored). Everything is
+      propose/draft — nothing sends or spends on its own. Works at **$0 credits**: Interrogator, Coach,
+      Outreach drafts, Scheduler, and Auto's interrogate/coach tools. Needs credits: Auto/Operator/
+      Explainer/Analyst/Simulator's model replies.
+      🔌 **Connectors you can wire later** (one-time, your accounts) to make execution real: a Gmail/
+      Resend transport (actually send the drafted emails) and Google Calendar (sync the scheduled
+      events). Until then the drafts/events persist in-app for review.
 - [ ] **Two calibration dials to eyeball** (working, just judgment calls): exit-strategy mix
       (by-room 56% / MTR 31% / Section 8 9% — tune `exit_strategy` in the thesis if you disagree);
       and HBU develop returns are annualized *screening proxies*, not IRRs (an underwriter-grade
