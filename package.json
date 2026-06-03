@@ -22,6 +22,7 @@
     "coach": "tsx scripts/coach.ts",
     "growth": "tsx scripts/growth.ts",
     "portfolio": "tsx scripts/portfolio.ts",
+    "agent": "tsx scripts/agent.ts",
     "thesis": "tsx scripts/thesis.ts"
   },
   "devDependencies": {
