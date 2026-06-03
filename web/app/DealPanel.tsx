@@ -55,7 +55,11 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
 
   const components = (d?.components ?? {}) as Record<string, { weight: number; weighted: number }>;
   const financing = (d?.financing ?? {}) as {
-    recommended?: Array<{ structure?: string; sellerPitch?: string; legalGuardrail?: string; attorneyReviewRequired?: boolean }>;
+    recommended?: Array<{
+      structure?: string; sellerPitch?: string; legalGuardrail?: string; attorneyReviewRequired?: boolean;
+      buyer?: { cashInDeal?: number; capitalEfficiency?: string };
+      capGains?: { sellerBenefit?: number; recaptureTax?: number; estGain?: number };
+    }>;
     suppressed?: Array<{ structure?: string; reason?: string }>;
   };
   const gateFailures = (d?.gate_failures ?? []) as string[];
@@ -125,6 +129,19 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
               {financing.recommended.map((o, i) => (
                 <div key={i} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: i < financing.recommended!.length - 1 ? "1px solid #f1f5f9" : "none" }}>
                   <div><strong>{i + 1}. {String(o.structure ?? "cash").replace(/_/g, " ")}</strong>{o.attorneyReviewRequired ? " ⚠️ attorney review" : ""}</div>
+                  {(o.buyer?.cashInDeal != null || o.capGains?.sellerBenefit != null) && (
+                    <div style={{ marginTop: 2, fontSize: 11, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {o.buyer?.cashInDeal != null && (
+                        <span>💵 cash in deal <strong>${Math.round(o.buyer.cashInDeal).toLocaleString()}</strong></span>
+                      )}
+                      {o.capGains?.sellerBenefit != null && o.capGains.sellerBenefit > 0 && (
+                        <span>🧾 defers ~<strong>${Math.round(o.capGains.sellerBenefit).toLocaleString()}</strong> seller cap-gains tax vs a cash sale</span>
+                      )}
+                      {o.capGains?.recaptureTax != null && o.capGains.recaptureTax > 0 && (
+                        <span className="muted" title="Modeled from an assumed 80% improvement basis / 27.5-yr straight-line schedule — verify against the seller's actual depreciation.">(~${Math.round(o.capGains.recaptureTax).toLocaleString()} recapture still owed at close · modeled)</span>
+                      )}
+                    </div>
+                  )}
                   {o.sellerPitch && <div className="muted" style={{ marginTop: 2 }}>{o.sellerPitch}</div>}
                   {o.legalGuardrail && <div style={{ marginTop: 4, fontSize: 11, color: "#7c2d12" }}>⚖️ {o.legalGuardrail}</div>}
                 </div>

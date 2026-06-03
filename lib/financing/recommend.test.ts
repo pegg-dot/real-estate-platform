@@ -72,6 +72,48 @@ describe("recommendFinancing — NEED vs GREED", () => {
     expect(consumer.attorneyReviewRequired).toBe(true);  // consumer-occupant: SAFE/Dodd-Frank applies
   });
 
+  // Recent buyer, BIG gain, high equity — the screenshot house: bought $103k in 2020, now $266k
+  // (61% gain) but only ~6 yrs held. The OLD gate (capGainsExposure required tenure>=10) gave this
+  // CASH-ONLY despite a huge tax to defer. A big gain is a big gain regardless of tenure.
+  const RECENT_FLIPPER: FinancingInput = {
+    estMarketValue: 266_000, lastSalePrice: 103_000, lastSaleDate: "2020-04-19",
+    ownerType: "person", isAbsentee: true, distressSignals: [],
+    listingStatus: "off_market", buyerCashAvailable: 1_000_000,
+    currentMarketRate: 0.07, noi: 22_000, asOf: "2026-06-01",
+  };
+
+  it("high-gain SHORT-tenure owner still gets a quantified SELLER FINANCE offer (gain, not tenure, drives it)", () => {
+    const r = recommendFinancing(RECENT_FLIPPER);
+    const sf = r.recommended.find((x) => x.structure === "seller_finance");
+    expect(sf, "61% gain should trigger seller-finance even at 6yr tenure").toBeDefined();
+    expect(sf!.capGains!.sellerBenefit).toBeGreaterThan(0);
+  });
+
+  it("cap-gains model recognizes depreciation recapture AT SALE (installment can't defer it)", () => {
+    // long-held rental: lots of accumulated depreciation -> a recapture slug taxed now either way
+    const r = recommendFinancing(TIRED_LANDLORD);
+    const cg = r.recommended.find((x) => x.structure === "seller_finance")!.capGains!;
+    expect(cg.accumulatedDepreciation).toBeGreaterThan(0);
+    expect(cg.recaptureTax).toBeGreaterThan(0);
+    // recapture is recognized at sale in BOTH cash and installment, so the deferral benefit
+    // reflects ONLY the capital-gain portion — it must be strictly less than taxing the whole gain.
+    expect(cg.sellerBenefit).toBeLessThan(cg.cashTaxNow);
+    // and the deferred PV still carries the recapture (recognized now), so PV >= recaptureTax
+    expect(cg.deferredTaxPV).toBeGreaterThanOrEqual(cg.recaptureTax);
+  });
+
+  it("subject-to guardrail keeps the due-on-sale warning AND cites the ~0.1% called-due datapoint", () => {
+    const need: FinancingInput = {
+      estMarketValue: 400_000, lastSalePrice: 395_000, lastSaleDate: "2021-06-01",
+      ownerType: "person", isAbsentee: false, distressSignals: ["preforeclosure"],
+      listingStatus: "off_market", buyerCashAvailable: 1_000_000,
+      currentMarketRate: 0.07, noi: 18_000, asOf: "2026-06-01",
+    };
+    const sub2 = recommendFinancing(need).recommended.find((x) => x.structure === "subject_to")!;
+    expect(sub2.legalGuardrail.toLowerCase()).toMatch(/due-on-sale/); // guardrail KEPT
+    expect(sub2.legalGuardrail).toMatch(/0\.1%|rarely|seldom/i);      // datapoint added, not a green light
+  });
+
   it("subject-to carries the due-on-sale guardrail and refutes the land-trust myth", () => {
     // construct a NEED case with a real rate gap (3% loan vs 7% market)
     const need: FinancingInput = {

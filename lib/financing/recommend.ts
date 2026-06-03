@@ -28,6 +28,10 @@ export interface FinancingInput {
 
 export interface CapGains {
   estGain: number; cashTaxNow: number; deferredTaxPV: number; sellerBenefit: number;
+  // depreciation recapture (§1250): taxed at ~25% and recognized in the YEAR OF SALE even under
+  // an installment sale (§453(i)) — so it is NOT part of the deferral benefit. Modeled (we lack the
+  // owner's real basis/depreciation schedule), flagged as such in the offer assumptions.
+  accumulatedDepreciation: number; recaptureTax: number;
 }
 export interface Offer {
   structure: Structure;
@@ -66,30 +70,60 @@ function amortizedBalance(orig: number, annualRate: number, years: number, termY
   return orig * Math.pow(1 + r, p) - pay * ((Math.pow(1 + r, p) - 1) / r);
 }
 
-/** §3 cap-gains / seller-win modeler: the "here's what you save" number. */
-function capGainsModel(estMarketValue: number, basis: number, rate: number,
-                       termYears = 15, discount = 0.06): CapGains {
+/**
+ * §3 cap-gains / seller-win modeler: the "here's what you save" number.
+ *
+ * Splits the gain into two slugs taxed very differently when selling on terms:
+ *  - DEPRECIATION RECAPTURE (§1250): up to the accumulated depreciation, taxed at ~25% and
+ *    recognized in the YEAR OF SALE even under an installment sale (§453(i)). The installment
+ *    structure CANNOT defer it, so it is identical in a cash sale and a seller-financed sale.
+ *  - CAPITAL GAIN: the remaining appreciation, taxed at `rate` and recognized pro-rata as
+ *    principal is received — THIS is what an installment sale defers, and the seller-win number.
+ *
+ * We don't have the owner's real basis/depreciation schedule, so accumulated depreciation is
+ * MODELED as (improvement basis / 27.5-yr straight-line) × years held, capped at the improvement
+ * basis. The caller flags these as assumptions.
+ */
+function capGainsModel(estMarketValue: number, basis: number, rate: number, tenureYears: number,
+                       termYears = 15, discount = 0.06, improvementFrac = 0.8,
+                       recaptureRate = 0.25): CapGains {
   const estGain = Math.max(estMarketValue - basis, 0);
-  const cashTaxNow = estGain * rate;
-  // installment sale: tax recognized pro-rata as principal is received -> PV of that stream
-  const annualTax = cashTaxNow / termYears;
-  let deferredTaxPV = 0;
-  for (let t = 1; t <= termYears; t++) deferredTaxPV += annualTax / Math.pow(1 + discount, t);
+  const improvementBasis = basis * improvementFrac;            // land isn't depreciable; ~20% land
+  const accumulatedDepreciation = Math.min(
+    (improvementBasis / 27.5) * Math.max(tenureYears, 0),       // residential straight-line
+    improvementBasis,                                          // can't depreciate past the improvement
+    estGain,                                                   // recapture is capped at the total gain
+  );
+  const recaptureTax = accumulatedDepreciation * recaptureRate; // recognized at sale either way
+  const capGainPortion = Math.max(estGain - accumulatedDepreciation, 0);
+  const capGainTax = capGainPortion * rate;
+
+  const cashTaxNow = recaptureTax + capGainTax;                // cash sale: all recognized now
+  // installment sale: recapture is recognized now; the capital-gain tax is spread -> PV of that stream
+  const annualCapGainTax = capGainTax / termYears;
+  let capGainTaxPV = 0;
+  for (let t = 1; t <= termYears; t++) capGainTaxPV += annualCapGainTax / Math.pow(1 + discount, t);
+  const deferredTaxPV = recaptureTax + capGainTaxPV;
   // round at the model boundary so callers/UI never render float-noise dollars
   return {
     estGain: Math.round(estGain),
     cashTaxNow: Math.round(cashTaxNow),
     deferredTaxPV: Math.round(deferredTaxPV),
-    sellerBenefit: Math.round(cashTaxNow - deferredTaxPV),
+    sellerBenefit: Math.round(cashTaxNow - deferredTaxPV),     // = capGainTax - capGainTaxPV (recapture cancels)
+    accumulatedDepreciation: Math.round(accumulatedDepreciation),
+    recaptureTax: Math.round(recaptureTax),
   };
 }
 
 // §5 legal-guardrail lookup. The engine REFUSES to emit a creative structure absent here.
 const GUARDRAILS: Partial<Record<Structure, { text: string; attorney: boolean; rules: string[] }>> = {
   subject_to: {
-    text: "Due-on-sale (12 U.S.C. §1701j-3) is real and elevated in a high-rate environment; " +
-      "the 'land-trust + Garn-St.-Germain dodges due-on-sale' claim is FALSE once beneficial " +
-      "interest leaves the original borrower. Handle insurance + owner's title; seller stays liable.",
+    text: "Due-on-sale (12 U.S.C. §1701j-3) is real and elevated in a high-rate environment. " +
+      "Lenders rarely call it due in practice (~0.1% of seasoned subject-to deals, per practitioner " +
+      "data) — but 'rare' is not 'never', and the whole balance comes due if they do, so the risk is " +
+      "real and you must underwrite for it (reserves / refinance path). The 'land-trust + " +
+      "Garn-St.-Germain dodges due-on-sale' claim is FALSE once beneficial interest leaves the " +
+      "original borrower. Handle insurance + owner's title; seller stays liable.",
     attorney: true,
     rules: ["creative-finance#need-subject-to", "research#due-on-sale", "research#garn-st-germain"],
   },
@@ -150,7 +184,10 @@ export function recommendFinancing(input: FinancingInput): FinancingResult {
   const confidence: "medium" | "low" = input.lastSaleDate ? "medium" : "low";
 
   const estGain = armsLength ? input.estMarketValue - input.lastSalePrice! : 0;
-  const capGainsExposure = tenureYears >= 10 && estGain / input.estMarketValue > 0.3;
+  // A big gain is a big tax to defer regardless of how long it was held — a recent buyer who
+  // doubled in a hot market has MORE to defer, not less. So this keys on gain size, not tenure
+  // (the old tenure>=10 gate wrongly handed high-gain recent owners a cash-only recommendation).
+  const capGainsExposure = estGain / input.estMarketValue > 0.25;
   const estLoanRate = input.lastSaleDate
     ? rateForYear(new Date(input.lastSaleDate).getFullYear()) : input.currentMarketRate;
   const rateGap = estLoanRate + 0.015 < input.currentMarketRate;
@@ -198,9 +235,12 @@ export function recommendFinancing(input: FinancingInput): FinancingResult {
       const monthly = Math.round(input.noi / 12);
       if (armsLength) {
         // only quantify the cap-gains deferral when we have a real basis (the last sale)
-        capGains = capGainsModel(input.estMarketValue, input.lastSalePrice!, cgRate);
+        capGains = capGainsModel(input.estMarketValue, input.lastSalePrice!, cgRate, tenureYears);
+        const recaptureNote = capGains.recaptureTax > 0
+          ? ` (~$${capGains.recaptureTax.toLocaleString()} depreciation recapture is still owed at closing — installment sale can't defer that part)`
+          : "";
         sellerPitch = `Selling on terms defers ~$${capGains.sellerBenefit.toLocaleString()} ` +
-          `in capital gains vs a cash sale and pays you ~$${monthly.toLocaleString()}/mo — you net more and keep income.`;
+          `in capital-gains tax vs a cash sale${recaptureNote} and pays you ~$${monthly.toLocaleString()}/mo — you net more and keep income.`;
       } else {
         sellerPitch = `Seller-finance terms pay you ~$${monthly.toLocaleString()}/mo and spread your ` +
           `tax over the term — the exact cap-gains benefit needs your basis (no arm's-length sale on record).`;
@@ -231,6 +271,11 @@ export function recommendFinancing(input: FinancingInput): FinancingResult {
         `assumed basis = last sale $${(input.lastSalePrice ?? 0).toLocaleString()}`,
         `cap-gains rate = ${(cgRate * 100).toFixed(0)}%`,
         `equity est = ${(equityPct * 100).toFixed(0)}% (confidence: ${confidence})`,
+        // deal-level (identical across offers): flag the recapture is MODELED, not the seller's real
+        // schedule. Only present when seller-finance is on the table (cash-only deals have no recapture math).
+        ...(candidates.has("seller_finance")
+          ? ["depreciation recapture MODELED at 80% improvement basis / 27.5-yr straight-line × years held — the seller's real schedule (cost-seg, bonus, never-depreciated) can differ materially; verify before quoting"]
+          : []),
       ],
       legalGuardrail: g.text,
       attorneyReviewRequired: isCreative ? attorney : false,
