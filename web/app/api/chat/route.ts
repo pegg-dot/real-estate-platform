@@ -4,7 +4,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { streamText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { runEngine } from "../../lib/engine";
+import { runEngineStream } from "../../lib/engine";
 
 export const dynamic = "force-dynamic";
 
@@ -73,18 +73,28 @@ export async function POST(req: Request) {
     }
   }
 
-  // ---- Operator / Interrogator / Coach: engine bridge (tools need root /lib + DB) ----
+  // ---- Operator / Interrogator / Coach / … : engine bridge (tools need root /lib + DB) ----
+  // STREAMS the answer as text deltas, then one trailing ␞{trace,proposals} frame the client splits.
   const histFile = path.join(os.tmpdir(), `lot-chat-${randomUUID()}.json`);
   const ctxFile = path.join(os.tmpdir(), `lot-chatctx-${randomUUID()}.json`);
   try {
     fs.writeFileSync(histFile, JSON.stringify(safe));
     fs.writeFileSync(ctxFile, JSON.stringify(Array.isArray(body.context) ? body.context : []));
-    const out = await runEngine("chat.ts", ["--agent", agent, "--history", histFile, "--context", ctxFile, "--json"], 180_000);
-    return Response.json(JSON.parse(out.trim()), { headers: { "cache-control": "no-store" } });
   } catch (e) {
     return Response.json({ error: creditsError((e as Error).message ?? "") }, { status: 500 });
-  } finally {
+  }
+  const cleanup = () => {
     try { fs.unlinkSync(histFile); } catch { /* best-effort */ }
     try { fs.unlinkSync(ctxFile); } catch { /* best-effort */ }
+  };
+  try {
+    const stream = runEngineStream(
+      "chat.ts", ["--agent", agent, "--history", histFile, "--context", ctxFile, "--stream"],
+      creditsError, { timeoutMs: 180_000, cleanup },
+    );
+    return new Response(stream, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "x-lot-stream": "1" } });
+  } catch (e) {
+    cleanup();
+    return Response.json({ error: creditsError((e as Error).message ?? "") }, { status: 500 });
   }
 }

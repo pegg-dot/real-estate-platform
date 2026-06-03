@@ -3,10 +3,16 @@
  * loop (read tools execute; action tools only PROPOSE) -> a grounded answer + the tool trace + the
  * proposals the user can approve. Gated on Anthropic credits; degrades with a clear, catchable error.
  */
-import { generateText, stepCountIs } from "ai";
+import { generateText, streamText, stepCountIs } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { getSql } from "../db/client.js";
 import { agentTools, type Proposal } from "./tools.js";
+
+/** The structured tail of a streamed agent turn (the visible text is delivered via onText). */
+export interface AgentStreamTail {
+  trace: Array<{ tool: string; args: unknown }>;
+  proposals: Proposal[];
+}
 
 const SYSTEM = `You are LOT's operator agent for Nate — an AI-native buy-and-hold rental tool
 (Charlottesville/UVA student rentals, all-cash via a family trust, long horizon).
@@ -87,6 +93,62 @@ export async function runAgent(
         .map((r) => (r.output as { proposal?: Proposal } | undefined)?.proposal)
         .filter((p): p is Proposal => !!p));
     return { text, trace, proposals };
+  } finally {
+    await sql.end();
+  }
+}
+
+// ---- Streaming variants (spec 024 streaming follow-up) ----
+// Same tool loop and guardrails as above, but the model's visible answer is delivered token-by-token
+// via onText while it generates; the structured tail (trace + proposals) is returned once the loop
+// finishes. The operator's proposals still only PROPOSE — streaming changes delivery, not authority.
+
+/** Stream the operator/auto agent: visible text via onText, returns the trace + proposals tail. */
+export async function streamAgent(
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+  onText: (delta: string) => void,
+): Promise<AgentStreamTail> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error("ANTHROPIC_API_KEY not set — the agent needs Anthropic billing to run.");
+  }
+  const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const sql = getSql();
+  try {
+    const result = streamText({
+      model: anthropic("claude-sonnet-4-6"),
+      system: SYSTEM, messages, tools: agentTools(sql), stopWhen: stepCountIs(8),
+    });
+    for await (const delta of result.textStream) onText(delta);
+    const steps = await result.steps;
+    const trace = steps.flatMap((s) => s.toolCalls.map((c) => ({ tool: c.toolName, args: c.input })));
+    const proposals = steps.flatMap((s) =>
+      s.toolResults
+        .map((r) => (r.output as { proposal?: Proposal } | undefined)?.proposal)
+        .filter((p): p is Proposal => !!p));
+    return { trace, proposals };
+  } finally {
+    await sql.end();
+  }
+}
+
+/** Stream the sandboxed Analyst (read-only SQL only; never proposes). */
+export async function streamAnalyst(
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+  onText: (delta: string) => void,
+): Promise<AgentStreamTail> {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set — the analyst needs Anthropic billing to run.");
+  const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const sql = getSql();
+  try {
+    const { query_db } = agentTools(sql);   // read-only SQL tool only — no proposes, no writes
+    const result = streamText({
+      model: anthropic("claude-sonnet-4-6"),
+      system: ANALYST_SYSTEM, messages, tools: { query_db }, stopWhen: stepCountIs(6),
+    });
+    for await (const delta of result.textStream) onText(delta);
+    const steps = await result.steps;
+    const trace = steps.flatMap((s) => s.toolCalls.map((c) => ({ tool: c.toolName, args: c.input })));
+    return { trace, proposals: [] };
   } finally {
     await sql.end();
   }

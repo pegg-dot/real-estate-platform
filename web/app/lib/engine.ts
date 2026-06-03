@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
 
@@ -15,6 +15,48 @@ export async function runEngine(script: string, args: string[], timeoutMs = 120_
     cwd: REPO, env: process.env, timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024,
   });
   return stdout;
+}
+
+/**
+ * Stream an engine script's stdout to the browser (spec 024 streaming follow-up). Same allowlist +
+ * array-args (no shell) safety as runEngine, but stdout is piped byte-for-byte into a Web
+ * ReadableStream so the chat answer renders as it generates. If the child fails BEFORE emitting any
+ * output (e.g. no Anthropic credits) the mapped error is written into the stream as the message
+ * text; a mid-stream failure appends a short interrupted-note so a partial answer still renders.
+ */
+export function runEngineStream(
+  script: string, args: string[], mapErr: (raw: string) => string,
+  opts: { timeoutMs?: number; cleanup?: () => void } = {},
+): ReadableStream<Uint8Array> {
+  if (!ALLOWED.has(script)) throw new Error(`script not allowed: ${script}`);
+  const timeoutMs = opts.timeoutMs ?? 180_000;
+  const child = spawn(TSX, [path.join("scripts", script), ...args], { cwd: REPO, env: process.env });
+  const enc = new TextEncoder();
+  let wroteStdout = false;
+  let stderr = "";
+  const killTimer = setTimeout(() => child.kill("SIGKILL"), timeoutMs);
+  const done = () => { clearTimeout(killTimer); try { opts.cleanup?.(); } catch { /* best-effort */ } };
+
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      child.stdout.on("data", (b: Buffer) => { wroteStdout = true; controller.enqueue(new Uint8Array(b)); });
+      child.stderr.on("data", (b: Buffer) => { stderr += b.toString(); });
+      child.on("error", (e) => {
+        done();
+        controller.enqueue(enc.encode(mapErr(e.message)));
+        controller.close();
+      });
+      child.on("close", (code) => {
+        done();
+        if (code !== 0) {
+          const msg = mapErr(stderr || `engine exited with code ${code}`);
+          controller.enqueue(enc.encode(wroteStdout ? `\n\n_[stream interrupted: ${msg}]_` : msg));
+        }
+        controller.close();
+      });
+    },
+    cancel() { done(); child.kill("SIGKILL"); },
+  });
 }
 
 // strict uuid (starts with a hex digit, so it can never be read as a flag)

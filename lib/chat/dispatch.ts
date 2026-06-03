@@ -6,7 +6,7 @@
  * calls are integration-verified.
  */
 import type { Sql } from "../db/client.js";
-import { runAgent, runAnalyst } from "../agent/run.js";
+import { runAgent, runAnalyst, streamAgent, streamAnalyst, type AgentStreamTail } from "../agent/run.js";
 import { interrogateForApn } from "../interrogate/forDeal.js";
 import { buildPlaybookForLead } from "../coach/forLead.js";
 import { readSituation } from "../enrich/situation.js";
@@ -122,6 +122,37 @@ export async function dispatchChat(
   if (!leadId) return { text: "Attach a lead (＋ Add to chat from the Leads page) or paste its id, and I'll build the call playbook + objection prep.", ...EMPTY };
   const pb = await buildPlaybookForLead(sql, leadId);
   return { text: formatPlaybook(pb), ...EMPTY };
+}
+
+/**
+ * Streaming dispatch (spec 024 streaming follow-up). The LLM tool agents (auto/operator/analyst)
+ * stream their answer token-by-token via onText as the model generates; the deterministic agents
+ * (interrogator/coach/outreach/scheduler/roleplay) have no token stream to expose, so they compute
+ * their result and emit it through the same channel as one block. Either way the structured tail
+ * (trace + proposals) is returned for the trailing metadata frame. Same guardrails as dispatchChat.
+ */
+export async function dispatchChatStream(
+  sql: Sql, agent: ChatAgentId, messages: ChatMsg[], context: ContextRef[],
+  onText: (delta: string) => void,
+): Promise<AgentStreamTail> {
+  if (agent === "explainer") throw new Error("the explainer runs in-process, not on the engine");
+  if (!isEngineAgent(agent)) throw new Error(`unknown chat agent: ${agent}`);
+
+  if (agent === "operator" || agent === "auto") {
+    let msgs = messages;
+    if (context.length) msgs = appendToLastUser(messages, buildContextBlock(await resolveContext(sql, context)));
+    return streamAgent(msgs, onText);
+  }
+  if (agent === "analyst") {
+    let msgs = messages;
+    if (context.length) msgs = appendToLastUser(messages, buildContextBlock(await resolveContext(sql, context)));
+    return streamAnalyst(msgs, onText);
+  }
+
+  // deterministic agents: one block through the same channel
+  const r = await dispatchChat(sql, agent, messages, context);
+  onText(r.text);
+  return { trace: r.trace, proposals: r.proposals };
 }
 
 /** Build the seller persona for the roleplay from a lead (generic tired-landlord if none). */
