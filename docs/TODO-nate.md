@@ -19,6 +19,11 @@
       (best-next-buy), `npm run coach` (call playbook), `npm run ingest-source` (distill a source),
       `npm run interrogate -- <apn>` (Pace structures / Grant challenges / synthesis — spec 023; also
       the "🔎 Interrogate this deal" button on the deal panel).
+      ✨ NEW — the **unified Chat** (`/chat`, spec 024): one ChatGPT-style chat with four agents
+      (Explainer / Operator / Interrogator / Coach), saved history, and a context-feed — hit
+      "💬 Add to chat" on a deal panel or leads row to attach parcels/leads, then ask the agents about
+      them. The Interrogator + Coach work **without Anthropic credits** (they're deterministic);
+      Explainer + Operator need credits. (Replaces the old /ask + /agent, which now redirect.)
 - [ ] **Two calibration dials to eyeball** (working, just judgment calls): exit-strategy mix
       (by-room 56% / MTR 31% / Section 8 9% — tune `exit_strategy` in the thesis if you disagree);
       and HBU develop returns are annualized *screening proxies*, not IRRs (an underwriter-grade
