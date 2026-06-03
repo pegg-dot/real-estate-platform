@@ -126,7 +126,7 @@ export default function MapPage() {
         </form>
         {filterMsg && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{filterMsg}</div>}
         <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>
-          Want to <em>ask</em> instead of filter? Use <a href="/ask" style={{ color: "var(--accent-bright)" }}>Ask LOT</a>.
+          Want to <em>ask</em> instead of filter? Use <a href="/chat" style={{ color: "var(--accent-bright)" }}>Chat</a>.
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>

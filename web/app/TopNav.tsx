@@ -7,8 +7,7 @@ import { usePathname } from "next/navigation";
 // primary tabs get a Tabler icon; the rest stay as compact text links (all routes preserved).
 const PRIMARY: Array<{ href: string; label: string; icon: string }> = [
   { href: "/map", label: "Map", icon: "map-2" },
-  { href: "/agent", label: "Agent", icon: "robot" },
-  { href: "/ask", label: "Ask", icon: "message-2" },
+  { href: "/chat", label: "Chat", icon: "message-2" },   // unified Explainer/Operator/Interrogator/Coach (spec 024)
   { href: "/brief", label: "Brief", icon: "news" },
   { href: "/portfolio", label: "Portfolio", icon: "building-community" },
   { href: "/leads", label: "Leads", icon: "inbox" },

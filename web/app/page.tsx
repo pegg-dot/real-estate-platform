@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 const SECTIONS = [
-  { href: "/ask", icon: "💬", name: "Ask LOT", desc: "Ask anything in plain English — strategies, what to say to a seller, what to do with a deal." },
+  { href: "/chat", icon: "💬", name: "Chat", desc: "One chat, four agents: Explainer (the plays), Operator (acts on the DB), Deal Interrogator, and Negotiation Coach." },
   { href: "/brief", icon: "🗞️", name: "Brief", desc: "Your weekly to-do list: who to mail, which deals to act on, what just opened up." },
   { href: "/map", icon: "🗺️", name: "Map", desc: "Every parcel on a map, red→green by how well it fits you. Filter by typing what you want." },
   { href: "/leads", icon: "📇", name: "Leads", desc: "Ranked list of motivated, by-the-room-legal owners to contact — and a button to draft the letter." },
@@ -32,7 +32,7 @@ export default function Home() {
 
   function ask(e: React.FormEvent) {
     e.preventDefault();
-    if (q.trim()) { sessionStorage.setItem("lot_ask", q.trim()); window.location.href = "/ask"; }
+    if (q.trim()) { sessionStorage.setItem("lot_ask", q.trim()); window.location.href = "/chat"; }
   }
   return (
     <div className="page" style={{ maxWidth: 920 }}>

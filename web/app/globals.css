@@ -239,3 +239,23 @@ nav.topbar a:focus-visible, .mc-btn:focus-visible, .viewtoggle button:focus-visi
 .suggest .chip:hover { border-color: var(--accent); color: var(--text-primary); }
 .toolcard { border: 1px solid var(--border-soft); border-left: 2px solid var(--accent); border-radius: var(--radius-md); background: var(--bg-panel); overflow: hidden; }
 .tc-head { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); padding: 9px 12px; border-bottom: 1px solid var(--border-soft); background: var(--bg-chrome); }
+
+/* ---- Unified chat (spec 024): ChatGPT/Claude layout — sidebar + console main ---- */
+.chat-wrap { display: flex; height: calc(100vh - 44px); }
+.chat-sidebar { width: 250px; flex: none; border-right: 1px solid var(--border-soft); background: var(--bg-chrome); display: flex; flex-direction: column; padding: 10px; gap: 6px; overflow-y: auto; }
+.chat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg-base); }
+.chat-group { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-tertiary); padding: 10px 6px 2px; }
+.chat-conv { padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 12.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 7px; border: 1px solid transparent; }
+.chat-conv:hover { background: var(--bg-panel); color: var(--text-primary); }
+.chat-conv.active { background: var(--bg-panel-2); color: var(--text-primary); border-color: var(--border-soft); }
+.chat-conv .ti-trash { margin-left: auto; opacity: 0; color: var(--text-tertiary); }
+.chat-conv:hover .ti-trash { opacity: .7; }
+.chat-conv .ti-trash:hover { color: var(--critical); opacity: 1; }
+.chat-conv .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.chat-search { display: flex; align-items: center; gap: 7px; background: var(--bg-panel); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); padding: 5px 9px; }
+.chat-search input { border: none; outline: none; background: transparent; color: var(--text-primary); font-size: 12px; flex: 1; font-family: var(--font-sans); }
+.agentpick { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; max-width: 760px; margin: 0 auto 8px; }
+.agentpick select { background: var(--bg-panel); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 5px 9px; font-size: 12px; font-family: var(--font-sans); }
+.ctxtray { display: flex; flex-wrap: wrap; gap: 6px; max-width: 760px; margin: 0 auto 8px; }
+.ctxchip { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-wash); color: var(--accent-bright); border: 1px solid var(--border-accent); border-radius: var(--radius-sm); padding: 3px 8px; font-size: 11px; }
+.ctxchip .ti { cursor: pointer; }
