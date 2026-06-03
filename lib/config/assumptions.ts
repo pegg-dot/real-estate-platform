@@ -33,6 +33,8 @@ export interface MarketAssumptions {
   vacancyRate: number;
   capGainsRate: number;
   currentMarketRate: number;
+  /** market insurance-premium trend; feeds the macro distress-timing model (spec 012). Default stable. */
+  insuranceTrend?: "stable" | "rising" | "spiking";
   /** REAL HUD FMR schedule (raw JSON shape); used as a rent floor, not the headline. */
   fmr?: {
     cbsaName: string; fmrYear: number; sourceUrl?: string;

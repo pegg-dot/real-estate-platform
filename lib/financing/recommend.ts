@@ -56,7 +56,9 @@ const RATE_BY_YEAR: Record<number, number> = {
   2019: 0.039, 2020: 0.031, 2021: 0.030, 2022: 0.053, 2023: 0.068, 2024: 0.069,
   2025: 0.067, 2026: 0.069,
 };
-const rateForYear = (y: number): number => RATE_BY_YEAR[y] ?? 0.07;
+/** Typical 30-yr fixed mortgage rate for a purchase year (assumption; also used by the macro
+ * distress-timing model to estimate the owner's purchase-era rate). */
+export const rateForYear = (y: number): number => RATE_BY_YEAR[y] ?? 0.07;
 
 function yearsBetween(iso: string, asOf: string): number {
   const a = new Date(iso).getTime(), b = new Date(asOf).getTime();
