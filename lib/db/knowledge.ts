@@ -5,6 +5,26 @@
  */
 import type { Sql } from "./client.js";
 import rulesSeed from "../../config/knowledge/creative-finance-rules.json" with { type: "json" };
+import personasSeed from "../../config/knowledge/grant-pace-personas.json" with { type: "json" };
+
+/** Seed the two distilled expert_profile rows (Pace, Grant) used by spec 023's dual-persona engine.
+ * Idempotent upsert keyed on `expert`. The interrogation engine reads the config directly (works
+ * offline); this keeps the DB table in sync for the learn/LLM path + spec fidelity. */
+export async function seedExpertProfiles(sql: Sql): Promise<number> {
+  const experts = personasSeed.experts as Array<{
+    expert: string; values_summary: string; heuristics: string[]; risk_posture: string;
+    voice: string; confidence: string;
+  }>;
+  for (const e of experts) {
+    await sql`insert into expert_profile (expert, values_summary, heuristics, risk_posture, voice, source, as_of, confidence)
+      values (${e.expert}, ${e.values_summary}, ${sql.json(e.heuristics)}, ${e.risk_posture}, ${e.voice},
+              ${personasSeed.source}, ${personasSeed.as_of}, ${e.confidence}::confidence_level)
+      on conflict (expert) do update set values_summary = excluded.values_summary, heuristics = excluded.heuristics,
+        risk_posture = excluded.risk_posture, voice = excluded.voice, source = excluded.source,
+        as_of = excluded.as_of, confidence = excluded.confidence, updated_at = now()`;
+  }
+  return experts.length;
+}
 
 export async function seedKnowledgeRules(sql: Sql): Promise<number> {
   for (const r of rulesSeed.rules) {

@@ -23,6 +23,7 @@
     "growth": "tsx scripts/growth.ts",
     "portfolio": "tsx scripts/portfolio.ts",
     "agent": "tsx scripts/agent.ts",
+    "interrogate": "tsx scripts/interrogate.ts",
     "thesis": "tsx scripts/thesis.ts"
   },
   "devDependencies": {

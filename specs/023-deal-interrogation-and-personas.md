@@ -1,4 +1,4 @@
-# Spec 020 — Deal Interrogation + Dual-Expert Persona Reasoning ("think like them")
+# Spec 023 — Deal Interrogation + Dual-Expert Persona Reasoning ("think like them")
 
 **Status:** ready to build · **Depends on:** 016 (expert-mind store/personas), 004 (financing),
 007 (strategy/situation), 015 (coach) · **Unlocks:** the platform doesn't just score a deal — it

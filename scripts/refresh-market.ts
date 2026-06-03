@@ -21,7 +21,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import type { Sql } from "../lib/db/client.js";
 import { getSql } from "../lib/db/client.js";
-import { seedKnowledgeRules } from "../lib/db/knowledge.js";
+import { seedKnowledgeRules, seedExpertProfiles } from "../lib/db/knowledge.js";
 import { loadActiveThesis, saveThesis } from "../lib/db/thesis.js";
 import { genericThesis } from "../lib/thesis/compile.js";
 import { scoreMarket, type Thesis } from "../lib/pipeline/scoreMarket.js";
@@ -125,6 +125,7 @@ async function main() {
   else console.log(`      ✓ landlord-law: ${law.tier} — ${law.reason}`);
   const sql = getSql(dsn);
   await seedKnowledgeRules(sql);   // so every financing citation resolves to real text
+  await seedExpertProfiles(sql);   // Pace/Grant profiles for the deal-interrogation engine (spec 023)
   const thesis = await resolveThesis(sql);
   const res = await scoreMarket(sql, { market, thesis });
   console.log(`      scored ${res.scored} · non-target(institution) ${res.nonTarget} · ` +

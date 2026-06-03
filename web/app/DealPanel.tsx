@@ -15,6 +15,17 @@ interface OwnerData {
   links: Array<{ label: string; url: string }>;
 }
 
+interface InterrogationData {
+  error?: string;
+  address?: string;
+  review?: {
+    pace: { proposal: string; structure: string; citations: string[] };
+    grant: { challenges: Array<{ concern: string; severity: "high" | "medium" | "low" }>; citations: string[] };
+    synthesis: { verdict: string; recommendation: string; openRisks: string[] };
+    interrogation: Array<{ question: string; answer: string; status: string; confidence: string; citations: string[] }>;
+  };
+}
+
 export default function DealPanel({ apn, onClose }: { apn: string; onClose: () => void }) {
   const [d, setD] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +56,15 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
     const r = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "full-dossier", apn }) }).then((x) => x.json());
     setLoadingMd(false);
     setDossierMd(r.ok ? r.output : `⚠️ ${r.error}`);
+  }
+
+  const [interro, setInterro] = useState<InterrogationData | null>(null);
+  const [loadingInterro, setLoadingInterro] = useState(false);
+  async function interrogate() {
+    setLoadingInterro(true); setInterro(null);
+    const r = await fetch(`/api/interrogate?apn=${encodeURIComponent(apn)}`).then((x) => x.json()).catch((e) => ({ error: String(e) }));
+    setLoadingInterro(false);
+    setInterro(r.error ? { error: r.error } : r);
   }
 
   useEffect(() => {
@@ -153,6 +173,52 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
               )}
             </Section>
           )}
+
+          <Section title="Interrogate this deal (Pace structures · Grant challenges)">
+            {!interro && (
+              <button onClick={interrogate} disabled={loadingInterro}
+                style={{ padding: "6px 12px", border: "1px solid #0f172a", background: "#0f172a", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                {loadingInterro ? "Interrogating…" : "🔎 Interrogate this deal"}
+              </button>
+            )}
+            {interro?.error && <div style={{ color: "#b91c1c", fontSize: 12 }}>⚠️ {interro.error}</div>}
+            {interro?.review && (
+              <div style={{ fontSize: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div><strong>🔨 Pace (structure):</strong> {interro.review.pace.proposal}</div>
+                <div>
+                  <strong>🔎 Grant (challenges):</strong>
+                  <ul style={{ margin: "4px 0", paddingLeft: 18 }}>
+                    {interro.review.grant.challenges.map((c, i) => (
+                      <li key={i} style={{ color: c.severity === "high" ? "#b91c1c" : c.severity === "medium" ? "#b45309" : "#475569" }}>
+                        [{c.severity}] {c.concern}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div style={{ padding: 8, background: interro.review.synthesis.verdict === "needs_more_diligence" ? "#fef2f2" : interro.review.synthesis.verdict === "proceed_with_caution" ? "#fffbeb" : "#f0fdf4", borderRadius: 6 }}>
+                  <strong>⚖️ {interro.review.synthesis.verdict.replace(/_/g, " ").toUpperCase()}</strong>
+                  <div style={{ marginTop: 2 }}>{interro.review.synthesis.recommendation}</div>
+                  {interro.review.synthesis.openRisks.length > 0 && (
+                    <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+                      {interro.review.synthesis.openRisks.map((r, i) => <li key={i} className="muted">{r}</li>)}
+                    </ul>
+                  )}
+                </div>
+                <details>
+                  <summary style={{ cursor: "pointer", color: "#475569" }}>Q&amp;A diligence ({interro.review.interrogation.length})</summary>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+                    {interro.review.interrogation.map((q, i) => (
+                      <div key={i}>
+                        <div style={{ fontWeight: 600 }}>{q.status === "needs_data" ? "○" : "●"} {q.question}</div>
+                        <div className="muted">{q.answer}{q.citations.length ? ` [${q.citations.join(", ")}]` : ""}</div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+                <div className="muted" style={{ fontSize: 11 }}>Distilled personas from a cited source — informational, not legal/financial advice or the real person.</div>
+              </div>
+            )}
+          </Section>
 
           {exitMenu.ranked && exitMenu.ranked.length > 0 && (
             <Section title="Exit-strategy menu (ranked, spec 019)">

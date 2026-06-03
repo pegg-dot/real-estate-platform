@@ -14,7 +14,9 @@
       heat layer** (data ready via `/api/growth`), the **/portfolio dashboard**, and a
       development-upside map layer (`/api/parcels?developOnly=true`).
       New CLIs to try: `npm run growth` (land-banking buy-ahead shortlist), `npm run portfolio`
-      (best-next-buy), `npm run coach` (call playbook), `npm run ingest-source` (distill a source).
+      (best-next-buy), `npm run coach` (call playbook), `npm run ingest-source` (distill a source),
+      `npm run interrogate -- <apn>` (Pace structures / Grant challenges / synthesis — spec 023; also
+      the "🔎 Interrogate this deal" button on the deal panel).
 - [ ] **Two calibration dials to eyeball** (working, just judgment calls): exit-strategy mix
       (by-room 56% / MTR 31% / Section 8 9% — tune `exit_strategy` in the thesis if you disagree);
       and HBU develop returns are annualized *screening proxies*, not IRRs (an underwriter-grade
