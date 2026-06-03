@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="card.css">
+<style>
+  .deal { display:flex; align-items:center; justify-content:space-between; border:1px solid var(--border-soft); border-radius:10px; padding:10px 13px; background:var(--bg-panel); }
+  .deal.sel { border-color:var(--accent); }
+  .rank { font-size:11px; color:var(--text-tertiary); font-family:var(--font-mono); }
+  .addr { font-size:13px; font-weight:600; }
+  .meta { font-size:11px; color:var(--text-secondary); font-family:var(--font-mono); margin-top:1px; }
+  .score { font-weight:700; font-size:13px; padding:3px 9px; border-radius:7px; }
+</style>
+</head>
+<body>
+<div class="card-grid" style="gap:8px;">
+  <div class="deal sel">
+    <div style="display:flex;align-items:center;gap:11px;"><span class="rank">#1</span><div><div class="addr">1305 Grady Ave</div><div class="meta">$489,600 · 5bd* · RN-A · by-room ✓</div></div></div>
+    <span class="score" style="background:var(--score-strong-wash);color:var(--score-strong-text);">82</span>
+  </div>
+  <div class="deal">
+    <div style="display:flex;align-items:center;gap:11px;"><span class="rank">#2</span><div><div class="addr">1215 Wertland St</div><div class="meta">$235,900 · 2bd · RX-5 · condo risk</div></div></div>
+    <span class="score" style="background:var(--score-moderate-wash);color:var(--score-moderate-text);">64</span>
+  </div>
+  <div class="deal">
+    <div style="display:flex;align-items:center;gap:11px;"><span class="rank">#3</span><div><div class="addr">1207-11 Wertland St</div><div class="meta">$9.88M · multi-family · out of lane</div></div></div>
+    <span class="score" style="background:var(--score-weak-wash);color:var(--score-weak-text);">38</span>
+  </div>
+  <div class="cap">Ranked deal row — mono rank &amp; spec line, address in the serif-warm sans, score chip at the right. Selected row picks up a clay border.</div>
+</div>
+</body>
+</html>

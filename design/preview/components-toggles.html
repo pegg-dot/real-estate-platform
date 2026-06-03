@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="card.css">
+<style>
+  .card { background: var(--bg-panel); border: 1px solid var(--border-soft); border-radius: 10px; padding: 13px 14px; width: 320px; }
+  .card h3 { margin: 0 0 11px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 7px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
+  .card h3 i { color: var(--accent-bright); font-size: 14px; }
+  .lyr { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-secondary); padding: 5px 0; }
+  .lk { display: flex; align-items: center; gap: 8px; }
+  .dotc { width: 9px; height: 9px; border-radius: 50%; }
+  .sw { width: 32px; height: 18px; border-radius: 11px; background: var(--bg-panel-2); border: 1px solid var(--border-strong); position: relative; transition: .15s; flex: none; }
+  .sw.on { background: var(--accent); border-color: var(--accent); }
+  .sw i { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #cfc6b8; transition: .15s; }
+  .sw.on i { left: 15px; background: #fff; }
+</style>
+</head>
+<body>
+<div class="card-grid">
+  <div class="card">
+    <h3><i class="ti ti-stack-2"></i> Layers</h3>
+    <div class="lyr"><span class="lk"><span class="dotc" style="background:var(--score-strong);"></span> Scored parcels</span> <span class="sw on"><i></i></span></div>
+    <div class="lyr"><span class="lk"><span class="dotc" style="background:var(--positive);"></span> By-room legal zone</span> <span class="sw on"><i></i></span></div>
+    <div class="lyr"><span class="lk"><span class="dotc" style="background:var(--warn);"></span> Demand heat (campus)</span> <span class="sw"><i></i></span></div>
+    <div class="lyr" style="opacity:.5;"><span class="lk"><span class="dotc" style="background:var(--landmark);"></span> Off-market leads</span> <span style="font-size:11px;font-family:var(--font-mono);">pending</span></div>
+  </div>
+  <div class="cap">Toggle switch — clay when on, a soft knob slide (0.15s). Layer rows pair a color key with the switch; disabled layers dim.</div>
+</div>
+</body>
+</html>

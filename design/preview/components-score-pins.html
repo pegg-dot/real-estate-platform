@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="card.css">
+<style>
+  .dot { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: var(--text-oncolor); box-shadow: 0 1px 3px rgba(0,0,0,.5), inset 0 0 0 1.5px rgba(255,255,255,.32); }
+  .wash { font-weight: 700; font-size: 13px; padding: 3px 9px; border-radius: 999px; }
+  .marker { width: 26px; height: 33px; position: relative; }
+  .marker .head { width: 26px; height: 26px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; color: var(--text-oncolor); box-shadow: 0 1px 3px rgba(0,0,0,.5), inset 0 0 0 1.5px rgba(255,255,255,.32); }
+  .marker .stem { position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:2px; height:9px; background: rgba(240,237,230,.4); border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="card-grid">
+  <div class="row" style="gap:30px;align-items:flex-start;">
+    <div>
+      <div class="row" style="gap:9px;">
+        <span class="dot" style="background:var(--score-strong);">78</span>
+        <span class="dot" style="background:var(--score-moderate);">64</span>
+        <span class="dot" style="background:var(--score-weak);">38</span>
+      </div>
+      <div class="lbl">map dot · the parcel on the map</div>
+    </div>
+    <div>
+      <div class="row" style="gap:9px;">
+        <span class="wash" style="background:var(--score-strong-wash);color:var(--score-strong-text);">71</span>
+        <span class="wash" style="background:var(--score-moderate-wash);color:var(--score-moderate-text);">64</span>
+        <span class="wash" style="background:var(--score-weak-wash);color:var(--score-weak-text);">38</span>
+      </div>
+      <div class="lbl">wash chip · lists &amp; panels</div>
+    </div>
+    <div>
+      <div class="row" style="gap:12px;">
+        <div class="marker"><div class="head" style="background:var(--score-strong);">82</div><div class="stem"></div></div>
+        <div class="marker"><div class="head" style="background:var(--score-weak);">38</div><div class="stem"></div></div>
+      </div>
+      <div class="lbl">pin · when it needs a point</div>
+    </div>
+  </div>
+  <div class="cap">Three calm forms of the score — soft circular map dot, wash chip, and a rounded pin with a slim stem. Gentle shadow, no neon.</div>
+</div>
+</body>
+</html>

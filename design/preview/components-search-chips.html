@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="card.css">
+<style>
+  .chip{font-size:11px;padding:3px 8px;border-radius:5px;background:var(--bg-panel-2);color:var(--text-secondary);display:inline-flex;align-items:center;gap:5px;}
+  .chip.info{background:var(--accent-wash);color:var(--accent-bright);}
+  .chip.mono{font-family:var(--font-mono);font-size:10.5px;}
+  .search{display:flex;align-items:center;gap:8px;border:1px solid var(--accent);box-shadow:0 0 0 3px var(--accent-glow);border-radius:5px;padding:0 11px;height:36px;background:var(--bg-panel);}
+</style>
+</head>
+<body>
+<div class="card-grid">
+  <div class="search">
+    <i class="ti ti-search" style="color:var(--accent-bright);"></i>
+    <span style="font-size:12px;color:var(--text-primary);">4+ beds · walk to UVA · by-room legal · owner held 10+ yrs</span>
+    <span style="margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);border:1px solid var(--border-soft);border-radius:3px;padding:1px 5px;">⌘K</span>
+  </div>
+  <div class="row" style="gap:6px;">
+    <span class="chip"><i class="ti ti-bed"></i> 4+ beds</span>
+    <span class="chip"><i class="ti ti-walk"></i> ≤0.5mi grounds</span>
+    <span class="chip"><i class="ti ti-scale"></i> by-room legal</span>
+    <span class="chip mono">tenure≥10y</span>
+    <span class="chip info">thesis · by-room · all-cash · ≥8% CoC</span>
+  </div>
+  <div class="cap">The natural-language command bar is the AI-native front door (focus glows cyan). Chips echo parsed filters; the info chip states the active thesis.</div>
+</div>
+</body>
+</html>

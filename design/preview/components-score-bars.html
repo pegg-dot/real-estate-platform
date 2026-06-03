@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="card.css">
+<style>
+  .brow { display:flex; align-items:center; gap:8px; }
+  .blbl { font-size:12px; color:var(--text-secondary); width:120px; }
+  .track { flex:1; height:6px; border-radius:999px; background:var(--bg-panel-2); overflow:hidden; }
+  .fill { height:100%; border-radius:999px; }
+</style>
+</head>
+<body>
+<div class="card-grid">
+  <div class="eyebrow">WHY THIS SCORE <span style="font-weight:400;color:var(--text-tertiary);text-transform:none;letter-spacing:0;">vs your thesis</span></div>
+  <div style="display:flex;flex-direction:column;gap:9px;">
+    <div class="brow"><span class="blbl">campus proximity</span><div class="track"><div class="fill" style="width:92%;background:var(--score-strong);"></div></div></div>
+    <div class="brow"><span class="blbl">by-room legal</span><div class="track"><div class="fill" style="width:100%;background:var(--score-strong);"></div></div></div>
+    <div class="brow"><span class="blbl">cash-on-cash</span><div class="track"><div class="fill" style="width:48%;background:var(--score-moderate);"></div></div></div>
+    <div class="brow"><span class="blbl">risk penalty</span><div class="track"><div class="fill" style="width:22%;background:var(--critical);"></div></div></div>
+  </div>
+  <div class="cap">Score-breakdown bars — a slim rounded track with the fill in that component's score color (moss strong · ochre moderate · clay-red penalty).</div>
+</div>
+</body>
+</html>

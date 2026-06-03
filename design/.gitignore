@@ -1,0 +1,5 @@
+# Design-phase scratch images (screenshots, pasted references).
+# Kept locally for reference but excluded from git to keep clone size down.
+# If a handoff doc needs to reference one of these, move it to handoff/references/
+# and remove it from this ignore list.
+uploads/

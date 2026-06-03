@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="card.css">
+<style>
+  .tile{background:var(--bg-panel);border:1px solid var(--border-soft);border-radius:7px;padding:11px 13px;}
+  .tile .k{font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;}
+  .tile .v{font:var(--text-stat);margin-top:4px;}
+  .tile .d{font-size:11px;margin-top:3px;font-family:var(--font-mono);}
+</style>
+</head>
+<body>
+<div class="card-grid">
+  <div class="row" style="gap:10px;flex-wrap:nowrap;">
+    <div class="tile" style="flex:1;"><div class="k">Thesis fit</div><div class="v" style="color:var(--critical);">Watch</div><div class="d" style="color:var(--text-tertiary);">23 matches</div></div>
+    <div class="tile" style="flex:1;"><div class="k">Median CoC</div><div class="v">4.6%</div><div class="d" style="color:var(--positive);">+0.4 vs last wk</div></div>
+    <div class="tile" style="flex:1;"><div class="k">By-room legal</div><div class="v">91%</div><div class="d" style="color:var(--text-tertiary);">21 / 23 parcels</div></div>
+    <div class="tile" style="flex:1;"><div class="k">Mailed this wk</div><div class="v">14</div><div class="d" style="color:var(--warn);">3 awaiting reply</div></div>
+  </div>
+  <div class="cap">Stat tiles — a panel, uppercase label, 22px value, and a mono delta line (positive green, caution amber). The terminal's summary band.</div>
+</div>
+</body>
+</html>

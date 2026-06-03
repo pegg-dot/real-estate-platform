@@ -1,0 +1,18 @@
+/* Shared frame for Design System preview cards (DARK terminal).
+   Each card links ../colors_and_type.css for tokens, then this for layout. */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  padding: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+.card-grid { display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+.lbl { font-size: 11px; color: var(--text-tertiary); margin-top: 6px; font-family: var(--font-mono); line-height: 1.5; }
+.swatch { border-radius: var(--radius-sm); border: 1px solid var(--border-soft); }
+.cap { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.mono { font-family: var(--font-mono); }
+b { font-weight: 600; }

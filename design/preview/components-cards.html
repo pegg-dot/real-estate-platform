@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="card.css">
+</head>
+<body>
+<div class="card-grid">
+  <div class="row" style="gap:12px;flex-wrap:nowrap;align-items:stretch;">
+    <div style="flex:1;background:var(--bg-panel);border:1px solid var(--border-soft);border-radius:10px;padding:13px 14px;">
+      <div style="font-size:13px;font-weight:600;">Standard panel</div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.5;">Warm charcoal, hairline border, 10px radius, soft shadow only on hover. The default container.</div>
+    </div>
+    <div style="flex:1;background:var(--bg-panel);border:1px solid var(--accent);border-radius:10px;padding:13px 14px;box-shadow:var(--glow-accent);">
+      <div style="font-size:11px;color:var(--text-tertiary);font-family:var(--font-mono);">#1 selected</div>
+      <div style="font-size:13px;font-weight:600;">Selected panel</div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.5;">A clay border + soft ring marks the active deal.</div>
+    </div>
+  </div>
+  <div style="background:var(--bg-panel-2);border-radius:7px;padding:11px 13px;font-size:12px;color:var(--text-secondary);">Inset well — <span class="mono">#302c27</span>, 7px radius. Used for stat tiles and nested panels.</div>
+  <div class="cap">Containers: hairline panel (default) · clay-ringed selected panel · warm inset well. Layered by surface tone, defined by hairlines.</div>
+</div>
+</body>
+</html>
