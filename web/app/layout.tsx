@@ -12,8 +12,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <nav>
           <a href="/" className="brand">LOT</a>
+          <a href="/agent">🤖 Agent</a>
           <a href="/ask">💬 Ask</a>
           <a href="/brief">Brief</a>
+          <a href="/portfolio">Portfolio</a>
           <a href="/map">Map</a>
           <a href="/leads">Leads</a>
           <a href="/deals">Pipeline</a>

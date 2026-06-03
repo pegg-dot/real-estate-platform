@@ -33,6 +33,19 @@ describe("prepareReadQuery — the agent's read-only SQL boundary", () => {
     }
   });
 
+  it("rejects SELECT ... INTO (a SELECT that writes a new table) and other write forms", () => {
+    for (const w of [
+      "select * into evil_copy from lead",
+      "select apn into outfile from deal_genome",
+      "lock table lead",
+      "refresh materialized view mv",
+      "execute some_prepared_stmt",
+      "prepare p as select 1",
+    ]) {
+      expect(prepareReadQuery(w).ok, w).toBe(false);
+    }
+  });
+
   it("rejects a stacked statement hiding a write after a SELECT", () => {
     expect(prepareReadQuery("select 1; delete from lead").ok).toBe(false);
   });

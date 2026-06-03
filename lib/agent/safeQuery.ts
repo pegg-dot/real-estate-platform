@@ -7,8 +7,11 @@
  */
 export type PrepareResult = { ok: true; sql: string } | { ok: false; reason: string };
 
-// write/DDL/permission keywords — rejected as a whole word anywhere in the statement
-const FORBIDDEN = /\b(insert|update|delete|drop|alter|truncate|create|grant|revoke|merge|comment|copy|call|do|vacuum|analyze|reindex|cluster|listen|notify|set|reset)\b/i;
+// write/DDL/permission keywords — rejected as a whole word anywhere in the statement.
+// `into` blocks SELECT ... INTO (a SELECT that CREATES a table — a write); lock/prepare/execute/
+// refresh/security close the other write/side-effect forms. Defense-in-depth: queryDb should also
+// run on a read-only Postgres role so a syntactic gap can't reach a write at the DB boundary.
+const FORBIDDEN = /\b(insert|update|delete|drop|alter|truncate|create|grant|revoke|merge|comment|copy|call|do|vacuum|analyze|reindex|cluster|listen|notify|set|reset|into|lock|prepare|execute|refresh|security)\b/i;
 
 export function prepareReadQuery(raw: string, maxRows = 200): PrepareResult {
   let s = (raw ?? "").trim().replace(/;+\s*$/, ""); // strip a single trailing semicolon
