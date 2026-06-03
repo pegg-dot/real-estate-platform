@@ -17,14 +17,14 @@ export async function POST(req: Request) {
     // ── spec 025 executor artifacts: propose/draft writes the web app owns (never send/sync here) ──
     if (body.action === "save-email-draft") {
       const subject = str(body.subject, 300), emailBody = str(body.body, 20000);
-      if (!subject || !emailBody) return Response.json({ ok: false, error: "draft needs a subject and body" });
+      if (!subject || !emailBody) return Response.json({ ok: false, error: "draft needs a subject and body" }, { status: 400 });
       await sql()`insert into email_draft (lead_id, to_addr, subject, body)
         values (${isUuid(body.leadId) ? (body.leadId as string) : null}, ${str(body.to, 320) || null}, ${subject}, ${emailBody})`;
       return Response.json({ ok: true, output: "✓ saved to Drafts (see /outreach). Nothing sends until a Gmail connector is wired." });
     }
     if (body.action === "schedule-event") {
       const title = str(body.title, 300);
-      if (!title) return Response.json({ ok: false, error: "event needs a title" });
+      if (!title) return Response.json({ ok: false, error: "event needs a title" }, { status: 400 });
       const when = typeof body.when === "string" && body.when ? new Date(body.when) : null;
       await sql()`insert into scheduled_event (title, kind, starts_at, notes, lead_id, apn)
         values (${title}, ${str(body.kind, 40) || "other"}, ${when && !isNaN(when.getTime()) ? when.toISOString() : null},

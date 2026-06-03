@@ -22,8 +22,9 @@ export function parseWhen(text: string, now: Date): Date | null {
   for (let i = 0; i < 7; i++) {
     if (new RegExp(`\\b${WEEKDAYS[i]}\\b`).test(t)) {
       let delta = (i - now.getUTCDay() + 7) % 7;
-      if (delta === 0 || /\bnext\b/.test(t)) delta = delta === 0 ? 7 : delta; // "friday" today → next Friday
-      return addDays(now, delta || 7);
+      if (delta === 0) delta = 7;             // the same weekday as today → next week's occurrence
+      if (/\bnext\b/.test(t)) delta += 7;     // "next Friday" = a week past the coming Friday
+      return addDays(now, delta);
     }
   }
   return null;

@@ -15,6 +15,14 @@ describe("scheduler proposals (spec 025-C)", () => {
     const d = parseWhen("call them friday", NOW)!;
     expect(d.getUTCDay()).toBe(5);          // Friday
     expect(d.getTime()).toBeGreaterThan(NOW.getTime());
+    expect(d.toISOString().slice(0, 10)).toBe("2026-06-05");  // the coming Friday
+  });
+
+  it("'next <weekday>' is a week later than the bare weekday", () => {
+    const fri = parseWhen("friday", NOW)!;
+    const nextFri = parseWhen("next friday", NOW)!;
+    expect(nextFri.getUTCDay()).toBe(5);
+    expect(Math.round((nextFri.getTime() - fri.getTime()) / 86400000)).toBe(7);
   });
 
   it("detects the event kind from the text", () => {
