@@ -2,7 +2,7 @@
    The engine half (routing/execution) lives in lib/chat/dispatch.ts; these ids are the shared
    contract. Each agent reuses a capability LOT already built. */
 export interface AgentMeta {
-  id: "auto" | "explainer" | "operator" | "interrogator" | "coach";
+  id: "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach";
   name: string;
   icon: string;        // Tabler icon suffix
   blurb: string;
@@ -63,5 +63,16 @@ export const AGENTS: AgentMeta[] = [
     ],
   },
 ];
+
+AGENTS.push({
+  id: "outreach", name: "Outreach Writer", icon: "mail", contextKinds: ["lead"],
+  blurb: "Drafts a CAN-SPAM-compliant, situation-personalized owner email you review before anything sends.",
+  placeholder: "Attach a lead (＋ Add from Leads) or paste its id to draft an owner email…",
+  suggestions: [
+    "Draft an email to my top lead.",
+    "Write a gentle note to an inherited-property owner.",
+    "Draft a tired-landlord outreach email.",
+  ],
+});
 
 export const agentById = (id: string): AgentMeta => AGENTS.find((a) => a.id === id) ?? AGENTS[0];

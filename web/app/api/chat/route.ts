@@ -8,7 +8,7 @@ import { runEngine } from "../../lib/engine";
 
 export const dynamic = "force-dynamic";
 
-const AGENTS = new Set(["auto", "explainer", "operator", "interrogator", "coach"]);
+const AGENTS = new Set(["auto", "explainer", "operator", "interrogator", "coach", "outreach", "scheduler", "analyst", "roleplay"]);
 
 // The Explainer's grounded system prompt (shared lineage with /api/ask): teaches the plays, the
 // buy-box, the guardrails, and guides Nate around the app. Answered IN-PROCESS (fast Haiku).

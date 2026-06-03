@@ -3,7 +3,7 @@ import { sql } from "../../../../lib/db";
 export const dynamic = "force-dynamic";
 
 const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-const AGENTS = new Set(["auto", "explainer", "operator", "interrogator", "coach"]);
+const AGENTS = new Set(["auto", "explainer", "operator", "interrogator", "coach", "outreach", "scheduler", "analyst", "roleplay"]);
 
 // Append one turn to a conversation (spec 024 Phase 2). Titles the conversation from the first user
 // message and bumps updated_at (via the conversation trigger) so the sidebar re-sorts.

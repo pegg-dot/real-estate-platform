@@ -1,4 +1,5 @@
 import { sql } from "../lib/db";
+import DraftRow from "./DraftRow";
 
 export const dynamic = "force-dynamic";
 
@@ -12,12 +13,28 @@ export default async function OutreachPage() {
     left join property p on p.id = l.property_id
     order by oe.created_at desc limit 100`;
 
+  // spec 025-B: email drafts the Outreach Writer agent produced, awaiting review/send
+  const drafts = await sql()<Array<{ id: string; to_addr: string | null; subject: string; body: string; status: string; created_at: string; address: string | null }>>`
+    select d.id, d.to_addr, d.subject, d.body, d.status, d.created_at, p.address
+    from email_draft d
+    left join lead l on l.id = d.lead_id
+    left join property p on p.id = l.property_id
+    order by d.created_at desc limit 50`;
+
   return (
     <div className="page">
-      <h1 style={{ fontSize: 18, marginBottom: 4 }}>Outreach — mailers you&apos;ve approved</h1>
-      <p className="muted" style={{ marginBottom: 14 }}>Every approved mailer + its compliance receipt. {rows.length === 0 && "None yet — approve one from the Brief or Leads (it ran the compliance gate)."}</p>
-      {rows.length > 0 && (
-        <table>
+      <div className="screen-head"><h1>Outreach</h1><span className="sub">drafts to review + approved mailers</span></div>
+
+      <h2>Email drafts <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>(from the Outreach Writer — review, edit, then send)</span></h2>
+      {drafts.length === 0
+        ? <p className="muted" style={{ fontSize: 13 }}>No drafts yet — open <a href="/chat">Chat</a>, pick the <strong>Outreach Writer</strong>, attach a lead, and approve a draft. Sending lights up when a Gmail connector is wired.</p>
+        : <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>{drafts.map((d) => <DraftRow key={d.id} draft={d} />)}</div>}
+
+      <h2>Approved mailers <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>(+ compliance receipt)</span></h2>
+      {rows.length === 0
+        ? <p className="muted" style={{ fontSize: 13 }}>None yet — approve one from the Brief or Leads (it runs the compliance gate).</p>
+        : (
+        <div className="tablewrap"><table>
           <thead><tr><th>Date</th><th>Property</th><th>Owner</th><th>Subject</th><th>Compliance</th><th>Status</th></tr></thead>
           <tbody>
             {rows.map((r, i) => (
@@ -31,7 +48,7 @@ export default async function OutreachPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   );

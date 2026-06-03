@@ -13,9 +13,10 @@ import type { Proposal } from "../agent/tools.js";
 import type { DualPersonaReview } from "../interrogate/personas.js";
 import type { Playbook } from "../coach/playbook.js";
 import { resolveContext, buildContextBlock, appendToLastUser } from "./buildContext.js";
+import { draftEmailForLead } from "../outreach/draftEmail.js";
 
-export type ChatAgentId = "auto" | "explainer" | "operator" | "interrogator" | "coach";
-const ENGINE = new Set<ChatAgentId>(["auto", "operator", "interrogator", "coach"]);
+export type ChatAgentId = "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach";
+const ENGINE = new Set<ChatAgentId>(["auto", "operator", "interrogator", "coach", "outreach"]);
 export const isEngineAgent = (id: string): boolean => ENGINE.has(id as ChatAgentId);
 
 export interface ChatMsg { role: "user" | "assistant"; content: string }
@@ -56,6 +57,22 @@ export async function dispatchChat(
     if (!apn) return { text: "Attach a deal (＋ Add to chat from any parcel) or give me its APN, and I'll run Pace-structures / Grant-challenges on it.", ...EMPTY };
     const { address, review } = await interrogateForApn(sql, "Charlottesville", apn);
     return { text: formatInterrogation(address, apn, review), ...EMPTY };
+  }
+
+  if (agent === "outreach") {
+    const leadId = context.find((c) => c.type === "lead")?.id ?? extractLeadId(lastUser(messages));
+    if (!leadId) return { text: "Attach a lead (＋ Add to chat from the Leads page) or paste its id, and I'll draft a CAN-SPAM-compliant, situation-personalized owner email for you to review.", ...EMPTY };
+    const d = await draftEmailForLead(sql, leadId);
+    const manualReview = d.entityType === "estate" || d.entityType === "trust"
+      ? "\n\n⚠️ Estate/trust owner — this routes to the manual-review lane; double-check before sending (probate sensitivity)." : "";
+    const text = `Drafted an email${d.to ? ` to ${d.to}` : " (no owner email on file yet — add a recipient before sending)"}:\n\n**${d.subject}**\n\n${d.body}${manualReview}\n\nReview + approve below — nothing sends until you do (and a Gmail connector is wired).`;
+    const proposal: Proposal = {
+      kind: "proposal", action: "save-email-draft",
+      params: { leadId, to: d.to, subject: d.subject, body: d.body },
+      summary: `Save email draft${d.to ? ` to ${d.to}` : ""}`, requiresApproval: true,
+      compliance: ["CAN-SPAM: physical address + opt-out are included", "never auto-sends — saved as a draft for your review"],
+    };
+    return { text, trace: [], proposals: [proposal] };
   }
 
   // coach
