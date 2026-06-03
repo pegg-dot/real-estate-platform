@@ -1,9 +1,11 @@
 # LOT Frontend Map — IA, backend↔frontend coverage, and the Claude-design brief
 
 > 🎨 **Design system: fully applied (2026-06-02).** Phase 1 = Map + deal drawer; Phase 2 = every
-> other screen (Home, Brief, Pipeline, Leads, Settings, Ask, Agent, Thesis, Playbook, Changes,
-> Radar, Learn, Rents, Outreach, Dev) restyled to the dark "operational terminal" — shared topbar,
+> other screen (Home, Brief, Pipeline, Leads, Settings, Chat, Thesis, Playbook, Changes, Radar,
+> Learn, Rents, Outreach, Schedule, Dev) restyled to the dark "operational terminal" — shared topbar,
 > tokens in `web/app/tokens.css`, atoms in `web/app/ui.tsx`, ported classes in `globals.css`.
+> (Specs 024/025 merged the old Ask + Agent pages into the unified **Chat** at `/chat`; both old
+> paths now redirect there. `/schedule` was added by spec 025.)
 > Visual-only; all data wiring + guardrails + disclaimers preserved.
 
 **This is the single source of truth for the UI:** what pages exist and *why*, what data + actions
