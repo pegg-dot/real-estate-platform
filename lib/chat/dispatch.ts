@@ -14,9 +14,10 @@ import type { DualPersonaReview } from "../interrogate/personas.js";
 import type { Playbook } from "../coach/playbook.js";
 import { resolveContext, buildContextBlock, appendToLastUser } from "./buildContext.js";
 import { draftEmailForLead } from "../outreach/draftEmail.js";
+import { proposeEvents } from "../schedule/propose.js";
 
-export type ChatAgentId = "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach";
-const ENGINE = new Set<ChatAgentId>(["auto", "operator", "interrogator", "coach", "outreach"]);
+export type ChatAgentId = "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach" | "scheduler";
+const ENGINE = new Set<ChatAgentId>(["auto", "operator", "interrogator", "coach", "outreach", "scheduler"]);
 export const isEngineAgent = (id: string): boolean => ENGINE.has(id as ChatAgentId);
 
 export interface ChatMsg { role: "user" | "assistant"; content: string }
@@ -57,6 +58,23 @@ export async function dispatchChat(
     if (!apn) return { text: "Attach a deal (＋ Add to chat from any parcel) or give me its APN, and I'll run Pace-structures / Grant-challenges on it.", ...EMPTY };
     const { address, review } = await interrogateForApn(sql, "Charlottesville", apn);
     return { text: formatInterrogation(address, apn, review), ...EMPTY };
+  }
+
+  if (agent === "scheduler") {
+    const leadRef = context.find((c) => c.type === "lead");
+    const parcelRef = context.find((c) => c.type === "parcel");
+    let label: string | undefined;
+    if (parcelRef) { const [p] = await sql<Array<{ address: string | null }>>`select address from deal_genome where market = 'Charlottesville' and apn = ${parcelRef.id} limit 1`; label = p?.address ?? `parcel ${parcelRef.id}`; }
+    else if (leadRef) { const [l] = await sql<Array<{ label: string | null }>>`select coalesce(p.address, o.name) as label from lead l join owner o on o.id = l.owner_id left join property p on p.id = l.property_id where l.id = ${leadRef.id} limit 1`; label = l?.label ?? "this lead"; }
+    const events = proposeEvents({ text: lastUser(messages), now: new Date(), leadId: leadRef?.id, apn: parcelRef?.id, label });
+    if (!events.length) return { text: "Tell me when (e.g. \"call them Tuesday\", \"follow up in 2 weeks\", \"visit next Friday\") or attach a lead/parcel and I'll propose a follow-up cadence.", ...EMPTY };
+    const proposals: Proposal[] = events.map((e) => ({
+      kind: "proposal", action: "schedule-event",
+      params: { title: e.title, kind: e.kind, when: e.when, notes: e.notes, leadId: leadRef?.id, apn: parcelRef?.id },
+      summary: `${e.title} · ${e.when.slice(0, 10)}`, requiresApproval: true,
+    }));
+    const text = `Proposed:\n${events.map((e) => `- ${e.title} · ${e.when.slice(0, 10)}`).join("\n")}\n\nApprove each to add it to your Schedule. (Calendar sync lights up when the Google Calendar connector is wired.)`;
+    return { text, trace: [], proposals };
   }
 
   if (agent === "outreach") {

@@ -2,7 +2,7 @@
    The engine half (routing/execution) lives in lib/chat/dispatch.ts; these ids are the shared
    contract. Each agent reuses a capability LOT already built. */
 export interface AgentMeta {
-  id: "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach";
+  id: "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach" | "scheduler";
   name: string;
   icon: string;        // Tabler icon suffix
   blurb: string;
@@ -72,6 +72,17 @@ AGENTS.push({
     "Draft an email to my top lead.",
     "Write a gentle note to an inherited-property owner.",
     "Draft a tired-landlord outreach email.",
+  ],
+});
+
+AGENTS.push({
+  id: "scheduler", name: "Scheduler", icon: "calendar", contextKinds: ["lead", "parcel"],
+  blurb: "Proposes call reminders, follow-ups, visits, and deadlines you approve onto your Schedule.",
+  placeholder: 'e.g. "call them Tuesday" or attach a lead for a follow-up cadence…',
+  suggestions: [
+    "Remind me to call my top lead in 2 days.",
+    "Set a follow-up cadence for this lead.",
+    "Schedule a property visit next Friday.",
   ],
 });
 
