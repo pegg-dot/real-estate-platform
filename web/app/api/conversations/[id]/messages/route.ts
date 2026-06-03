@@ -3,6 +3,7 @@ import { sql } from "../../../../lib/db";
 export const dynamic = "force-dynamic";
 
 const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+const AGENTS = new Set(["explainer", "operator", "interrogator", "coach"]);
 
 // Append one turn to a conversation (spec 024 Phase 2). Titles the conversation from the first user
 // message and bumps updated_at (via the conversation trigger) so the sidebar re-sorts.
@@ -12,7 +13,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   try { b = await req.json(); } catch { return Response.json({ error: "bad json" }, { status: 400 }); }
 
   const role = b.role === "assistant" ? "assistant" : "user";
-  const agent = typeof b.agent === "string" ? b.agent : null;
+  const agent = typeof b.agent === "string" && AGENTS.has(b.agent) ? b.agent : null;
   const content = String(b.content ?? "");
   const context = JSON.stringify(Array.isArray(b.context) ? b.context : []);
   const trace = JSON.stringify(Array.isArray(b.tool_trace) ? b.tool_trace : []);

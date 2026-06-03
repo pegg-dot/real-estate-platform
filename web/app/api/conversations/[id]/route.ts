@@ -3,6 +3,7 @@ import { sql } from "../../../lib/db";
 export const dynamic = "force-dynamic";
 
 const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+const AGENTS = new Set(["explainer", "operator", "interrogator", "coach"]);
 
 // GET = a conversation's full message thread (spec 024 Phase 2).
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -20,7 +21,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   let body: { title?: string; agent?: string } = {};
   try { body = await req.json(); } catch { /* ignore */ }
   const title = typeof body.title === "string" ? body.title.slice(0, 200) : null;
-  const agent = typeof body.agent === "string" ? body.agent : null;
+  const agent = typeof body.agent === "string" && AGENTS.has(body.agent) ? body.agent : null;
   await sql()`
     update conversation set
       title = coalesce(${title}, title),

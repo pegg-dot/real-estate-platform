@@ -88,11 +88,12 @@ export default function ChatPage() {
     if (!q || busy) return;
     const conv = active;
     const agentId = conv.agent;
-    // persist the draft → a real conversation on the first message
+    // persist the draft → a real conversation on the first message; bail (don't drop the turn) if it fails
     let id = conv.id;
     if (!conv.saved) {
       const r = await fetch("/api/conversations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ agent: agentId }) }).then((x) => x.json()).catch(() => null);
-      if (r?.conversation?.id) { id = r.conversation.id; setConvs((cs) => cs.map((c) => (c.id === conv.id ? { ...c, id, saved: true } : c))); setActiveId(id); }
+      if (!r?.conversation?.id) { alert("Couldn't start the conversation — check the connection and try again."); return; }
+      id = r.conversation.id; setConvs((cs) => cs.map((c) => (c.id === conv.id ? { ...c, id, saved: true } : c))); setActiveId(id);
     }
     const userMsg: Msg = { role: "user", content: q };
     setConvs((cs) => cs.map((c) => (c.id === id ? { ...c, title: c.msgs.length === 0 ? q.slice(0, 48) : c.title, msgs: [...c.msgs, userMsg] } : c)));
