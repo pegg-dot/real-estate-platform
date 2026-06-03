@@ -36,6 +36,22 @@
       and HBU develop returns are annualized *screening proxies*, not IRRs (an underwriter-grade
       model is a future upgrade).
 
+## 🔌 Multi-user + real connectors (spec 026) — YOUR setup (code is inert until done)
+> Goal: you + your brother each log in, connect your own Gmail + Calendar, and the agents' drafts/
+> events actually send/sync. Foundation (the `app_user` + `connector` tables, the auth scaffold) is
+> built and **non-breaking** — the app still runs single-user locally until you do the steps below.
+> These can only be done by you (accounts, OAuth apps, billing); none can be done by the agent.
+- [ ] **Supabase Auth** — enable it + the **Google** sign-in provider (needs the Google OAuth client below).
+- [ ] **Google Cloud project** — create an **OAuth consent screen** + **OAuth client (Web)**; enable
+      the **Gmail API** + **Google Calendar API**; add the send/draft + calendar scopes; add you +
+      your brother as **test users**. Then put `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in env.
+- [ ] **Hosting** — a **Railway** (or Render/Fly) account; deploy the repo; set env vars
+      (`SUPABASE_DB_URL`, `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_MAPBOX_TOKEN`, `GOOGLE_CLIENT_ID/SECRET`,
+      `CONNECTOR_SECRET` (any long random string), `AUTH_ALLOWLIST` = your two emails, `AUTH_ENABLED=true`).
+- [ ] **Enrichment vendor key** — Clay / BatchData / Endato for skip-trace (feeds the Outreach Writer real recipients).
+- [ ] Once the above exist, tell me and I'll finish **Phase 2 (auth wiring)** + **Phase 3 (connectors)**
+      and verify the OAuth round-trips end-to-end (I can't test those without your Google app).
+
 ## 🔐 Security — do soon
 - [ ] **Rotate the Supabase DB password** — it was shared in chat (Supabase → Settings →
       Database → Reset password), then update `SUPABASE_DB_URL` in `.env`.
