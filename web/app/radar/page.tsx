@@ -25,7 +25,7 @@ export default function RadarPage() {
       <h1 style={{ fontSize: 18, marginBottom: 4 }}>Regulatory radar — zoning as alpha</h1>
       <p className="muted" style={{ marginBottom: 10 }}>A zoning change legalizes/revokes by-room renting → an opportunity or risk, with the affected-parcel count. Golden-rule #3.</p>
       <button onClick={runRadar} disabled={busy} style={btn}>{busy ? "Running…" : "↻ Run radar (detect changes)"}</button>
-      {msg && <pre style={{ background: "#0f172a", color: "#e2e8f0", padding: 10, borderRadius: 6, fontSize: 12, marginTop: 10, whiteSpace: "pre-wrap" }}>{msg}</pre>}
+      {msg && <pre style={{ background: "var(--bg-chrome)", color: "var(--text-secondary)", padding: 10, borderRadius: 6, fontSize: 12, marginTop: 10, whiteSpace: "pre-wrap" }}>{msg}</pre>}
 
       <h2 style={{ fontSize: 14, marginTop: 20, marginBottom: 8 }}>Events ({data.events.length})</h2>
       {data.events.length === 0 ? <p className="muted">No regulatory changes detected. Edit a zone in config/zoning and Run radar to simulate one.</p> : (
@@ -41,4 +41,4 @@ export default function RadarPage() {
     </div>
   );
 }
-const btn: React.CSSProperties = { padding: "7px 14px", border: "1px solid #0f172a", background: "#0f172a", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 };
+const btn: React.CSSProperties = { padding: "7px 14px", border: "1px solid var(--accent)", background: "var(--accent)", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 };

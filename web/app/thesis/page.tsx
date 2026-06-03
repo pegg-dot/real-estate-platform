@@ -64,13 +64,13 @@ export default function ThesisPage() {
 
       <textarea value={prose} onChange={(e) => setProse(e.target.value)} rows={4}
         placeholder='e.g. "All-cash by-the-room student rentals within half a mile of UVA, prioritize cash flow over appreciation, avoid flood zones, open to seller financing for tired long-tenure landlords."'
-        style={{ width: "100%", padding: 10, border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit" }} />
+        style={{ width: "100%", padding: 10, border: "1px solid var(--border-strong)", borderRadius: 8, fontSize: 13, fontFamily: "inherit" }} />
       <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
         <button onClick={setThesis} disabled={busy === "set"} style={btn}>{busy === "set" ? "Reading…" : "Set thesis from description"}</button>
-        <button onClick={rescore} disabled={busy === "rescore"} style={{ ...btn, background: "#fff", color: "#0f172a" }}>{busy === "rescore" ? "Starting…" : "Re-score the map to it"}</button>
+        <button onClick={rescore} disabled={busy === "rescore"} style={{ ...btn, background: "var(--bg-panel)", color: "var(--text-primary)", border: "1px solid var(--border-strong)" }}>{busy === "rescore" ? "Starting…" : "Re-score the map to it"}</button>
       </div>
 
-      {out && <pre style={{ background: "#0f172a", color: "#e2e8f0", padding: 12, borderRadius: 6, fontSize: 12, overflowX: "auto", marginTop: 14, whiteSpace: "pre-wrap" }}>{out}</pre>}
+      {out && <pre style={{ background: "var(--bg-chrome)", color: "var(--text-secondary)", padding: 12, borderRadius: "var(--radius-sm)", fontSize: 12, overflowX: "auto", marginTop: 14, whiteSpace: "pre-wrap", fontFamily: "var(--font-mono)", border: "1px solid var(--border-soft)" }}>{out}</pre>}
 
       <h2 style={{ fontSize: 14, marginTop: 24, marginBottom: 8 }}>Thesis versions</h2>
       <table>
@@ -82,7 +82,7 @@ export default function ThesisPage() {
               <td className="muted">{t.mode ?? "—"}</td>
               <td className="muted">{t.primary ?? "—"}</td>
               <td>{t.is_active ? <span className="pill ok">active</span> :
-                <button onClick={() => activate(t.version)} disabled={busy === `act${t.version}`} style={{ padding: "3px 10px", border: "1px solid #cbd5e1", borderRadius: 5, background: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{busy === `act${t.version}` ? "…" : "Activate"}</button>}</td>
+                <button onClick={() => activate(t.version)} disabled={busy === `act${t.version}`} style={{ padding: "3px 10px", border: "1px solid var(--border-strong)", borderRadius: 5, background: "var(--bg-panel)", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{busy === `act${t.version}` ? "…" : "Activate"}</button>}</td>
             </tr>
           ))}
           {theses.length === 0 && <tr><td colSpan={4} className="muted">No theses yet.</td></tr>}
@@ -103,11 +103,11 @@ export default function ThesisPage() {
             {cmpA === cmpB && <span className="muted" style={{ fontSize: 12 }}>pick two different versions</span>}
           </div>
 
-          {cmp?.error && <div style={{ background: "#fef3c7", color: "#92400e", padding: 10, borderRadius: 6, fontSize: 13 }}>⚠️ {cmp.error}</div>}
+          {cmp?.error && <div style={{ background: "var(--warn-wash)", color: "var(--warn)", padding: 10, borderRadius: 6, fontSize: 13 }}>⚠️ {cmp.error}</div>}
 
           {cmp && !cmp.error && (
             <div>
-              <div style={{ background: "#f1f5f9", borderRadius: 8, padding: "12px 14px", marginBottom: 14, fontSize: 14 }}>
+              <div style={{ background: "var(--bg-panel)", borderRadius: 8, padding: "12px 14px", marginBottom: 14, fontSize: 14 }}>
                 <b>{cmp.changed25} of your top 25 parcels changed</b> between v{cmp.a} and v{cmp.b}.{" "}
                 <span className="muted">({cmp.overlap25} stayed in the shortlist · {cmp.entered.length} rose in · {cmp.dropped.length} dropped off.)</span>
               </div>
@@ -119,20 +119,20 @@ export default function ThesisPage() {
 
               {cmp.entered.length > 0 && (
                 <div style={{ marginTop: 16 }}>
-                  <h3 style={{ fontSize: 13, marginBottom: 6, color: "#065f46" }}>▲ Rose into your top 25 under v{cmp.b}</h3>
+                  <h3 style={{ fontSize: 13, marginBottom: 6, color: "var(--positive)" }}>▲ Rose into your top 25 under v{cmp.b}</h3>
                   {cmp.entered.map((m) => (
                     <div key={m.apn} style={{ fontSize: 12 }} className="muted">
-                      #{m.rnkB} <b style={{ color: "#0f172a" }}>{m.address ?? m.apn}</b> {m.rnkA ? `(was #${m.rnkA})` : "(was outside top 50)"}
+                      #{m.rnkB} <b style={{ color: "var(--text-primary)" }}>{m.address ?? m.apn}</b> {m.rnkA ? `(was #${m.rnkA})` : "(was outside top 50)"}
                     </div>
                   ))}
                 </div>
               )}
               {cmp.dropped.length > 0 && (
                 <div style={{ marginTop: 12 }}>
-                  <h3 style={{ fontSize: 13, marginBottom: 6, color: "#991b1b" }}>▼ Fell off your top 25 under v{cmp.b}</h3>
+                  <h3 style={{ fontSize: 13, marginBottom: 6, color: "var(--critical)" }}>▼ Fell off your top 25 under v{cmp.b}</h3>
                   {cmp.dropped.map((m) => (
                     <div key={m.apn} style={{ fontSize: 12 }} className="muted">
-                      was #{m.rnkA} <b style={{ color: "#0f172a" }}>{m.address ?? m.apn}</b> {m.rnkB ? `(now #${m.rnkB})` : "(now outside top 50)"}
+                      was #{m.rnkA} <b style={{ color: "var(--text-primary)" }}>{m.address ?? m.apn}</b> {m.rnkB ? `(now #${m.rnkB})` : "(now outside top 50)"}
                     </div>
                   ))}
                 </div>
@@ -149,7 +149,7 @@ function Picker({ label, value, onChange, theses }: { label: string; value: numb
   return (
     <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}>
       <span className="muted">{label}</span>
-      <select value={value ?? ""} onChange={(e) => onChange(Number(e.target.value))} style={{ padding: "5px 8px", border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 13 }}>
+      <select value={value ?? ""} onChange={(e) => onChange(Number(e.target.value))} style={{ padding: "5px 8px", border: "1px solid var(--border-strong)", borderRadius: 6, fontSize: 13 }}>
         {theses.map((t) => <option key={t.version} value={t.version}>v{t.version}{t.is_active ? " (active)" : ""} — {t.primary ?? t.mode ?? "—"}</option>)}
       </select>
     </label>
@@ -157,7 +157,7 @@ function Picker({ label, value, onChange, theses }: { label: string; value: numb
 }
 function RankList({ title, subtitle, rows }: { title: string; subtitle?: string | null; rows: RankRow[] }) {
   return (
-    <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px" }}>
+    <div style={{ border: "1px solid var(--border-soft)", borderRadius: 8, padding: "10px 12px" }}>
       <div style={{ fontSize: 13, fontWeight: 700 }}>{title}</div>
       {subtitle && <div className="muted" style={{ fontSize: 11, marginBottom: 6 }}>{subtitle}</div>}
       {rows.map((r) => (
@@ -170,4 +170,4 @@ function RankList({ title, subtitle, rows }: { title: string; subtitle?: string 
   );
 }
 
-const btn: React.CSSProperties = { padding: "8px 14px", border: "1px solid #0f172a", background: "#0f172a", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 };
+const btn: React.CSSProperties = { padding: "8px 14px", border: "1px solid var(--accent)", background: "var(--accent)", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 };

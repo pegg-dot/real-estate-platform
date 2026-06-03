@@ -23,7 +23,7 @@ export default function LearnPage() {
     <div className="page" style={{ maxWidth: 720 }}>
       <h1 style={{ fontSize: 18, marginBottom: 4 }}>Learn — the loop that sharpens your thesis</h1>
       <p className="muted" style={{ marginBottom: 12 }}>Every advance/pass teaches LOT your revealed preference. It reports the gap and proposes a weight change only once ~40 thesis-relevant decisions exist (then you approve it).</p>
-      {r.error ? <div style={{ background: "#fee2e2", color: "#991b1b", padding: 10, borderRadius: 6 }}>⚠️ {r.error}</div> : (
+      {r.error ? <div style={{ background: "var(--critical-wash)", color: "var(--critical)", padding: 10, borderRadius: 6 }}>⚠️ {r.error}</div> : (
         <>
           <p style={{ marginBottom: 12 }}>{r.note}</p>
           <div style={{ display: "flex", gap: 24, marginBottom: 14 }}>
@@ -34,8 +34,8 @@ export default function LearnPage() {
             <Stat label="Advanced low-scorers" value={String(r.advancedLowScorers ?? 0)} />
           </div>
           <button onClick={() => act("propose-retune")} disabled={busy} style={btn}>{busy ? "Computing…" : "🧠 Propose a weight retune"}</button>
-          <button onClick={() => act("apply-retune")} disabled={busy} style={{ ...btn, background: "#fff", color: "#0f172a", marginLeft: 8 }}>{busy ? "…" : "✓ Apply it (saves a new thesis to review)"}</button>
-          {out && <pre style={{ background: "#0f172a", color: "#e2e8f0", padding: 12, borderRadius: 6, fontSize: 12, marginTop: 12, whiteSpace: "pre-wrap" }}>{out}</pre>}
+          <button onClick={() => act("apply-retune")} disabled={busy} style={{ ...btn, background: "var(--bg-panel)", color: "var(--text-primary)", marginLeft: 8 }}>{busy ? "…" : "✓ Apply it (saves a new thesis to review)"}</button>
+          {out && <pre style={{ background: "var(--bg-chrome)", color: "var(--text-secondary)", padding: 12, borderRadius: 6, fontSize: 12, marginTop: 12, whiteSpace: "pre-wrap" }}>{out}</pre>}
         </>
       )}
     </div>
@@ -44,4 +44,4 @@ export default function LearnPage() {
 function Stat({ label, value }: { label: string; value: string }) {
   return <div><div className="muted" style={{ fontSize: 11 }}>{label}</div><div style={{ fontSize: 18, fontWeight: 700 }}>{value}</div></div>;
 }
-const btn: React.CSSProperties = { padding: "8px 14px", border: "1px solid #0f172a", background: "#0f172a", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 };
+const btn: React.CSSProperties = { padding: "8px 14px", border: "1px solid var(--accent)", background: "var(--accent)", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 };

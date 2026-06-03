@@ -27,10 +27,10 @@ export default function DevPage() {
         </p>
         <form onSubmit={submit} style={{ display: "flex", gap: 8, justifyContent: "center" }}>
           <input type="password" value={code} onChange={(e) => { setCode(e.target.value); setErr(false); }} placeholder="passcode"
-            style={{ padding: "9px 12px", border: `1px solid ${err ? "#ef4444" : "#cbd5e1"}`, borderRadius: 8, fontSize: 14 }} autoFocus />
-          <button type="submit" style={{ padding: "9px 18px", border: "none", background: "#0f172a", color: "#fff", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>Unlock</button>
+            style={{ padding: "9px 12px", border: `1px solid ${err ? "var(--critical)" : "var(--border-strong)"}`, borderRadius: 8, fontSize: 14 }} autoFocus />
+          <button type="submit" style={{ padding: "9px 18px", border: "none", background: "var(--accent)", color: "#fff", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>Unlock</button>
         </form>
-        {err && <p style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>Wrong passcode.</p>}
+        {err && <p style={{ color: "var(--critical)", fontSize: 12, marginTop: 8 }}>Wrong passcode.</p>}
       </div>
     );
   }
@@ -74,14 +74,14 @@ export default function DevPage() {
       </Group>
 
       <p className="muted" style={{ fontSize: 12, marginTop: 24 }}>
-        <button onClick={() => { sessionStorage.removeItem("lot_dev_ok"); setUnlocked(false); }} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", textDecoration: "underline", padding: 0, fontSize: 12 }}>Lock this area</button>
+        <button onClick={() => { sessionStorage.removeItem("lot_dev_ok"); setUnlocked(false); }} style={{ background: "none", border: "none", color: "var(--text-tertiary)", cursor: "pointer", textDecoration: "underline", padding: 0, fontSize: 12 }}>Lock this area</button>
       </p>
     </div>
   );
 }
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div style={{ marginBottom: 22, border: "1px solid #e2e8f0", borderRadius: 8, padding: "14px 16px" }}>
+  return <div style={{ marginBottom: 22, border: "1px solid var(--border-soft)", borderRadius: 8, padding: "14px 16px" }}>
     <h2 style={{ fontSize: 14, marginBottom: 10 }}>{title}</h2>{children}
   </div>;
 }
@@ -92,5 +92,5 @@ function Cmd({ c, d }: { c: string; d: string }) {
   </div>;
 }
 function Code({ children, block }: { children: React.ReactNode; block?: boolean }) {
-  return <code style={{ display: block ? "block" : "inline", background: "#0f172a", color: "#e2e8f0", padding: block ? "7px 10px" : "1px 5px", borderRadius: 5, fontSize: 12.5, fontFamily: "ui-monospace, monospace" }}>{children}</code>;
+  return <code style={{ display: block ? "block" : "inline", background: "var(--bg-chrome)", color: "var(--text-secondary)", padding: block ? "7px 10px" : "1px 5px", borderRadius: 5, fontSize: 12.5, fontFamily: "ui-monospace, monospace" }}>{children}</code>;
 }
