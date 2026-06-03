@@ -36,6 +36,16 @@
         auto-extracts cited rules/exemplars/params; the offline `.json` path works without credits
       • **negotiation roleplay** (the seller-persona drill + rubric scoring; spec 015) —
         `lib/coach/roleplayLlm.ts` is built and wired, just needs the model to run.
+      • **the Agent console** (spec 022, the `/agent` chat + `npm run agent`) — a Claude-Code-style
+        operator that reads anything in the DB, runs the analyses, and PROPOSES actions you approve.
+        Reads + proposals work now; the conversational loop needs credits.
+- [ ] **(hardening, optional) give the Agent a read-only Postgres role** — `query_db` is already
+      SELECT-only in code (rejects writes incl. `SELECT INTO`), but a dedicated read-only DB role for
+      the agent connection is belt-and-suspenders. Create one in Supabase and point the agent's DSN at
+      it if/when you expose the agent beyond yourself.
+- [ ] **(to send agent/owner emails) add an email transport** — the agent DRAFTS emails + the compliance
+      requirements; sending needs an email API (e.g. Resend/SMTP, or the Gmail API). Owner emails must
+      carry a physical address + unsubscribe (CAN-SPAM) and route through the compliance gate.
 - [ ] **(optional) HUD FMR API token** — only needed to *refresh* real rents annually or add
       markets. The FY2026 Charlottesville numbers are already seeded from public data, so rent
       reality works without it. Get one free at huduser.gov → Create New Token if/when you want
