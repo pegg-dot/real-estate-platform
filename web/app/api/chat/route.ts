@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { generateText } from "ai";
+import { streamText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { runEngine } from "../../lib/engine";
 
@@ -56,17 +56,19 @@ export async function POST(req: Request) {
     content: String(m.content ?? "").slice(0, 8000),
   }));
 
-  // ---- Explainer: in-process (fast Haiku), no tools ----
+  // ---- Explainer: in-process (fast Haiku), no tools — STREAMS tokens (spec 027 follow-up) ----
   if (agent === "explainer") {
     if (!process.env.ANTHROPIC_API_KEY) return Response.json({ error: creditsError("ANTHROPIC_API_KEY") }, { status: 500 });
     try {
       const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const { text } = await generateText({
+      // a plain text stream the client reads token-by-token
+      const result = await streamText({
         model: anthropic("claude-haiku-4-5-20251001"),
         system: EXPLAINER_SYSTEM, messages: safe, maxTokens: 800,
       });
-      return Response.json({ text, trace: [], proposals: [] }, { headers: { "cache-control": "no-store" } });
+      return result.toTextStreamResponse({ headers: { "cache-control": "no-store", "x-lot-stream": "1" } });
     } catch (e) {
+      // eager failures (no credits / bad key) → clean JSON error the client renders
       return Response.json({ error: creditsError((e as Error).message ?? "") }, { status: 500 });
     }
   }

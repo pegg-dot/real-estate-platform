@@ -102,8 +102,28 @@ export default function ChatPage() {
 
     const history = [...conv.msgs, userMsg].map((m) => ({ role: m.role, content: m.content }));
     const context = ctx.map(({ type, id }) => ({ type, id }));   // attached parcels/leads → grounded server-side
-    const r = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ agent: agentId, messages: history, context }) })
-      .then((x) => x.json()).catch((e) => ({ error: String(e) }));
+
+    // the Explainer streams tokens; the tool agents return JSON (they run as engine processes)
+    const resp = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ agent: agentId, messages: history, context }) }).catch(() => null);
+    if (resp && resp.ok && resp.headers.get("x-lot-stream") === "1" && resp.body) {
+      patch(id, (c) => ({ ...c, msgs: [...c.msgs, { role: "assistant", content: "" }] }));   // placeholder to stream into
+      const reader = resp.body.getReader(); const dec = new TextDecoder();
+      let acc = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += dec.decode(value, { stream: true });
+        patch(id, (c) => { const m = c.msgs.slice(); m[m.length - 1] = { role: "assistant", content: acc }; return { ...c, msgs: m }; });
+      }
+      setBusy(false);
+      const finalText = acc || "⚠️ The assistant needs Anthropic credits to answer.";
+      if (!acc) patch(id, (c) => { const m = c.msgs.slice(); m[m.length - 1] = { role: "assistant", content: finalText }; return { ...c, msgs: m }; });
+      persist(id, { role: "assistant", agent: agentId, content: finalText });
+      return;
+    }
+
+    // JSON path (tool agents, or an error response)
+    const r = resp ? await resp.json().catch(() => ({ error: "bad response" })) : { error: "network error" };
     setBusy(false);
     const assistant: Msg = r.error
       ? { role: "assistant", content: `⚠️ ${r.error}` }
