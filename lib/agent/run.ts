@@ -37,6 +37,34 @@ export interface AgentResult {
   proposals: Proposal[];
 }
 
+// Sandboxed Analyst (spec 025-D): read-only SQL only (the safeQuery boundary is the sandbox).
+const ANALYST_SYSTEM = `You are LOT's data analyst. Answer with NUMBERS pulled from the database via
+query_db — read-only SQL, SELECT/CTE only, no writes (the tool refuses writes). Write the query, read
+the rows, and present a tight answer: a small markdown table or a one-line stat + one sentence of
+insight. NEVER invent numbers; if a query returns nothing, say so and suggest a refinement. Useful
+tables/columns: deal_genome (apn, address, score, headline_coc, est_market_value, beds, by_room_legal,
+zone_code, recommended_structure, recommended_use, lat, lng, components, exit_strategies), lead, owner,
+deal, growth_area, distress_signal.`;
+
+export async function runAnalyst(
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+): Promise<AgentResult> {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set — the analyst needs Anthropic billing to run.");
+  const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const sql = getSql();
+  try {
+    const { query_db } = agentTools(sql);   // read-only SQL tool only — no proposes, no writes
+    const { text, steps } = await generateText({
+      model: anthropic("claude-sonnet-4-6"),
+      system: ANALYST_SYSTEM, messages, tools: { query_db }, stopWhen: stepCountIs(6),
+    });
+    const trace = steps.flatMap((s) => s.toolCalls.map((c) => ({ tool: c.toolName, args: c.input })));
+    return { text, trace, proposals: [] };
+  } finally {
+    await sql.end();
+  }
+}
+
 export async function runAgent(
   messages: Array<{ role: "user" | "assistant"; content: string }>,
 ): Promise<AgentResult> {

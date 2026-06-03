@@ -6,9 +6,12 @@
  * calls are integration-verified.
  */
 import type { Sql } from "../db/client.js";
-import { runAgent } from "../agent/run.js";
+import { runAgent, runAnalyst } from "../agent/run.js";
 import { interrogateForApn } from "../interrogate/forDeal.js";
 import { buildPlaybookForLead } from "../coach/forLead.js";
+import { readSituation } from "../enrich/situation.js";
+import { llmRoleplayRunner } from "../coach/roleplayLlm.js";
+import type { PersonaInput } from "../coach/roleplay.js";
 import type { Proposal } from "../agent/tools.js";
 import type { DualPersonaReview } from "../interrogate/personas.js";
 import type { Playbook } from "../coach/playbook.js";
@@ -16,8 +19,8 @@ import { resolveContext, buildContextBlock, appendToLastUser } from "./buildCont
 import { draftEmailForLead } from "../outreach/draftEmail.js";
 import { proposeEvents } from "../schedule/propose.js";
 
-export type ChatAgentId = "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach" | "scheduler";
-const ENGINE = new Set<ChatAgentId>(["auto", "operator", "interrogator", "coach", "outreach", "scheduler"]);
+export type ChatAgentId = "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach" | "scheduler" | "analyst" | "roleplay";
+const ENGINE = new Set<ChatAgentId>(["auto", "operator", "interrogator", "coach", "outreach", "scheduler", "analyst", "roleplay"]);
 export const isEngineAgent = (id: string): boolean => ENGINE.has(id as ChatAgentId);
 
 export interface ChatMsg { role: "user" | "assistant"; content: string }
@@ -60,6 +63,27 @@ export async function dispatchChat(
     return { text: formatInterrogation(address, apn, review), ...EMPTY };
   }
 
+  if (agent === "analyst") {
+    let msgs = messages;
+    if (context.length) msgs = appendToLastUser(messages, buildContextBlock(await resolveContext(sql, context)));
+    return runAnalyst(msgs);   // read-only SQL only; manages its own sql
+  }
+
+  if (agent === "roleplay") {
+    const leadId = context.find((c) => c.type === "lead")?.id ?? extractLeadId(lastUser(messages));
+    const persona = await personaForLead(sql, leadId);
+    const history = messages.map((m) => ({ role: m.role === "user" ? ("rep" as const) : ("seller" as const), text: m.content }));
+    const { sellerReply, rubric } = await llmRoleplayRunner(history, persona);
+    let text = sellerReply;
+    if (rubric) {
+      const p = (n: number) => `${Math.round(n * 100)}%`;
+      text += `\n\n— **Scorecard** — rapport ${p(rubric.rapport)} · discovery ${p(rubric.discovery)} · ` +
+        `bunny-found ${p(rubric.bunnyFound)} · structure-fit ${p(rubric.structureFit)} · **overall ${p(rubric.overall)}**` +
+        (rubric.notes.length ? `\n${rubric.notes.map((n) => `• ${n}`).join("\n")}` : "");
+    }
+    return { text, trace: [], proposals: [] };
+  }
+
   if (agent === "scheduler") {
     const leadRef = context.find((c) => c.type === "lead");
     const parcelRef = context.find((c) => c.type === "parcel");
@@ -98,6 +122,24 @@ export async function dispatchChat(
   if (!leadId) return { text: "Attach a lead (＋ Add to chat from the Leads page) or paste its id, and I'll build the call playbook + objection prep.", ...EMPTY };
   const pb = await buildPlaybookForLead(sql, leadId);
   return { text: formatPlaybook(pb), ...EMPTY };
+}
+
+/** Build the seller persona for the roleplay from a lead (generic tired-landlord if none). */
+async function personaForLead(sql: Sql, leadId: string | null): Promise<PersonaInput> {
+  const generic: PersonaInput = { motivationType: "tired_landlord", likelyBunny: "keep_income",
+    approach: "A worn-down, long-tenure landlord — lead with empathy and the idea of keeping income without the hassle.", tone: "standard" };
+  if (!leadId) return generic;
+  const [l] = await sql<Array<{ motivation_type: string | null; likely_bunny: string | null; owner_name: string | null;
+    entity_type: string | null; is_absentee: boolean | null; tenure_years: number | null }>>`
+    select l.motivation_type, l.likely_bunny, o.name as owner_name, o.entity_type, o.is_absentee, o.tenure_years
+    from lead l join owner o on o.id = l.owner_id where l.id = ${leadId} limit 1`;
+  if (!l) return generic;
+  const sit = readSituation({ entityType: l.entity_type, tenureYears: l.tenure_years != null ? Number(l.tenure_years) : null,
+    isAbsentee: l.is_absentee, portfolioCount: 1, distressCount: 0, estEquityPct: null });
+  return {
+    ownerName: l.owner_name, motivationType: l.motivation_type ?? "tired_landlord",
+    likelyBunny: l.likely_bunny ?? "keep_income", approach: sit.approach, tone: sit.tone,
+  };
 }
 
 function formatInterrogation(address: string, apn: string, r: DualPersonaReview): string {

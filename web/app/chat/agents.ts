@@ -2,7 +2,7 @@
    The engine half (routing/execution) lives in lib/chat/dispatch.ts; these ids are the shared
    contract. Each agent reuses a capability LOT already built. */
 export interface AgentMeta {
-  id: "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach" | "scheduler";
+  id: "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach" | "scheduler" | "analyst" | "roleplay";
   name: string;
   icon: string;        // Tabler icon suffix
   blurb: string;
@@ -83,6 +83,27 @@ AGENTS.push({
     "Remind me to call my top lead in 2 days.",
     "Set a follow-up cadence for this lead.",
     "Schedule a property visit next Friday.",
+  ],
+});
+
+AGENTS.push({
+  id: "analyst", name: "Analyst", icon: "chart-bar", contextKinds: ["parcel", "lead"],
+  blurb: "Answers ad-hoc data questions by running read-only SQL and returning tables — sandboxed (SELECT-only).",
+  placeholder: 'e.g. "median CoC by zone near grounds" or "how many by-room-legal under $400k?"',
+  suggestions: [
+    "Median cash-on-cash by zone for by-room-legal parcels.",
+    "How many scored parcels are under $400k and by-room legal?",
+    "Top 10 parcels by appreciation potential near grounds.",
+  ],
+});
+AGENTS.push({
+  id: "roleplay", name: "Negotiation Simulator", icon: "microphone", contextKinds: ["lead"],
+  blurb: "Plays the seller's persona so you can practice the call, then scores you (rapport / discovery / structure-fit).",
+  placeholder: "Attach a lead (or just start) — I'll play the seller; say 'score me' to get graded…",
+  suggestions: [
+    "Let's practice — I'll open the call.",
+    "Play a tired, out-of-state landlord.",
+    "Play a skeptical inherited-property heir.",
   ],
 });
 
