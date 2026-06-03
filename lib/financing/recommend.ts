@@ -24,6 +24,7 @@ export interface FinancingInput {
   buyerIsOccupant?: boolean;              // investor by default -> Dodd-Frank mostly N/A
   asOf?: string;                          // injected for deterministic tenure
   capGainsRate?: number;                  // long-term cap-gains assumption (default 0.20)
+  units?: number;                         // estimated dwelling units; >=5 -> commercial financing (toxic-debt gate)
 }
 
 export interface CapGains {
@@ -194,6 +195,9 @@ export function recommendFinancing(input: FinancingInput): FinancingResult {
 
   const greed = equityPct >= 0.5 && (tenureYears >= 10 || capGainsExposure);
   const need = equityPct < 0.2 || input.distressSignals.includes("preforeclosure");
+  // 5+ units => commercial financing, which is usually a short-term balloon or adjustable note.
+  // Subject-to inherits that loan, so the balloon/reset can come due — a "toxic-debt" risk for sub2.
+  const isCommercialMF = (input.units ?? 1) >= 5;
 
   const candidates = new Set<Structure>(["cash"]);          // cash is always on the table
   const suppressed: FinancingResult["suppressed"] = [];
@@ -228,6 +232,13 @@ export function recommendFinancing(input: FinancingInput): FinancingResult {
     const g = assertGuardrail(structure);
     const attorney = structure === "seller_finance"
       ? Boolean(input.buyerIsOccupant) : g.attorney;
+    // TOXIC-DEBT gate (004): subject-to on 5+ units inherits a commercial note that is usually a
+    // short-term balloon or adjustable — confirm it's fixed & long-term before proceeding, else it's toxic.
+    const guardrailText = structure === "subject_to" && isCommercialMF
+      ? `${g.text} TOXIC-DEBT RISK (commercial, ${input.units}+ units): the underlying loan is likely ` +
+        `a short-term balloon or adjustable note — taking it subject-to can leave a balloon coming due ` +
+        `that you can't refinance on the same terms. Only proceed if you confirm it's FIXED and long-term.`
+      : g.text;
 
     let capGains: CapGains | undefined;
     let sellerPitch = "";
@@ -240,9 +251,10 @@ export function recommendFinancing(input: FinancingInput): FinancingResult {
           ? ` (~$${capGains.recaptureTax.toLocaleString()} depreciation recapture is still owed at closing — installment sale can't defer that part)`
           : "";
         sellerPitch = `Selling on terms defers ~$${capGains.sellerBenefit.toLocaleString()} ` +
-          `in capital-gains tax vs a cash sale${recaptureNote} and pays you ~$${monthly.toLocaleString()}/mo — you net more and keep income.`;
+          `in capital-gains tax vs a cash sale${recaptureNote} and pays you ~$${monthly.toLocaleString()}/mo — you net more and keep income. ` +
+          `Structure the note long-amortization (40–50yr) or interest-only (zero-am) to fit the payment to the property's cash flow.`;
       } else {
-        sellerPitch = `Seller-finance terms pay you ~$${monthly.toLocaleString()}/mo and spread your ` +
+        sellerPitch = `Seller-finance terms (long-am or interest-only to fit cash flow) pay you ~$${monthly.toLocaleString()}/mo and spread your ` +
           `tax over the term — the exact cap-gains benefit needs your basis (no arm's-length sale on record).`;
       }
     } else if (structure === "subject_to") {
@@ -277,7 +289,7 @@ export function recommendFinancing(input: FinancingInput): FinancingResult {
           ? ["depreciation recapture MODELED at 80% improvement basis / 27.5-yr straight-line × years held — the seller's real schedule (cost-seg, bonus, never-depreciated) can differ materially; verify before quoting"]
           : []),
       ],
-      legalGuardrail: g.text,
+      legalGuardrail: guardrailText,
       attorneyReviewRequired: isCreative ? attorney : false,
       citedRules: g.rules,
       ...(capGains ? { capGains } : {}),

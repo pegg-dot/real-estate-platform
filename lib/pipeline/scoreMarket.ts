@@ -124,12 +124,17 @@ export function scoreRow(
     minCashOnCash: thesis.goal.min_cash_on_cash ?? 0.08,
   }, thesis.hard_constraints ?? {});
 
+  // estimate CURRENT units (~3 beds/unit above the MF bed threshold) — shared with HBU below and
+  // used by the financing toxic-debt gate (5+ units => commercial balloon/adjustable note risk).
+  const currentUnits = (row.beds != null && row.beds >= a.multifamilyBedThreshold)
+    ? Math.max(1, Math.round(row.beds / 3)) : 1;
+
   const financing = recommendFinancing({
     estMarketValue: price, lastSalePrice: row.lastArmsPrice, lastSaleDate: row.lastArmsDate,
     ownerType: (row.ownerEntityType as FinancingInput["ownerType"]) ?? "unknown",
     isAbsentee: Boolean(row.isAbsentee), distressSignals: [], listingStatus: "off_market",
     buyerCashAvailable: cash, currentMarketRate: a.currentMarketRate,
-    noi: score.headline.proForma.noi, asOf, capGainsRate: a.capGainsRate,
+    noi: score.headline.proForma.noi, asOf, capGainsRate: a.capGainsRate, units: currentUnits,
   });
 
   // HUD FMR real floor / sanity cross-check (004a): does the MODELED whole-house rent dip
@@ -170,10 +175,8 @@ export function scoreRow(
   // wholesale, gated on land-vs-improvement + zoning capacity, ranked by the same management
   // appetite. The hold baseline is the headline CoC we just computed.
   const cap = zoningCapacityFor(a.market, row.zoneCode);
-  // estimate CURRENT units: a high-bed parcel is likely already multifamily, so don't assume 1
-  // (that would invent develop headroom = allowed - 1 on a built-out building). ~3 beds/unit.
-  const currentUnits = (row.beds != null && row.beds >= a.multifamilyBedThreshold)
-    ? Math.max(1, Math.round(row.beds / 3)) : 1;
+  // currentUnits estimated above (shared with the financing toxic-debt gate). A high-bed parcel is
+  // likely already multifamily, so we don't assume 1 (which would invent develop headroom on a built-out building).
   const hbu = highestAndBestUse(
     {
       price, assessedLand: row.assessedLand, assessedTotal: row.assessedTotal, yearBuilt: row.yearBuilt,

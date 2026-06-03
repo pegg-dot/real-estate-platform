@@ -102,6 +102,26 @@ describe("recommendFinancing — NEED vs GREED", () => {
     expect(cg.deferredTaxPV).toBeGreaterThanOrEqual(cg.recaptureTax);
   });
 
+  it("subject-to on a 5+ unit (commercial) property carries a TOXIC-DEBT balloon/reset warning", () => {
+    // commercial MF financing is usually a short-term balloon or adjustable note — sub2 inherits a
+    // balloon that can come due. We can't see the loan terms, so we FLAG (don't silently recommend).
+    const mfNeed: FinancingInput = {
+      estMarketValue: 1_200_000, lastSalePrice: 1_180_000, lastSaleDate: "2021-06-01",
+      ownerType: "llc", isAbsentee: true, distressSignals: ["preforeclosure"],
+      listingStatus: "off_market", buyerCashAvailable: 2_000_000,
+      currentMarketRate: 0.07, noi: 70_000, asOf: "2026-06-01", units: 8,
+    };
+    const sub2 = recommendFinancing(mfNeed).recommended.find((x) => x.structure === "subject_to");
+    expect(sub2, "sub2 should still be offered for commercial MF, but flagged").toBeDefined();
+    expect(sub2!.legalGuardrail.toLowerCase()).toMatch(/balloon|toxic|adjustable|reset|short-term/);
+    expect(sub2!.attorneyReviewRequired).toBe(true);
+
+    // a single-family (residential, 30-yr fixed) sub2 does NOT carry the commercial toxic-debt warning
+    const sf = recommendFinancing({ ...mfNeed, units: 2, estMarketValue: 400_000, lastSalePrice: 395_000, noi: 18_000 })
+      .recommended.find((x) => x.structure === "subject_to");
+    expect(sf!.legalGuardrail.toLowerCase()).not.toMatch(/balloon|toxic/);
+  });
+
   it("subject-to guardrail keeps the due-on-sale warning AND cites the ~0.1% called-due datapoint", () => {
     const need: FinancingInput = {
       estMarketValue: 400_000, lastSalePrice: 395_000, lastSaleDate: "2021-06-01",
