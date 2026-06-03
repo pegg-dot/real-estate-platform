@@ -68,6 +68,7 @@ export async function GET(req: Request) {
         geometry: { type: "Point" as const, coordinates: [r.lng, r.lat] },
         properties: {
           apn: r.apn, address: r.address, score: Number(r.score), colorValue,
+          price: r.est_market_value != null ? Number(r.est_market_value) : null,  // for the left-rail top-matches row
           coc: r.headline_coc != null ? Number(r.headline_coc) : null,
           bestUseCoc, cashFlowCoc, byRoomCoc, appreciation,
           byRoom: r.by_room_legal, gatePassed: r.gate_passed,

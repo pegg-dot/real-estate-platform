@@ -41,13 +41,13 @@ Legend: ✅ built · 🟡 partial (some data/actions missing) · ❌ GAP (engine
 - **Actions:** Generate leads · Propose retune · Draft mailer (per MAIL row) · → Pipeline.
 - **Status:** ✅ wired (`/api/brief`, `/api/actions`).
 
-### 2. Map — explore & filter ✅
+### 2. Map — explore & filter ✅ · 🎨 restyled to design system (2026-06-02)
 - **Why:** spatial scan of every scored parcel; the NL filter is the "AI-native" front door.
-- **Route:** `/`.
-- **Data:** `/api/parcels` GeoJSON (apn, address, lat/lng, score, coc, byRoom, gatePassed, distress)
-  with filters (minScore, maxPrice, minBeds, byRoomLegalOnly, absenteeOnly, distressOnly, maxDistanceMiles).
-- **Actions:** NL search bar → `/api/filter` (Claude → filter) · click a dot → Deal panel.
-- **Status:** ✅ wired. 🟡 color ramp tops at 85 but real scores cap ~79 — recalibrate to ~40–79.
+- **Route:** `/map`.
+- **Data:** `/api/parcels` GeoJSON (apn, address, lat/lng, score, colorValue, price, coc, byRoom, gatePassed, distress)
+  with filters (minScore, maxPrice, minBeds, byRoomLegalOnly, absenteeOnly, distressOnly, developOnly, maxDistanceMiles).
+- **Actions:** NL search bar → `/api/filter` (Claude → filter) · lens selector (best_use/cash_flow/appreciation/by_room/score) · click a dot / Top-match row → Deal panel.
+- **Status:** ✅ wired + restyled to the LOT design system (dark terminal: left command rail, dark Mapbox + design score-ramp dots, floating chrome, dark deal drawer). Tokens in `web/app/tokens.css`, atoms in `web/app/ui.tsx`, ported classes in `globals.css`. Kept Mapbox (not the kit's Leaflet); 3D omitted (no Google 3D Tiles wired).
 
 ### 3. Deal panel / Deal detail — the dossier 🟡
 - **Why:** the underwrite. Everything you need to decide on one parcel.

@@ -1,5 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+/* LOT — deal slide-over (ported from design/ui_kits/terminal/DealDrawer.jsx). Dark drawer styling;
+   ALL data wiring preserved (dossier, financing, interrogate, exit menu, HBU, owner intel, dossier
+   md). LOT-DECISION rule#1: visual-only restyle — every fetch/handler/field is unchanged. */
+import { useEffect, useState, type ReactNode } from "react";
+import { Score, Sev, Eyebrow, tierOf } from "./ui";
 
 const usd = (n: unknown) => (typeof n === "number" || (typeof n === "string" && n !== "")
   ? `$${Math.round(Number(n)).toLocaleString()}` : "—");
@@ -93,224 +97,229 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
     ranked?: Array<{ use: string; annualizedReturn: number; upsideVsHold: number }>;
   };
 
+  const score = d?.score != null ? Math.round(Number(d.score)) : null;
+
   return (
-    <div style={{ position: "absolute", top: 0, right: 0, height: "100%", width: 380, background: "#fff",
-      boxShadow: "-2px 0 12px rgba(0,0,0,0.15)", overflowY: "auto", padding: "16px 18px", fontSize: 13 }}>
-      <button onClick={onClose} style={{ float: "right", border: "none", background: "none", fontSize: 18, cursor: "pointer" }}>×</button>
-      {loading && <p className="muted">Loading…</p>}
-      {d && !d.error && (
-        <>
-          <h2 style={{ fontSize: 16, marginBottom: 2 }}>{String(d.address ?? d.apn)}</h2>
-          <div className="muted" style={{ marginBottom: 10 }}>Parcel {String(d.apn)} · Zone {String(d.zone_code ?? "—")}</div>
+    <div className="slideover">
+      <div className="so-head">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2 style={{ font: "var(--text-h2)", marginBottom: 2 }}>{d ? String(d.address ?? d.apn) : "Loading…"}</h2>
+          <div className="muted mono" style={{ fontSize: 11 }}>{d ? `${String(d.apn)} · zone ${String(d.zone_code ?? "—")}` : apn}</div>
+        </div>
+        {score != null && <Score value={score} tier={tierOf(score)} solid />}
+        <button onClick={onClose} className="close" aria-label="Close">×</button>
+      </div>
 
-          <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
-            <Stat label="Score" value={`${Math.round(Number(d.score))}/100`} big />
-            <Stat label="Headline CoC" value={pct(d.headline_coc)} big />
-            <Stat label="Confidence" value={d.data_confidence != null ? Number(d.data_confidence).toFixed(2) : "—"} />
-          </div>
-          <div className="muted" style={{ marginBottom: 10 }}>
-            {String(d.headline_model ?? "").replace(/_/g, "-")} · range {pct(d.coc_low)}–{pct(d.coc_high)} ·
-            by-room {d.by_room_legal === true ? "legal ✓" : d.by_room_legal === false ? "NOT legal" : "unknown"}
-          </div>
-
-          {gateFailures.length > 0 && (
-            <div style={{ background: "#fef3c7", color: "#92400e", padding: "6px 8px", borderRadius: 6, marginBottom: 10 }}>
-              ⚠️ Constraint flag: {gateFailures[0]}
+      <div className="so-body">
+        {loading && <p className="muted">Loading…</p>}
+        {d && !d.error && (
+          <>
+            <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
+              <Stat label="Score" value={score != null ? `${score}/100` : "—"} big />
+              <Stat label="Headline CoC" value={pct(d.headline_coc)} big />
+              <Stat label="Confidence" value={d.data_confidence != null ? Number(d.data_confidence).toFixed(2) : "—"} />
             </div>
-          )}
+            <div className="muted" style={{ marginBottom: 10, fontSize: 12 }}>
+              {String(d.headline_model ?? "").replace(/_/g, "-")} · range {pct(d.coc_low)}–{pct(d.coc_high)} ·
+              by-room {d.by_room_legal === true ? "legal ✓" : d.by_room_legal === false ? "NOT legal" : "unknown"}
+            </div>
 
-          <button onClick={track} disabled={tracking} style={{ width: "100%", padding: "8px", border: "1px solid #0f172a", background: "#0f172a", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-            {tracking ? "Tracking…" : "＋ Track this deal"}
-          </button>
-          {trackMsg && <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{trackMsg} <a href="/deals">→ Pipeline</a></div>}
+            {gateFailures.length > 0 && (
+              <div style={{ background: "var(--warn-wash)", color: "var(--warn)", padding: "6px 9px", borderRadius: "var(--radius-sm)", marginBottom: 10, fontSize: 12 }}>
+                ⚠️ Constraint flag: {gateFailures[0]}
+              </div>
+            )}
 
-          <Section title="Snapshot (real)">
-            <Row k="Assessed value" v={usd(d.est_market_value)} />
-            <Row k="Beds" v={d.beds != null ? String(d.beds) : "unknown"} />
-            <Row k="Owner" v={`${String(d.owner_name ?? "—")} (${String(d.owner_entity_type ?? "?")})${d.is_absentee ? " · absentee" : ""}`} />
-            {d.last_arms_price != null && <Row k="Last sale" v={`${usd(d.last_arms_price)}${d.last_arms_date ? ` (${String(d.last_arms_date).slice(0, 10)})` : ""}`} />}
-            {d.flood_zone != null && <Row k="Flood zone" v={String(d.flood_zone)} />}
-          </Section>
+            <button onClick={track} disabled={tracking} className="btn-primary" style={{ width: "100%", justifyContent: "center", marginBottom: 6 }}>
+              {tracking ? "Tracking…" : "＋ Track this deal"}
+            </button>
+            {trackMsg && <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{trackMsg} <a href="/deals">→ Pipeline</a></div>}
 
-          <Section title="Score breakdown">
-            {Object.entries(components).map(([k, c]) => (
-              <Row key={k} k={k.replace(/_/g, " ")} v={`${(c.weight * 100).toFixed(0)}% → ${c.weighted >= 0 ? "+" : ""}${c.weighted.toFixed(1)}`} />
-            ))}
-          </Section>
-
-          {distress.length > 0 && (
-            <Section title="Distress signals (real)">
-              {distress.map((s, i) => <span key={i} className="pill flag" style={{ marginRight: 4 }}>{s.signal_type.replace(/_/g, " ")}</span>)}
+            <Section title="Snapshot (real)">
+              <Row k="Assessed value" v={usd(d.est_market_value)} />
+              <Row k="Beds" v={d.beds != null ? String(d.beds) : "unknown"} />
+              <Row k="Owner" v={`${String(d.owner_name ?? "—")} (${String(d.owner_entity_type ?? "?")})${d.is_absentee ? " · absentee" : ""}`} />
+              {d.last_arms_price != null && <Row k="Last sale" v={`${usd(d.last_arms_price)}${d.last_arms_date ? ` (${String(d.last_arms_date).slice(0, 10)})` : ""}`} />}
+              {d.flood_zone != null && <Row k="Flood zone" v={String(d.flood_zone)} />}
             </Section>
-          )}
 
-          {financing.recommended && financing.recommended.length > 0 && (
-            <Section title="Financing (ranked)">
-              {financing.recommended.map((o, i) => (
-                <div key={i} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: i < financing.recommended!.length - 1 ? "1px solid #f1f5f9" : "none" }}>
-                  <div><strong>{i + 1}. {String(o.structure ?? "cash").replace(/_/g, " ")}</strong>{o.attorneyReviewRequired ? " ⚠️ attorney review" : ""}</div>
-                  {(o.buyer?.cashInDeal != null || o.capGains?.sellerBenefit != null) && (
-                    <div style={{ marginTop: 2, fontSize: 11, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {o.buyer?.cashInDeal != null && (
-                        <span>💵 cash in deal <strong>${Math.round(o.buyer.cashInDeal).toLocaleString()}</strong></span>
-                      )}
-                      {o.capGains?.sellerBenefit != null && o.capGains.sellerBenefit > 0 && (
-                        <span>🧾 defers ~<strong>${Math.round(o.capGains.sellerBenefit).toLocaleString()}</strong> seller cap-gains tax vs a cash sale</span>
-                      )}
-                      {o.capGains?.recaptureTax != null && o.capGains.recaptureTax > 0 && (
-                        <span className="muted" title="Modeled from an assumed 80% improvement basis / 27.5-yr straight-line schedule — verify against the seller's actual depreciation.">(~${Math.round(o.capGains.recaptureTax).toLocaleString()} recapture still owed at close · modeled)</span>
-                      )}
-                    </div>
-                  )}
-                  {o.sellerPitch && <div className="muted" style={{ marginTop: 2 }}>{o.sellerPitch}</div>}
-                  {o.legalGuardrail && <div style={{ marginTop: 4, fontSize: 11, color: "#7c2d12" }}>⚖️ {o.legalGuardrail}</div>}
-                </div>
+            <Section title="Score breakdown">
+              {Object.entries(components).map(([k, c]) => (
+                <Row key={k} k={k.replace(/_/g, " ")} v={`${(c.weight * 100).toFixed(0)}% → ${c.weighted >= 0 ? "+" : ""}${c.weighted.toFixed(1)}`} />
               ))}
-              {financing.suppressed && financing.suppressed.length > 0 && (
-                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
-                  Suppressed: {financing.suppressed.map((s) => String(s.structure).replace(/_/g, " ")).join(", ")} (don&apos;t fit).
+            </Section>
+
+            {distress.length > 0 && (
+              <Section title="Distress signals (real)">
+                {distress.map((s, i) => <span key={i} className="sev warn" style={{ marginRight: 4 }}>{s.signal_type.replace(/_/g, " ")}</span>)}
+              </Section>
+            )}
+
+            {financing.recommended && financing.recommended.length > 0 && (
+              <Section title="Financing (ranked)">
+                {financing.recommended.map((o, i) => (
+                  <div key={i} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: i < financing.recommended!.length - 1 ? "1px solid var(--border-soft)" : "none" }}>
+                    <div><strong>{i + 1}. {String(o.structure ?? "cash").replace(/_/g, " ")}</strong>{o.attorneyReviewRequired ? <> <Sev kind="warn">attorney review</Sev></> : null}</div>
+                    {(o.buyer?.cashInDeal != null || o.capGains?.sellerBenefit != null) && (
+                      <div style={{ marginTop: 3, fontSize: 11, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {o.buyer?.cashInDeal != null && (
+                          <span style={{ color: "var(--text-secondary)" }}>💵 cash in deal <strong style={{ color: "var(--text-primary)" }}>${Math.round(o.buyer.cashInDeal).toLocaleString()}</strong></span>
+                        )}
+                        {o.capGains?.sellerBenefit != null && o.capGains.sellerBenefit > 0 && (
+                          <span style={{ color: "var(--text-secondary)" }}>🧾 defers ~<strong style={{ color: "var(--positive)" }}>${Math.round(o.capGains.sellerBenefit).toLocaleString()}</strong> seller cap-gains tax vs a cash sale</span>
+                        )}
+                        {o.capGains?.recaptureTax != null && o.capGains.recaptureTax > 0 && (
+                          <span className="muted" title="Modeled from an assumed 80% improvement basis / 27.5-yr straight-line schedule — verify against the seller's actual depreciation.">(~${Math.round(o.capGains.recaptureTax).toLocaleString()} recapture still owed at close · modeled)</span>
+                        )}
+                      </div>
+                    )}
+                    {o.sellerPitch && <div className="muted" style={{ marginTop: 2 }}>{o.sellerPitch}</div>}
+                    {o.legalGuardrail && <div style={{ marginTop: 4, fontSize: 11, color: "var(--warn)" }}>⚖️ {o.legalGuardrail}</div>}
+                  </div>
+                ))}
+                {financing.suppressed && financing.suppressed.length > 0 && (
+                  <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+                    Suppressed: {financing.suppressed.map((s) => String(s.structure).replace(/_/g, " ")).join(", ")} (don&apos;t fit).
+                  </div>
+                )}
+              </Section>
+            )}
+
+            <Section title="Interrogate this deal (Pace structures · Grant challenges)">
+              {!interro && (
+                <button onClick={interrogate} disabled={loadingInterro} className="btn-primary">
+                  {loadingInterro ? "Interrogating…" : "🔎 Interrogate this deal"}
+                </button>
+              )}
+              {interro?.error && <div style={{ color: "var(--critical)", fontSize: 12 }}>⚠️ {interro.error}</div>}
+              {interro?.review && (
+                <div style={{ fontSize: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div><strong>🔨 Pace (structure):</strong> <span style={{ color: "var(--text-secondary)" }}>{interro.review.pace.proposal}</span></div>
+                  <div>
+                    <strong>🔎 Grant (challenges):</strong>
+                    <ul style={{ margin: "4px 0", paddingLeft: 18 }}>
+                      {interro.review.grant.challenges.map((c, i) => (
+                        <li key={i} style={{ color: c.severity === "high" ? "var(--critical)" : c.severity === "medium" ? "var(--warn)" : "var(--text-secondary)" }}>
+                          [{c.severity}] {c.concern}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div style={{ padding: 9, borderRadius: "var(--radius-sm)",
+                    background: interro.review.synthesis.verdict === "needs_more_diligence" ? "var(--critical-wash)" : interro.review.synthesis.verdict === "proceed_with_caution" ? "var(--warn-wash)" : "var(--positive-wash)" }}>
+                    <strong>⚖️ {interro.review.synthesis.verdict.replace(/_/g, " ").toUpperCase()}</strong>
+                    <div style={{ marginTop: 2, color: "var(--text-secondary)" }}>{interro.review.synthesis.recommendation}</div>
+                    {interro.review.synthesis.openRisks.length > 0 && (
+                      <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+                        {interro.review.synthesis.openRisks.map((r, i) => <li key={i} className="muted">{r}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                  <details>
+                    <summary style={{ cursor: "pointer", color: "var(--text-secondary)" }}>Q&amp;A diligence ({interro.review.interrogation.length})</summary>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+                      {interro.review.interrogation.map((q, i) => (
+                        <div key={i}>
+                          <div style={{ fontWeight: 600 }}>{q.status === "needs_data" ? "○" : "●"} {q.question}</div>
+                          <div className="muted">{q.answer}{q.citations.length ? ` [${q.citations.join(", ")}]` : ""}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <div className="muted" style={{ fontSize: 11 }}>Distilled personas from a cited source — informational, not legal/financial advice or the real person.</div>
                 </div>
               )}
             </Section>
-          )}
 
-          <Section title="Interrogate this deal (Pace structures · Grant challenges)">
-            {!interro && (
-              <button onClick={interrogate} disabled={loadingInterro}
-                style={{ padding: "6px 12px", border: "1px solid #0f172a", background: "#0f172a", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                {loadingInterro ? "Interrogating…" : "🔎 Interrogate this deal"}
+            {exitMenu.ranked && exitMenu.ranked.length > 0 && (
+              <Section title="Exit-strategy menu (ranked, spec 019)">
+                <div className="muted" style={{ marginBottom: 4 }}>Recommended: <strong>{String(d.recommended_exit_strategy ?? "—").replace(/_/g, " ")}</strong></div>
+                {exitMenu.ranked.map((s, i) => (
+                  <div key={i}>
+                    <Row k={`${i + 1}. ${s.strategy.replace(/_/g, " ")}${s.rentBasis === "hud_fmr" ? " (HUD FMR)" : ""}`} v={`${pct(s.cashOnCash)} CoC`} />
+                    {s.guardrail && <div style={{ fontSize: 11, color: "var(--warn)", marginBottom: 4 }}>⚖️ {s.guardrail}</div>}
+                  </div>
+                ))}
+                {exitMenu.excluded && exitMenu.excluded.length > 0 && (
+                  <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Excluded: {exitMenu.excluded.map((e) => e.strategy).join(", ")}</div>
+                )}
+                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Per-strategy rents are modeled multipliers; Section 8 uses the real HUD FMR floor.</div>
+              </Section>
+            )}
+
+            {hbu.ranked && hbu.ranked.length > 0 && (
+              <Section title="Best use of the dirt (HBU, spec 020)">
+                <Row k="Recommended use" v={String(d.recommended_use ?? "—")} />
+                {hbu.landSharePct != null && <Row k="Land share" v={`${Number(hbu.landSharePct).toFixed(0)}%`} />}
+                {hbu.ranked.map((u, i) => (
+                  <Row key={i} k={u.use} v={`${pct(u.annualizedReturn)}/yr${u.upsideVsHold > 0 ? ` (+${pct(u.upsideVsHold)} vs hold)` : ""}`} />
+                ))}
+                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>modeled screening estimate — not an appraisal</div>
+              </Section>
+            )}
+
+            {!owner && (
+              <button onClick={loadOwner} disabled={loadingOwner} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 12 }}>
+                {loadingOwner ? "Looking up…" : "👤 Who is this owner? (portfolio + research)"}
               </button>
             )}
-            {interro?.error && <div style={{ color: "#b91c1c", fontSize: 12 }}>⚠️ {interro.error}</div>}
-            {interro?.review && (
-              <div style={{ fontSize: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-                <div><strong>🔨 Pace (structure):</strong> {interro.review.pace.proposal}</div>
-                <div>
-                  <strong>🔎 Grant (challenges):</strong>
-                  <ul style={{ margin: "4px 0", paddingLeft: 18 }}>
-                    {interro.review.grant.challenges.map((c, i) => (
-                      <li key={i} style={{ color: c.severity === "high" ? "#b91c1c" : c.severity === "medium" ? "#b45309" : "#475569" }}>
-                        [{c.severity}] {c.concern}
-                      </li>
-                    ))}
-                  </ul>
+            {owner && (
+              <Section title="Owner intelligence">
+                <div style={{ fontWeight: 600 }}>{owner.owner.name ?? "—"} <span className="muted">({owner.owner.entity_type ?? "?"}{owner.owner.is_absentee ? " · absentee" : ""})</span></div>
+                <div style={{ margin: "6px 0", padding: "7px 9px", background: "var(--accent-wash)", borderRadius: "var(--radius-sm)" }}>
+                  Owns <strong>{owner.portfolio.count}</strong> parcel(s) worth <strong>{usd(owner.portfolio.totalValue)}</strong>
+                  {owner.portfolio.count > 1 ? " — a portfolio seller." : "."}{" "}
+                  {owner.portfolio.byRoomLegal} by-room-legal · {owner.portfolio.distressCount} with distress.
                 </div>
-                <div style={{ padding: 8, background: interro.review.synthesis.verdict === "needs_more_diligence" ? "#fef2f2" : interro.review.synthesis.verdict === "proceed_with_caution" ? "#fffbeb" : "#f0fdf4", borderRadius: 6 }}>
-                  <strong>⚖️ {interro.review.synthesis.verdict.replace(/_/g, " ").toUpperCase()}</strong>
-                  <div style={{ marginTop: 2 }}>{interro.review.synthesis.recommendation}</div>
-                  {interro.review.synthesis.openRisks.length > 0 && (
-                    <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
-                      {interro.review.synthesis.openRisks.map((r, i) => <li key={i} className="muted">{r}</li>)}
-                    </ul>
-                  )}
-                </div>
-                <details>
-                  <summary style={{ cursor: "pointer", color: "#475569" }}>Q&amp;A diligence ({interro.review.interrogation.length})</summary>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
-                    {interro.review.interrogation.map((q, i) => (
-                      <div key={i}>
-                        <div style={{ fontWeight: 600 }}>{q.status === "needs_data" ? "○" : "●"} {q.question}</div>
-                        <div className="muted">{q.answer}{q.citations.length ? ` [${q.citations.join(", ")}]` : ""}</div>
-                      </div>
+                {owner.portfolio.count > 1 && (
+                  <div style={{ fontSize: 12, marginBottom: 6 }}>
+                    {owner.portfolio.parcels.slice(0, 6).map((p, i) => (
+                      <div key={i} className="muted">• {p.address ?? p.apn} ({usd(p.est_market_value)}){p.distress ? " ⚠️" : ""}</div>
                     ))}
                   </div>
-                </details>
-                <div className="muted" style={{ fontSize: 11 }}>Distilled personas from a cited source — informational, not legal/financial advice or the real person.</div>
-              </div>
+                )}
+                {owner.situation && (
+                  <div style={{ margin: "6px 0", padding: "8px 10px", background: "var(--warn-wash)", borderRadius: "var(--radius-sm)", fontSize: 12.5 }}>
+                    <div><strong>Their likely situation:</strong> {owner.situation.situation}</div>
+                    <div style={{ marginTop: 4 }}><strong>How to approach:</strong> {owner.situation.approach}</div>
+                    <div style={{ marginTop: 4 }} className="muted">Best play: <strong>{owner.situation.bestPlay.replace(/_/g, " ")}</strong> · tone: {owner.situation.tone}</div>
+                  </div>
+                )}
+                {owner.contact && (owner.contact.phones?.length || owner.contact.emails?.length) && (
+                  <div style={{ fontSize: 12, marginBottom: 4 }}>
+                    📞 {(owner.contact.phones ?? []).join(", ") || "—"} · ✉️ {(owner.contact.emails ?? []).join(", ") || "—"}
+                  </div>
+                )}
+                <div style={{ fontSize: 12 }}>Research (no scraping — you click): {owner.links.map((l, i) => (
+                  <a key={i} href={l.url} target="_blank" rel="noreferrer" style={{ marginRight: 8, textDecoration: "underline" }}>{l.label}</a>
+                ))}</div>
+                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+                  {owner.intel.length > 0 ? `Enriched: ${owner.intel.map((x) => x.source).join(", ")}.` : "Contact/skip-trace enrichment lights up when a vendor key is added. Not a consumer report."}
+                </div>
+              </Section>
             )}
-          </Section>
 
-          {exitMenu.ranked && exitMenu.ranked.length > 0 && (
-            <Section title="Exit-strategy menu (ranked, spec 019)">
-              <div className="muted" style={{ marginBottom: 4 }}>Recommended: <strong>{String(d.recommended_exit_strategy ?? "—").replace(/_/g, " ")}</strong></div>
-              {exitMenu.ranked.map((s, i) => (
-                <div key={i}>
-                  <Row k={`${i + 1}. ${s.strategy.replace(/_/g, " ")}${s.rentBasis === "hud_fmr" ? " (HUD FMR)" : ""}`} v={`${pct(s.cashOnCash)} CoC`} />
-                  {s.guardrail && <div style={{ fontSize: 11, color: "#7c2d12", marginBottom: 4 }}>⚖️ {s.guardrail}</div>}
-                </div>
-              ))}
-              {exitMenu.excluded && exitMenu.excluded.length > 0 && (
-                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Excluded: {exitMenu.excluded.map((e) => e.strategy).join(", ")}</div>
-              )}
-              <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Per-strategy rents are modeled multipliers; Section 8 uses the real HUD FMR floor.</div>
-            </Section>
-          )}
-
-          {hbu.ranked && hbu.ranked.length > 0 && (
-            <Section title="Best use of the dirt (HBU, spec 020)">
-              <Row k="Recommended use" v={String(d.recommended_use ?? "—")} />
-              {hbu.landSharePct != null && <Row k="Land share" v={`${Number(hbu.landSharePct).toFixed(0)}%`} />}
-              {hbu.ranked.map((u, i) => (
-                <Row key={i} k={u.use} v={`${pct(u.annualizedReturn)}/yr${u.upsideVsHold > 0 ? ` (+${pct(u.upsideVsHold)} vs hold)` : ""}`} />
-              ))}
-              <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>modeled screening estimate — not an appraisal</div>
-            </Section>
-          )}
-
-          {!owner && (
-            <button onClick={loadOwner} disabled={loadingOwner} style={{ width: "100%", padding: "7px", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, marginTop: 12 }}>
-              {loadingOwner ? "Looking up…" : "👤 Who is this owner? (portfolio + research)"}
+            <button onClick={loadFull} disabled={loadingMd} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 12 }}>
+              {loadingMd ? "Generating…" : "📄 View full cited dossier (HUD floor, sensitivity, citations)"}
             </button>
-          )}
-          {owner && (
-            <Section title="Owner intelligence">
-              <div style={{ fontWeight: 600 }}>{owner.owner.name ?? "—"} <span className="muted">({owner.owner.entity_type ?? "?"}{owner.owner.is_absentee ? " · absentee" : ""})</span></div>
-              <div style={{ margin: "6px 0", padding: "6px 8px", background: "#eff6ff", borderRadius: 6 }}>
-                Owns <strong>{owner.portfolio.count}</strong> parcel(s) worth <strong>{usd(owner.portfolio.totalValue)}</strong>
-                {owner.portfolio.count > 1 ? " — a portfolio seller." : "."}{" "}
-                {owner.portfolio.byRoomLegal} by-room-legal · {owner.portfolio.distressCount} with distress.
-              </div>
-              {owner.portfolio.count > 1 && (
-                <div style={{ fontSize: 12, marginBottom: 6 }}>
-                  {owner.portfolio.parcels.slice(0, 6).map((p, i) => (
-                    <div key={i} className="muted">• {p.address ?? p.apn} ({usd(p.est_market_value)}){p.distress ? " ⚠️" : ""}</div>
-                  ))}
-                </div>
-              )}
-              {owner.situation && (
-                <div style={{ margin: "6px 0", padding: "8px 10px", background: "#fefce8", borderRadius: 6, fontSize: 12.5 }}>
-                  <div><strong>Their likely situation:</strong> {owner.situation.situation}</div>
-                  <div style={{ marginTop: 4 }}><strong>How to approach:</strong> {owner.situation.approach}</div>
-                  <div style={{ marginTop: 4 }} className="muted">Best play: <strong>{owner.situation.bestPlay.replace(/_/g, " ")}</strong> · tone: {owner.situation.tone}</div>
-                </div>
-              )}
-              {owner.contact && (owner.contact.phones?.length || owner.contact.emails?.length) && (
-                <div style={{ fontSize: 12, marginBottom: 4 }}>
-                  📞 {(owner.contact.phones ?? []).join(", ") || "—"} · ✉️ {(owner.contact.emails ?? []).join(", ") || "—"}
-                </div>
-              )}
-              <div style={{ fontSize: 12 }}>Research (no scraping — you click): {owner.links.map((l, i) => (
-                <a key={i} href={l.url} target="_blank" rel="noreferrer" style={{ marginRight: 8, textDecoration: "underline" }}>{l.label}</a>
-              ))}</div>
-              <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
-                {owner.intel.length > 0 ? `Enriched: ${owner.intel.map((x) => x.source).join(", ")}.` : "Contact/skip-trace enrichment lights up when a vendor key is added. Not a consumer report."}
-              </div>
-            </Section>
-          )}
+            {dossierMd && <pre style={{ background: "var(--bg-base)", border: "1px solid var(--border-soft)", padding: 10, borderRadius: "var(--radius-sm)", fontSize: 11, overflowX: "auto", marginTop: 8, whiteSpace: "pre-wrap", color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>{dossierMd}</pre>}
 
-          <button onClick={loadFull} disabled={loadingMd} style={{ width: "100%", padding: "7px", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, marginTop: 12 }}>
-            {loadingMd ? "Generating…" : "📄 View full cited dossier (HUD floor, sensitivity, citations)"}
-          </button>
-          {dossierMd && <pre style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: 10, borderRadius: 6, fontSize: 11, overflowX: "auto", marginTop: 8, whiteSpace: "pre-wrap" }}>{dossierMd}</pre>}
-
-          <div className="muted" style={{ marginTop: 14, fontSize: 11 }}>Informational, not legal or financial advice.</div>
-        </>
-      )}
-      {d?.error ? <p className="muted">Not found.</p> : null}
+            <div className="disclaimer" style={{ marginTop: 14 }}>Informational, not legal or financial advice.</div>
+          </>
+        )}
+        {d?.error ? <p className="muted">Not found.</p> : null}
+      </div>
     </div>
   );
 }
 
 function Stat({ label, value, big }: { label: string; value: string; big?: boolean }) {
-  return <div><div className="muted" style={{ fontSize: 11 }}>{label}</div>
-    <div style={{ fontSize: big ? 20 : 15, fontWeight: 700 }}>{value}</div></div>;
+  return <div><div className="muted" style={{ fontSize: 11, color: "var(--text-secondary)" }}>{label}</div>
+    <div style={{ font: big ? "var(--text-stat)" : "var(--text-body-md)", color: "var(--text-primary)", fontWeight: 700 }}>{value}</div></div>;
 }
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div style={{ marginTop: 14 }}>
-    <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", marginBottom: 6, fontWeight: 700 }}>{title}</div>
-    {children}</div>;
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return <div className="section"><Eyebrow>{title}</Eyebrow>{children}</div>;
 }
 function Row({ k, v }: { k: string; v: string }) {
-  return <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
-    <span className="muted">{k}</span><span style={{ textAlign: "right" }}>{v}</span></div>;
+  return <div className="kv"><span className="k">{k}</span><span className="v">{v}</span></div>;
 }

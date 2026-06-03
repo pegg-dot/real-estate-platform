@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { ReactNode } from "react";
+import TopNav from "./TopNav";
 
 export const metadata = {
   title: "LOT — Land of Opportunity Terminal",
@@ -9,27 +10,12 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        {/* Tabler icon webfont (design system uses `ti ti-*`). Fonts (Newsreader/Hanken) load via tokens.css. */}
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+      </head>
       <body>
-        <nav>
-          <a href="/" className="brand">LOT</a>
-          <a href="/agent">🤖 Agent</a>
-          <a href="/ask">💬 Ask</a>
-          <a href="/brief">Brief</a>
-          <a href="/portfolio">Portfolio</a>
-          <a href="/map">Map</a>
-          <a href="/leads">Leads</a>
-          <a href="/deals">Pipeline</a>
-          <a href="/thesis">Thesis</a>
-          <a href="/playbook">Playbook</a>
-          <span className="muted" style={{ opacity: 0.4 }}>·</span>
-          <a href="/changes">Changes</a>
-          <a href="/radar">Radar</a>
-          <a href="/learn">Learn</a>
-          <a href="/rents">Rents</a>
-          <a href="/outreach">Outreach</a>
-          <a href="/settings">⚙️ Settings</a>
-          <span className="muted" style={{ marginLeft: "auto" }}>Charlottesville · preview</span>
-        </nav>
+        <TopNav />
         {children}
       </body>
     </html>
