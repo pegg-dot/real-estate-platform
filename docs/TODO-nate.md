@@ -111,6 +111,13 @@
       insurance quotes, and condo SIRS data (Miami risk is first-class — golden rule #3).
 
 ## 🔭 Future (Phase 4+, not needed yet)
+- [ ] **Adaptive / per-person scoring** (post-v1 upgrade to multi-user, spec 026). Today the
+      underlying scored-parcel dataset stays **shared** — it's the same ~13k Charlottesville parcels,
+      scored once against one canonical thesis. Making it **adaptive** (each person's parcels scored
+      against *their own* thesis, and the scores re-learning from *their* advance/pass decisions via
+      the LEARN loop) means re-scoring all ~13k parcels per-person and per-thesis-change — a heavy
+      compute + storage upgrade (per-user `property_score` rows / a scoring queue). Worth it once
+      multiple users are active with diverging buy-boxes; not needed for v1.
 - [ ] Direct-mail vendor for outreach (when the Sourcing agent ships).
 - [x] Mapbox token (already in `.env`) — for the future map UI (spec 005).
 
