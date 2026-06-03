@@ -41,6 +41,7 @@
     "flipHorizonYears": 1,
     "flipMaxYearBuilt": 1975,
     "saleCostRate": 0.10,
+    "holdingCostRate": 0.04,
     "wholesaleSpreadRate": 0.05,
     "wholesaleEnabled": false,
     "minViablePrice": 50000,

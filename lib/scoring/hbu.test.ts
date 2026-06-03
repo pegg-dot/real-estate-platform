@@ -72,6 +72,20 @@ describe("highestAndBestUse", () => {
     expect(out.excluded.find((e) => e.use === "develop")!.reason).toMatch(/current density|no added/i);
   });
 
+  it("computes the develop/flip return as an annualized IRR over a carry-laden schedule", () => {
+    const out = highestAndBestUse(landHeavy({ yearBuilt: 1968 }), A, { management_appetite: 0.9 });
+    const dev = out.ranked.find((r) => r.use === "develop")!;
+    // the modeled return IS the IRR, the schedule spans the horizon in months, and carry is a real cost
+    expect(dev.annualizedReturn).toBe(dev.detail.irrAnnual);
+    expect(dev.detail.horizonMonths).toBe(24);              // 2-year develop horizon
+    expect(dev.detail.carry).toBeGreaterThan(0);
+    // carry erodes profit below the no-carry value-created spread (valueCreated - cost)
+    expect(dev.detail.profit!).toBeLessThan(dev.detail.valueCreated! - dev.detail.cost!);
+    const flip = out.ranked.find((r) => r.use === "flip")!;
+    expect(flip.annualizedReturn).toBe(flip.detail.irrAnnual);
+    expect(flip.detail.horizonMonths).toBe(12);             // 1-year flip horizon
+  });
+
   it("flags the HBU economics as modeled and carries the caveat (never asserts a real return)", () => {
     const out = highestAndBestUse(landHeavy(), A, { management_appetite: 0.9 });
     expect(out.confidence).toBe("modeled");

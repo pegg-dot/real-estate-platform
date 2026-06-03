@@ -9,10 +9,14 @@
  * machine-readable gate reason for each excluded way.
  *
  * Pure + deterministic. The develop/flip numbers are MODELED (build cost, ARV, stabilized value
- * are config) and one-time returns are annualized over a config horizon so they compare to hold's
- * annual cash-on-cash — carry that provenance upstream. Zoning capacity is a gate, never assumed:
+ * are config) and returns are computed as an IRR over a monthly cash-flow schedule — staged
+ * construction/rehab draws + monthly carry vs the exit value — then annualized so they compare to
+ * hold's annual cash-on-cash. That makes timing matter (capital tied up longer earns a lower IRR
+ * than the old profit/basis/years proxy implied). Zoning capacity is a gate, never assumed:
  * unknown capacity excludes develop rather than inventing density.
  */
+import { irrAnnualizedFromMonthly } from "./irr.js";
+
 export type Use = "hold" | "flip" | "develop" | "wholesale";
 
 export interface HbuInput {
@@ -36,6 +40,7 @@ export interface HbuAssumptions {
   flipHorizonYears: number;
   flipMaxYearBuilt: number;             // built on/before this => "dated", a flip candidate
   saleCostRate: number;                 // cost to sell (~0.10)
+  holdingCostRate?: number;             // annual carry (taxes/insurance/interest) as a fraction of basis while building/rehabbing; default ~0.04
   wholesaleSpreadRate: number;          // assignment spread as a fraction of price
   wholesaleEnabled: boolean;            // wholesaling is not buy-and-hold; off by default for a holder
   minViablePrice: number;               // below this, value is a data artifact / vacant lot -> don't model develop/flip
@@ -60,14 +65,44 @@ export interface HbuResult {
   note: string;                              // the honesty caveat that travels with the output
 }
 
-// Develop/flip returns are MODELED off config (build cost / ARV / stabilized value) and are
-// annualized SCREENING PROXIES — not IRRs and not appraisals. They flag "worth a closer look",
-// never "this is the return". This caveat is persisted with every HBU result (golden rule #4).
+// Develop/flip returns are MODELED off config (build cost / ARV / stabilized value). The IRR is a
+// pro-forma over a modeled draw schedule — it flags "worth a closer look", never "this is the
+// return" (it's not an appraisal). This caveat is persisted with every HBU result (golden rule #4).
 const HBU_NOTE =
-  "Modeled screening estimate (build cost / ARV / stabilized value are config, annualized — " +
-  "not an IRR or appraisal). Develop/flip on possibly-stale assessed values; verify before acting.";
+  "Modeled pro-forma (annualized IRR over staged build/rehab draws + carry; build cost / ARV / " +
+  "stabilized value are config, not an appraisal). Develop/flip on possibly-stale assessed values; verify before acting.";
+
+const DEFAULT_HOLDING_COST_RATE = 0.04;   // annual carry while building/rehabbing, as a fraction of basis
 
 const clamp = (x: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
+
+/**
+ * Annualized IRR for a one-time play (develop or flip), modeled as a monthly cash-flow schedule:
+ * basis out at t0, staged work draws (+ carry) over the first `workFraction` of the horizon,
+ * carry every month, and the exit value as a single inflow at the end. Falls back to the old
+ * profit/basis/years proxy if the IRR can't be solved (degenerate schedule), and is clamped to a
+ * sane band so a near-zero-basis edge case can't surface an absurd return. Returns the rate plus
+ * the modeled net profit + carry for the detail blob.
+ */
+function annualizedReturnViaIrr(opts: {
+  basis: number; workCost: number; workFraction: number; horizonYears: number;
+  carryRate: number; exitInflow: number;
+}): { annualized: number; profit: number; carryTotal: number; months: number } {
+  const months = Math.max(1, Math.round(opts.horizonYears * 12));
+  const workMonths = Math.max(1, Math.min(months, Math.round(months * opts.workFraction)));
+  const carryMonthly = opts.basis * opts.carryRate / 12;
+  const cf = new Array<number>(months + 1).fill(0);
+  cf[0] = -opts.basis;
+  for (let t = 1; t <= months; t++) cf[t] = (cf[t] ?? 0) - carryMonthly;            // carry every month held
+  for (let t = 1; t <= workMonths; t++) cf[t] = (cf[t] ?? 0) - opts.workCost / workMonths;  // staged draws
+  cf[months] = (cf[months] ?? 0) + opts.exitInflow;                                 // exit value realized at the end
+  const carryTotal = carryMonthly * months;
+  const profit = opts.exitInflow - opts.basis - opts.workCost - carryTotal;
+  const fallback = (profit / (opts.basis + opts.workCost)) / Math.max(1, opts.horizonYears);
+  const irr = irrAnnualizedFromMonthly(cf);
+  const annualized = clamp(irr ?? fallback, -0.99, 5);
+  return { annualized, profit, carryTotal, months };
+}
 
 /**
  * Development is a different *business* than passive holding, so the thesis penalty is steeper
@@ -122,9 +157,18 @@ export function highestAndBestUse(
     } else {
       const cost = addedUnits * a.buildCostPerUnit;
       const valueCreated = addedUnits * a.stabilizedValuePerUnit;
-      const profit = valueCreated - cost;
-      const ret = (profit / (input.price + cost)) / Math.max(1, a.developHorizonYears);
-      add("develop", ret, { addedUnits, cost, valueCreated, profit, landShare });
+      // Build-to-hold: at stabilization the asset is worth basis + value created and that equity is
+      // realized (refi/hold), so no broker sale cost on the develop exit. Construction draws over
+      // ~60% of the horizon (the rest is lease-up/stabilization), with carry the whole way.
+      const carryRate = a.holdingCostRate ?? DEFAULT_HOLDING_COST_RATE;
+      const r = annualizedReturnViaIrr({
+        basis: input.price, workCost: cost, workFraction: 0.6,
+        horizonYears: a.developHorizonYears, carryRate, exitInflow: input.price + valueCreated,
+      });
+      add("develop", r.annualized, {
+        addedUnits, cost, valueCreated, profit: r.profit, carry: r.carryTotal,
+        irrAnnual: r.annualized, horizonMonths: r.months, landShare,
+      });
     }
   }
 
@@ -138,9 +182,16 @@ export function highestAndBestUse(
   } else {
     const arv = input.price * (1 + a.flipArvUplift);
     const rehab = input.price * a.flipRehabRate;
-    const profit = arv - input.price - rehab - arv * a.saleCostRate;
-    const ret = (profit / (input.price + rehab)) / Math.max(1, a.flipHorizonYears);
-    add("flip", ret, { arv, rehab, profit });
+    // A flip IS sold, so the exit nets the broker/closing cost. Rehab draws over the first ~half of
+    // the (short) horizon, carry runs the whole hold.
+    const carryRate = a.holdingCostRate ?? DEFAULT_HOLDING_COST_RATE;
+    const r = annualizedReturnViaIrr({
+      basis: input.price, workCost: rehab, workFraction: 0.5,
+      horizonYears: a.flipHorizonYears, carryRate, exitInflow: arv * (1 - a.saleCostRate),
+    });
+    add("flip", r.annualized, {
+      arv, rehab, profit: r.profit, carry: r.carryTotal, irrAnnual: r.annualized, horizonMonths: r.months,
+    });
   }
 
   // --- WHOLESALE: assign the contract for a spread. Not buy-and-hold, so off unless the thesis
