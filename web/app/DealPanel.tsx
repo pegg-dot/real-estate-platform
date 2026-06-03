@@ -3,7 +3,7 @@
    ALL data wiring preserved (dossier, financing, interrogate, exit menu, HBU, owner intel, dossier
    md). LOT-DECISION rule#1: visual-only restyle — every fetch/handler/field is unchanged. */
 import { useEffect, useState, type ReactNode } from "react";
-import { Score, Sev, Eyebrow, tierOf } from "./ui";
+import { Score, Sev, Eyebrow, tierOf, barColor } from "./ui";
 
 const usd = (n: unknown) => (typeof n === "number" || (typeof n === "string" && n !== "")
   ? `$${Math.round(Number(n)).toLocaleString()}` : "—");
@@ -135,7 +135,7 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
             </button>
             {trackMsg && <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{trackMsg} <a href="/deals">→ Pipeline</a></div>}
 
-            <Section title="Snapshot (real)">
+            <Section title="Snapshot" badge={<Sev kind="ok">real</Sev>}>
               <Row k="Assessed value" v={usd(d.est_market_value)} />
               <Row k="Beds" v={d.beds != null ? String(d.beds) : "unknown"} />
               <Row k="Owner" v={`${String(d.owner_name ?? "—")} (${String(d.owner_entity_type ?? "?")})${d.is_absentee ? " · absentee" : ""}`} />
@@ -144,9 +144,18 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
             </Section>
 
             <Section title="Score breakdown">
-              {Object.entries(components).map(([k, c]) => (
-                <Row key={k} k={k.replace(/_/g, " ")} v={`${(c.weight * 100).toFixed(0)}% → ${c.weighted >= 0 ? "+" : ""}${c.weighted.toFixed(1)}`} />
-              ))}
+              {Object.entries(components).map(([k, c]) => {
+                const neg = c.weighted < 0;                                  // risk penalty
+                const raw = c.weight !== 0 ? Math.max(0, Math.min(100, c.weighted / c.weight)) : 0; // 0–100 component score
+                const pct = neg ? Math.min(100, Math.abs(c.weighted) * 4) : raw;
+                return (
+                  <div key={k} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 5 }}>
+                    <span style={{ fontSize: 12, color: "var(--text-secondary)", width: 116, flex: "none" }}>{k.replace(/_/g, " ")}</span>
+                    <span className="bar-track"><span className="bar-fill" style={{ width: `${pct}%`, background: neg ? "var(--critical)" : barColor(k, raw) }} /></span>
+                    <span className="mono" style={{ fontSize: 10.5, width: 50, textAlign: "right", color: "var(--text-tertiary)" }}>{neg ? "" : "+"}{c.weighted.toFixed(1)}</span>
+                  </div>
+                );
+              })}
             </Section>
 
             {distress.length > 0 && (
@@ -156,7 +165,7 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
             )}
 
             {financing.recommended && financing.recommended.length > 0 && (
-              <Section title="Financing (ranked)">
+              <Section title="Financing (ranked)" badge={<Sev kind="warn">modeled</Sev>}>
                 {financing.recommended.map((o, i) => (
                   <div key={i} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: i < financing.recommended!.length - 1 ? "1px solid var(--border-soft)" : "none" }}>
                     <div><strong>{i + 1}. {String(o.structure ?? "cash").replace(/_/g, " ")}</strong>{o.attorneyReviewRequired ? <> <Sev kind="warn">attorney review</Sev></> : null}</div>
@@ -232,7 +241,7 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
             </Section>
 
             {exitMenu.ranked && exitMenu.ranked.length > 0 && (
-              <Section title="Exit-strategy menu (ranked, spec 019)">
+              <Section title="Exit-strategy menu (ranked, spec 019)" badge={<Sev kind="warn">modeled</Sev>}>
                 <div className="muted" style={{ marginBottom: 4 }}>Recommended: <strong>{String(d.recommended_exit_strategy ?? "—").replace(/_/g, " ")}</strong></div>
                 {exitMenu.ranked.map((s, i) => (
                   <div key={i}>
@@ -248,7 +257,7 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
             )}
 
             {hbu.ranked && hbu.ranked.length > 0 && (
-              <Section title="Best use of the dirt (HBU, spec 020)">
+              <Section title="Best use of the dirt (HBU, spec 020)" badge={<Sev kind="warn">modeled</Sev>}>
                 <Row k="Recommended use" v={String(d.recommended_use ?? "—")} />
                 {hbu.landSharePct != null && <Row k="Land share" v={`${Number(hbu.landSharePct).toFixed(0)}%`} />}
                 {hbu.ranked.map((u, i) => (
@@ -317,8 +326,11 @@ function Stat({ label, value, big }: { label: string; value: string; big?: boole
   return <div><div className="muted" style={{ fontSize: 11, color: "var(--text-secondary)" }}>{label}</div>
     <div style={{ font: big ? "var(--text-stat)" : "var(--text-body-md)", color: "var(--text-primary)", fontWeight: 700 }}>{value}</div></div>;
 }
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return <div className="section"><Eyebrow>{title}</Eyebrow>{children}</div>;
+function Section({ title, badge, children }: { title: string; badge?: ReactNode; children: ReactNode }) {
+  return <div className="section">
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}><Eyebrow>{title}</Eyebrow>{badge}</div>
+    {children}
+  </div>;
 }
 function Row({ k, v }: { k: string; v: string }) {
   return <div className="kv"><span className="k">{k}</span><span className="v">{v}</span></div>;

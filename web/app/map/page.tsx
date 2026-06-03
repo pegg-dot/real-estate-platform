@@ -44,6 +44,7 @@ export default function MapPage() {
   const [filterMsg, setFilterMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [fc, setFc] = useState<typeof EMPTY>(EMPTY);
+  const [changes, setChanges] = useState<Array<{ change_type: string; severity: string; address: string | null; apn: string }>>([]);
 
   const dataUrl = `/api/parcels?${filterQs ? filterQs + "&" : ""}lens=${lens}${developOnly ? "&developOnly=true" : ""}`;
 
@@ -57,6 +58,13 @@ export default function MapPage() {
       .catch((e) => { if ((e as Error).name !== "AbortError") setFc(EMPTY); });
     return () => ac.abort();
   }, [dataUrl]);
+
+  // the weekly Scout diff for the rail's "what changed" feed (the change-feed rail from the kit)
+  useEffect(() => {
+    let live = true;
+    fetch("/api/changes").then((r) => r.json()).then((j) => { if (live) setChanges(j?.changes ?? []); }).catch(() => {});
+    return () => { live = false; };
+  }, []);
 
   const onClick = useCallback((e: MapLayerMouseEvent) => {
     const f = e.features?.[0];
@@ -143,6 +151,17 @@ export default function MapPage() {
           </div>
           <div className="lyr dim"><span className="lk"><span className="dotc" style={{ background: "var(--positive)" }} /> By-room legal zone</span><span className="mono" style={{ fontSize: 10 }}>pending</span></div>
           <div className="lyr dim"><span className="lk"><span className="dotc" style={{ background: "var(--landmark)" }} /> Off-market leads</span><span className="mono" style={{ fontSize: 10 }}>pending</span></div>
+        </div>
+
+        <div className="card">
+          <h3><i className="ti ti-rss" /> What changed</h3>
+          {changes.length === 0 && <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>No material changes since the last run.</div>}
+          {changes.slice(0, 4).map((c, i) => (
+            <div key={i} className="feed" style={i === 0 ? { borderTop: "none", paddingTop: 0 } : undefined}>
+              <i className="ti ti-point-filled" style={{ color: c.severity === "high" ? "var(--critical)" : c.severity === "notable" ? "var(--warn)" : "var(--text-tertiary)", marginTop: 1 }} />
+              <span>{(c.change_type ?? "").replace(/_/g, " ")} — {c.address ?? c.apn}</span>
+            </div>
+          ))}
         </div>
 
         <div className="card">
