@@ -1,4 +1,5 @@
 "use client";
+/* Pipeline card — restyled to the kit .kanban-card. Visual only; transition wiring preserved. */
 import { useState } from "react";
 
 const NEXT: Record<string, string> = {
@@ -20,18 +21,16 @@ export default function DealCard({ dealId, stage, address, score, structure }:
   const next = NEXT[stage];
   const terminal = stage === "passed" || stage === "exited";
   return (
-    <div style={{ background: "#fff", borderRadius: 6, padding: "6px 8px", marginBottom: 6, fontSize: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}>
-      <div style={{ fontWeight: 600 }}>{address ?? "—"}</div>
-      <div className="muted">{score != null ? `score ${Math.round(Number(score))}` : ""}{structure ? ` · ${structure.replace(/_/g, " ")}` : ""}</div>
+    <div className="kanban-card">
+      <div className="addr">{address ?? "—"}</div>
+      <div className="muted mono" style={{ fontSize: 10.5 }}>{score != null ? `score ${Math.round(Number(score))}` : ""}{structure ? ` · ${structure.replace(/_/g, " ")}` : ""}</div>
       {!terminal && (
-        <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-          {next && <button onClick={() => go({ action: "transition-deal", dealId, toStage: next })} disabled={busy} style={mini}>→ {next.replace(/_/g, " ")}</button>}
-          <button onClick={() => go({ action: "transition-deal", dealId, pass: true })} disabled={busy} style={{ ...mini, color: "#991b1b" }}>pass</button>
+        <div style={{ display: "flex", gap: 6, marginTop: 7 }}>
+          {next && <button onClick={() => go({ action: "transition-deal", dealId, toStage: next })} disabled={busy} className="btn btn-sm">→ {next.replace(/_/g, " ")}</button>}
+          <button onClick={() => go({ action: "transition-deal", dealId, pass: true })} disabled={busy} className="btn btn-sm btn-danger">pass</button>
         </div>
       )}
-      {msg && <div style={{ color: "#991b1b", marginTop: 4, fontSize: 11 }}>{msg}</div>}
+      {msg && <div style={{ color: "var(--critical)", marginTop: 4, fontSize: 11 }}>{msg}</div>}
     </div>
   );
 }
-
-const mini: React.CSSProperties = { padding: "3px 8px", border: "1px solid #cbd5e1", borderRadius: 5, background: "#f8fafc", cursor: "pointer", fontSize: 11, fontWeight: 600 };

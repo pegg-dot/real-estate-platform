@@ -37,29 +37,30 @@ export default function Home() {
   return (
     <div className="page" style={{ maxWidth: 920 }}>
       {autoMsg && (
-        <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 14, textAlign: "center" }}>
+        <div style={{ background: "var(--positive-wash)", border: "1px solid var(--positive)", color: "var(--positive)", borderRadius: "var(--radius-md)", padding: "8px 12px", fontSize: 13, marginBottom: 14, textAlign: "center" }}>
           {autoMsg}
         </div>
       )}
       <div style={{ textAlign: "center", padding: "8px 0 22px" }}>
-        <h1 style={{ fontSize: 28, marginBottom: 6 }}>LOT — your buying machine</h1>
+        <h1 style={{ font: "var(--text-display)", marginBottom: 6 }}>LOT — your buying machine</h1>
         <p className="muted" style={{ fontSize: 15, maxWidth: 600, margin: "0 auto 18px" }}>
           Find, score, and finance buy-and-hold rentals in Charlottesville. New here? Just ask it anything,
           or pick a section below — each one says what it does.
         </p>
-        <form onSubmit={ask} style={{ display: "flex", gap: 8, maxWidth: 560, margin: "0 auto" }}>
+        <form onSubmit={ask} className="composer" style={{ maxWidth: 560 }}>
+          <i className="ti ti-sparkles" aria-hidden />
           <input value={q} onChange={(e) => setQ(e.target.value)}
             placeholder='Ask LOT anything — "what financing fits a tired landlord?"'
-            style={{ flex: 1, padding: "12px 14px", border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 15 }} />
-          <button type="submit" style={{ padding: "12px 22px", border: "none", background: "#0f172a", color: "#fff", borderRadius: 10, cursor: "pointer", fontSize: 15, fontWeight: 600 }}>Ask</button>
+            style={{ fontSize: 15 }} />
+          <button type="submit" className="btn-primary">Ask</button>
         </form>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 12 }}>
         {SECTIONS.map((s) => (
-          <a key={s.href} href={s.href} style={{ display: "block", border: "1px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", transition: "box-shadow .15s" }}
-            onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)")}
-            onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}>
+          <a key={s.href} href={s.href} className="card" style={{ display: "block", transition: "border-color .15s, background .15s" }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--bg-panel-2)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-soft)"; e.currentTarget.style.background = "var(--bg-panel)"; }}>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{s.icon} {s.name}</div>
             <div className="muted" style={{ fontSize: 13, lineHeight: 1.45 }}>{s.desc}</div>
           </a>

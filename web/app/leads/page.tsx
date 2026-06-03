@@ -31,8 +31,8 @@ export default async function LeadsPage() {
   const costPerDeal = f && f.closes > 0 ? `$${Math.round(spend / f.closes).toLocaleString()}` : "—";
 
   return (
-    <div className="page">
-      <h1 style={{ fontSize: 18, marginBottom: 4 }}>Leads — top motivated, by-room-legal owners</h1>
+    <div className="page wide">
+      <div className="screen-head"><h1>Leads</h1><span className="sub">top motivated, by-room-legal owners</span></div>
       <p className="muted" style={{ marginBottom: 14 }}>
         Mailable owners ranked by the STACK score (motivated-seller composite + equity + small-portfolio).
         {leads.length === 0 && " — none yet: run `npm run leads -- --generate`."}
@@ -43,7 +43,7 @@ export default async function LeadsPage() {
         <span style={{ marginLeft: 6 }}>(mail $1 + skip-trace 12¢ per touch — config)</span>
       </div>
       {leads.length > 0 && (
-        <table>
+        <div className="tablewrap"><table>
           <thead><tr><th>Stack</th><th>Property</th><th>Owner</th><th>Motivation → bunny</th><th>Structure</th><th>Channel</th><th>Distress</th><th>Actions</th></tr></thead>
           <tbody>
             {leads.map((l) => (
@@ -55,7 +55,7 @@ export default async function LeadsPage() {
                 <td className="muted">
                   {(l.recommended_structure ?? "—").replace(/_/g, " ")}
                   {l.recommended_structure === "subject_to" && (
-                    <span title="Subject-to carries due-on-sale risk (Garn-St-Germain trust caveat) — see an attorney; never present as risk-free." style={{ color: "#b45309" }}> ⚖️</span>
+                    <span title="Subject-to carries due-on-sale risk (Garn-St-Germain trust caveat) — see an attorney; never present as risk-free." style={{ color: "var(--warn)" }}> ⚖️</span>
                   )}
                   {l.bunny_confidence != null && <span style={{ fontSize: 10 }}> ({Math.round(Number(l.bunny_confidence) * 100)}%)</span>}
                 </td>
@@ -65,7 +65,7 @@ export default async function LeadsPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   );

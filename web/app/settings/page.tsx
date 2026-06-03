@@ -1,4 +1,6 @@
 "use client";
+/* Settings & Run — restyled to the design system (kit SettingsScreen). Visual only; all wiring
+   (/api/automation, /api/config, /api/refresh, /api/rescore, /api/actions) preserved. */
 import { useEffect, useState } from "react";
 
 interface Config { weekly_mail_budget: number; lifetime_mail_cap: number; cooldown_days: number; outreach_enabled: boolean }
@@ -36,13 +38,12 @@ export default function SettingsPage() {
 
   return (
     <div className="page" style={{ maxWidth: 760 }}>
-      <h1 style={{ fontSize: 18, marginBottom: 4 }}>Settings &amp; Run</h1>
-      <p className="muted" style={{ marginBottom: 18 }}>Everything that used to be a terminal command — now a button.</p>
+      <div className="screen-head"><h1>Settings &amp; Run</h1><span className="sub">everything that used to be a terminal command — now a button.</span></div>
 
       {auto && (
         <Section title="Automatic updates">
-          <div style={{ background: auto.autoEnabled ? "#ecfdf5" : "#f8fafc", border: `1px solid ${auto.autoEnabled ? "#a7f3d0" : "#e2e8f0"}`, borderRadius: 8, padding: "12px 14px", width: "100%", maxWidth: 480 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+          <div className="card" style={{ width: "100%", maxWidth: 480, borderColor: auto.autoEnabled ? "var(--positive)" : "var(--border-soft)", background: auto.autoEnabled ? "var(--positive-wash)" : "var(--bg-panel)" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", color: "var(--text-primary)" }}>
               <input type="checkbox" checked={auto.autoEnabled} onChange={(e) => toggleAuto(e.target.checked)} />
               Keep my data fresh automatically
             </label>
@@ -74,26 +75,25 @@ export default function SettingsPage() {
           <Row label="Lifetime contacts per owner"><input type="number" value={cfg.lifetime_mail_cap} onChange={(e) => setCfg({ ...cfg, lifetime_mail_cap: Number(e.target.value) })} style={inp} /></Row>
           <Row label="Cooldown between letters (days)"><input type="number" value={cfg.cooldown_days} onChange={(e) => setCfg({ ...cfg, cooldown_days: Number(e.target.value) })} style={inp} /></Row>
           <Row label="Outreach enabled (kill-switch)"><input type="checkbox" checked={cfg.outreach_enabled} onChange={(e) => setCfg({ ...cfg, outreach_enabled: e.target.checked })} /></Row>
-          <button onClick={saveCfg} disabled={busy === "cfg"} style={primary}>{busy === "cfg" ? "Saving…" : "Save settings"}</button>
+          <button onClick={saveCfg} disabled={busy === "cfg"} className="btn-primary" style={{ marginTop: 6 }}>{busy === "cfg" ? "Saving…" : "Save settings"}</button>
         </Section>
       )}
 
-      {out && <pre style={{ background: "#0f172a", color: "#e2e8f0", padding: 12, borderRadius: 6, fontSize: 12, marginTop: 14, whiteSpace: "pre-wrap" }}>{out.text}</pre>}
+      {out && <pre style={{ background: "var(--bg-chrome)", color: "var(--text-secondary)", padding: 12, borderRadius: "var(--radius-sm)", fontSize: 12, marginTop: 14, whiteSpace: "pre-wrap", fontFamily: "var(--font-mono)", border: "1px solid var(--border-soft)" }}>{out.text}</pre>}
     </div>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return <div style={{ marginBottom: 22 }}>
-    <h2 style={{ fontSize: 14, marginBottom: 10 }}>{title}</h2>
+    <h2 style={{ marginBottom: 10 }}>{title}</h2>
     <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>{children}</div>
   </div>;
 }
 function Btn({ busy, onClick, children }: { busy: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button onClick={onClick} disabled={busy} style={{ padding: "9px 14px", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "left", width: "100%", maxWidth: 480 }}>{busy ? "Running…" : children}</button>;
+  return <button onClick={onClick} disabled={busy} className="btn" style={{ textAlign: "left", width: "100%", maxWidth: 480, justifyContent: "flex-start" }}>{busy ? "Running…" : children}</button>;
 }
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: 360 }}><span className="muted" style={{ fontSize: 13 }}>{label}</span>{children}</div>;
 }
-const inp: React.CSSProperties = { width: 80, padding: "5px 8px", border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 13 };
-const primary: React.CSSProperties = { padding: "8px 16px", border: "none", background: "#0f172a", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, marginTop: 6 };
+const inp: React.CSSProperties = { width: 90, padding: "6px 8px", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)", fontSize: 13, background: "var(--bg-panel)", color: "var(--text-primary)" };

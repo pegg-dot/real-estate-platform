@@ -1,4 +1,6 @@
 "use client";
+/* Ask LOT — restyled to the kit console (assistant/user bubbles + composer + suggestion chips).
+   Visual only; all wiring (send → /api/ask, the Home-page starter via sessionStorage) preserved. */
 import { useState, useRef, useEffect } from "react";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -35,35 +37,38 @@ export default function AskPage() {
   }
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", height: "calc(100vh - 44px)" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 2 }}>Ask LOT</h1>
-      <p className="muted" style={{ marginBottom: 14, fontSize: 13 }}>Ask anything — the strategies, what to say to a seller, what to do with a deal. Plain English.</p>
-
-      <div style={{ flex: 1, overflowY: "auto", marginBottom: 12 }}>
-        {messages.length === 0 && (
-          <div>
-            <p className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Try one of these:</p>
-            {STARTERS.map((s, i) => (
-              <button key={i} onClick={() => send(s)} style={{ display: "block", textAlign: "left", width: "100%", padding: "9px 12px", marginBottom: 6, border: "1px solid #e2e8f0", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 13 }}>{s}</button>
-            ))}
-          </div>
-        )}
-        {messages.map((m, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", marginBottom: 10 }}>
-            <div style={{ maxWidth: "82%", padding: "9px 13px", borderRadius: 12, whiteSpace: "pre-wrap", fontSize: 13.5, lineHeight: 1.5,
-              background: m.role === "user" ? "#0f172a" : "#f1f5f9", color: m.role === "user" ? "#fff" : "#0f172a" }}>{m.content}</div>
-          </div>
-        ))}
-        {busy && <div className="muted" style={{ fontSize: 13 }}>LOT is thinking…</div>}
-        <div ref={endRef} />
+    <div className="console">
+      <div className="console-thread">
+        <div className="console-inner">
+          <div className="screen-head"><h1>Ask LOT</h1><span className="sub">the strategies, what to say to a seller, what to do with a deal — plain English.</span></div>
+          {messages.length === 0 && (
+            <div>
+              <p className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Try one of these:</p>
+              <div className="suggest" style={{ flexDirection: "column", margin: 0 }}>
+                {STARTERS.map((s, i) => (
+                  <button key={i} onClick={() => send(s)} className="chip" style={{ textAlign: "left", whiteSpace: "normal", padding: "9px 12px", cursor: "pointer" }}>{s}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <div key={i} className={`turn ${m.role}`}>
+              <div className="turn-body"><div className={`bubble ${m.role}`}>{m.content}</div></div>
+            </div>
+          ))}
+          {busy && <div className="turn assistant"><div className="turn-body"><div className="bubble assistant typing"><span /><span /><span /></div></div></div>}
+          <div ref={endRef} />
+        </div>
       </div>
 
-      <form onSubmit={(e) => { e.preventDefault(); send(input); }} style={{ display: "flex", gap: 8 }}>
-        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask LOT anything…"
-          style={{ flex: 1, padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 14 }} />
-        <button type="submit" disabled={busy} style={{ padding: "10px 18px", border: "none", background: "#0f172a", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600 }}>Send</button>
-      </form>
-      <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>Informational, not legal or financial advice. (Needs Anthropic credits to answer.)</p>
+      <div className="composer-wrap">
+        <form onSubmit={(e) => { e.preventDefault(); send(input); }} className="composer">
+          <i className="ti ti-message-2" aria-hidden />
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask LOT anything…" />
+          <button type="submit" disabled={busy} className="btn-primary">Send</button>
+        </form>
+        <p className="disclaimer" style={{ maxWidth: 760, margin: "8px auto 0" }}>Informational, not legal or financial advice. (Needs Anthropic credits to answer.)</p>
+      </div>
     </div>
   );
 }

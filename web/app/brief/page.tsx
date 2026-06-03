@@ -1,4 +1,6 @@
 "use client";
+/* Brief — restyled to the design system (kit BriefScreen). Visual only; all data wiring
+   (load, runAction → /api/actions, /api/brief) preserved. */
 import { useEffect, useState } from "react";
 
 interface Row { queue: string; title: string; reason: string; action: string; target: string }
@@ -7,6 +9,11 @@ interface Brief { rows: Row[]; summary: string; error?: string }
 const QUEUE_LABEL: Record<string, string> = {
   REGULATORY_KILL: "🔴 Regulatory kill", ACT_ON_DEAL: "📋 Act on deal",
   ZONE_OPENED: "🟢 Zone opened", MAIL: "✉️ Mail this week", VERIFY_ZONING: "🔍 Verify zoning",
+};
+// the queue's left accent bar color (severity at a glance)
+const QUEUE_BAR: Record<string, string> = {
+  REGULATORY_KILL: "var(--critical)", ACT_ON_DEAL: "var(--accent)", ZONE_OPENED: "var(--positive)",
+  MAIL: "var(--accent)", VERIFY_ZONING: "var(--warn)",
 };
 
 export default function BriefPage() {
@@ -32,19 +39,19 @@ export default function BriefPage() {
 
   return (
     <div className="page">
-      <h1 style={{ fontSize: 18, marginBottom: 4 }}>The Monday Brief</h1>
+      <div className="screen-head"><h1>The Monday Brief</h1></div>
       <p style={{ marginBottom: 8, whiteSpace: "pre-wrap" }}>{brief.summary}</p>
-      {brief.error && <div style={{ background: "#fee2e2", color: "#991b1b", padding: "8px 10px", borderRadius: 6, marginBottom: 12 }}>⚠️ {brief.error}</div>}
+      {brief.error && <div style={{ background: "var(--critical-wash)", color: "var(--critical)", padding: "8px 10px", borderRadius: "var(--radius-sm)", marginBottom: 12 }}>⚠️ {brief.error}</div>}
 
-      <div style={{ marginBottom: 14 }}>
-        <button onClick={() => runAction("gen", { action: "generate-leads" })} disabled={busy === "gen"} style={btn}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <button onClick={() => runAction("gen", { action: "generate-leads" })} disabled={busy === "gen"} className="btn">
           {busy === "gen" ? "Generating…" : "↻ Generate leads"}
         </button>
-        <button onClick={() => runAction("retune", { action: "propose-retune" })} disabled={busy === "retune"} style={btn}>
+        <button onClick={() => runAction("retune", { action: "propose-retune" })} disabled={busy === "retune"} className="btn">
           {busy === "retune" ? "Computing…" : "🧠 Propose thesis retune"}
         </button>
       </div>
-      {result && <pre style={{ background: "#0f172a", color: "#e2e8f0", padding: 12, borderRadius: 6, fontSize: 12, overflowX: "auto", marginBottom: 16, whiteSpace: "pre-wrap" }}>{result.text}</pre>}
+      {result && <pre style={{ background: "var(--bg-chrome)", color: "var(--text-secondary)", padding: 12, borderRadius: "var(--radius-sm)", fontSize: 12, overflowX: "auto", marginBottom: 16, whiteSpace: "pre-wrap", fontFamily: "var(--font-mono)", border: "1px solid var(--border-soft)" }}>{result.text}</pre>}
 
       {brief.rows.length === 0 && <p className="muted">Nothing needs action — the board is clear. Generate leads to fill the mail queue.</p>}
 
@@ -52,17 +59,18 @@ export default function BriefPage() {
         const rows = byQueue(q);
         if (rows.length === 0) return null;
         return (
-          <div key={q} style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "#475569", marginBottom: 6 }}>{QUEUE_LABEL[q] ?? q} <span className="muted">({rows.length})</span></div>
+          <div key={q} className="queue">
+            <div className="eyebrow" style={{ marginBottom: 7 }}>{QUEUE_LABEL[q] ?? q} <span className="muted">({rows.length})</span></div>
             {rows.map((r, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "#f8fafc", borderRadius: 6, marginBottom: 6 }}>
-                <div style={{ flex: 1 }}>
+              <div key={i} className="queue-row">
+                <span className="accent-bar" style={{ background: QUEUE_BAR[q] ?? "var(--accent)" }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{r.title}</div>
                   <div className="muted" style={{ fontSize: 12 }}>{r.reason}</div>
                 </div>
-                {q === "MAIL" && <button onClick={() => runAction(`draft-${r.target}`, { action: "draft-mailer", leadId: r.target })} disabled={busy === `draft-${r.target}`} style={btnSm}>✉️ Draft mailer</button>}
-                {q === "ZONE_OPENED" && <button onClick={() => runAction("gen", { action: "generate-leads" })} style={btnSm}>↻ Source zone</button>}
-                {q === "ACT_ON_DEAL" && <a href="/deals" style={{ ...btnSm, textDecoration: "none" }}>→ Pipeline</a>}
+                {q === "MAIL" && <button onClick={() => runAction(`draft-${r.target}`, { action: "draft-mailer", leadId: r.target })} disabled={busy === `draft-${r.target}`} className="btn btn-sm">✉️ Draft mailer</button>}
+                {q === "ZONE_OPENED" && <button onClick={() => runAction("gen", { action: "generate-leads" })} className="btn btn-sm">↻ Source zone</button>}
+                {q === "ACT_ON_DEAL" && <a href="/deals" className="btn btn-sm">→ Pipeline</a>}
               </div>
             ))}
           </div>
@@ -71,6 +79,3 @@ export default function BriefPage() {
     </div>
   );
 }
-
-const btn: React.CSSProperties = { marginRight: 8, padding: "7px 14px", border: "1px solid #cbd5e1", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 };
-const btnSm: React.CSSProperties = { padding: "5px 10px", border: "1px solid #cbd5e1", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" };
