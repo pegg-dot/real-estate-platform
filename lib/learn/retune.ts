@@ -105,6 +105,48 @@ export function proposeWeightRetune(
   };
 }
 
+// ── Management-appetite retuner (adaptive exit mix) ──────────────────────────────────────────
+// The SAME governed nudge applied to the exit optimizer's `management_appetite` dial: each decision
+// carries the operating INTENSITY of the exit strategy it was recommended (ltr 0.1 … str 0.85). If
+// your ADVANCES skew toward higher-intensity exits than your PASSES, you have more hands-on appetite
+// than the dial assumes → raise it (so higher-intensity plays surface more); the reverse lowers it.
+// This shifts the exit mix toward what you actually pursue — learned, not hardcoded. Same governance:
+// decision floor, one-sided guard, 1/√n shrinkage, per-cycle cap, clamp to [0,1]. Proposes only.
+export interface ExitDecision { action: "advance" | "pass"; intensity: number }
+
+export interface AppetiteProposal {
+  proposed: number | null;   // null = below floor / one-sided (no proposal)
+  from: number;
+  n: number;
+  signal: number;            // mean(advance intensity) − mean(pass intensity)
+  reason: string;
+}
+
+export function proposeAppetiteRetune(
+  currentAppetite: number, decisions: ExitDecision[], opts: RetuneOpts = {},
+): AppetiteProposal {
+  const learningRate = opts.learningRate ?? 0.5;
+  const perCycleCap = opts.perCycleCap ?? 0.05;
+  const minDecisions = opts.minDecisions ?? 40;
+
+  const n = decisions.length;
+  const adv = decisions.filter((d) => d.action === "advance");
+  const pass = decisions.filter((d) => d.action === "pass");
+
+  if (n < minDecisions) return { proposed: null, from: currentAppetite, n, signal: 0, reason: `below the decision floor (${n}/${minDecisions}) — proposing nothing` };
+  if (adv.length === 0 || pass.length === 0) return { proposed: null, from: currentAppetite, n, signal: 0, reason: `one-sided sample (${adv.length} advance / ${pass.length} pass) — need both` };
+
+  const signal = mean(adv.map((d) => d.intensity)) - mean(pass.map((d) => d.intensity));
+  const nudge = clamp(signal * (learningRate / Math.sqrt(n)), -perCycleCap, perCycleCap);
+  const proposed = clamp(currentAppetite + nudge, 0, 1);
+  return {
+    proposed: Number(proposed.toFixed(3)), from: currentAppetite, n, signal: Number(signal.toFixed(4)),
+    reason: `from ${n} decisions (${adv.length} advance / ${pass.length} pass): advances ` +
+      `${signal >= 0 ? "favor higher" : "favor lower"}-intensity exits — ${nudge >= 0 ? "raise" : "lower"} ` +
+      `appetite ${currentAppetite.toFixed(2)} → ${proposed.toFixed(2)} (shrunk 1/√${n}, capped ±${perCycleCap})`,
+  };
+}
+
 // ── Knowledge-weight reweighting (spec 016) ──────────────────────────────────────────────────
 // The SAME governed nudge, but over distilled knowledge rows instead of thesis weights: when a
 // recommendation that CITED a knowledge row is advanced, nudge that row's weight up; when passed,

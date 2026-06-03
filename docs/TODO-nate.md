@@ -31,16 +31,17 @@
       🔌 **Connectors you can wire later** (one-time, your accounts) to make execution real: a Gmail/
       Resend transport (actually send the drafted emails) and Google Calendar (sync the scheduled
       events). Until then the drafts/events persist in-app for review.
-- [ ] **Make the two calibration dials ADAPTIVE (not just tunable config).** Today the exit-strategy
-      mix (by-room 56% / MTR 31% / Section 8 9%) is an *emergent* result of the exit optimizer + your
-      thesis `management_appetite` + the modeled rent multipliers (MTR 1.4× / STR 2.5×) — and the HBU
-      develop returns are annualized screening *proxies*, not IRRs. These are sensible **priors**, not
-      learned values. The scoring **weights already adapt** to your advance/pass decisions via the
-      LEARN loop (`lib/learn/retune.ts`, ≥40 decisions, you approve). The upgrade: extend that loop to
-      also learn the **exit-strategy preference + appetite** (so the mix shifts toward what you
-      actually pursue), and add an **outcome loop** — when a deal closes, feed the realized rent/return
-      back to calibrate the multipliers + the HBU model (replace priors with evidence). Needs your
-      decision/outcome data to learn from (cold-start) — see the Adaptive scoring item under Future.
+- [x] **The exit mix now ADAPTS to your decisions.** `lib/learn/retune.ts` learns
+      `management_appetite` from the operating intensity your *advances* favor vs your *passes*
+      (proposeAppetiteRetune — same governance as the weight learner: ≥40 decisions, 1/√n shrink,
+      per-cycle cap, clamp 0–1; proposes only, you approve via the Brief → "Propose thesis retune").
+      So the by-room/MTR/STR/Section-8 mix shifts toward what you actually pursue — learned, not
+      hardcoded. (Surfaces "below floor" until you've logged ~40 advance/pass decisions.)
+- [ ] **Remaining adaptive upgrade (needs outcome data): the OUTCOME loop.** The rent multipliers
+      (MTR 1.4× / STR 2.5×) and the HBU develop returns (annualized screening *proxies*, not IRRs)
+      are still modeled priors. To make them learned: when a deal CLOSES, record the realized
+      rent/return and feed it back to calibrate the multipliers + an underwriter-grade HBU model.
+      Requires closed-deal data, so it's post-first-deals — see Adaptive scoring under Future.
 
 ## 🔌 Multi-user + real connectors (spec 026) — YOUR setup (code is inert until done)
 > Goal: you + your brother each log in, connect your own Gmail + Calendar, and the agents' drafts/

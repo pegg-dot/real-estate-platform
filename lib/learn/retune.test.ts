@@ -1,5 +1,39 @@
 import { describe, it, expect } from "vitest";
-import { proposeWeightRetune, type DecisionFeatures } from "./retune.js";
+import { proposeWeightRetune, proposeAppetiteRetune, type DecisionFeatures, type ExitDecision } from "./retune.js";
+
+const exitDecisions = (advIntensity: number, passIntensity: number, nEach: number): ExitDecision[] => [
+  ...Array.from({ length: nEach }, () => ({ action: "advance" as const, intensity: advIntensity })),
+  ...Array.from({ length: nEach }, () => ({ action: "pass" as const, intensity: passIntensity })),
+];
+
+describe("management_appetite retuner (spec 011 → adaptive exit mix)", () => {
+  it("proposes nothing below the decision floor", () => {
+    expect(proposeAppetiteRetune(0.25, exitDecisions(0.85, 0.1, 5), { minDecisions: 40 }).proposed).toBeNull();
+  });
+
+  it("proposes nothing on a one-sided sample", () => {
+    const oneSided: ExitDecision[] = Array.from({ length: 50 }, () => ({ action: "advance", intensity: 0.85 }));
+    expect(proposeAppetiteRetune(0.25, oneSided).proposed).toBeNull();
+  });
+
+  it("RAISES appetite when advances favor higher-intensity exits (str/mtr) over passes (ltr)", () => {
+    const p = proposeAppetiteRetune(0.25, exitDecisions(0.85, 0.1, 25));
+    expect(p.proposed).not.toBeNull();
+    expect(p.proposed!).toBeGreaterThan(0.25);
+    expect(p.signal).toBeGreaterThan(0);
+  });
+
+  it("LOWERS appetite when advances favor lower-intensity exits than passes", () => {
+    expect(proposeAppetiteRetune(0.5, exitDecisions(0.1, 0.85, 25)).proposed!).toBeLessThan(0.5);
+  });
+
+  it("never moves more than the per-cycle cap, and stays within [0,1]", () => {
+    const p = proposeAppetiteRetune(0.98, exitDecisions(1.0, 0.0, 50), { perCycleCap: 0.05 });
+    expect(Math.abs(p.proposed! - 0.98)).toBeLessThanOrEqual(0.05 + 1e-9);
+    expect(p.proposed!).toBeGreaterThanOrEqual(0);
+    expect(p.proposed!).toBeLessThanOrEqual(1);
+  });
+});
 
 // a representative current thesis weight vector (sums to 1)
 const CURRENT = {

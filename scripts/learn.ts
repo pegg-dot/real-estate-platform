@@ -20,15 +20,18 @@ async function main() {
   const sql = getSql(dsn);
   try {
     if (flag("propose") || flag("apply")) {
-      const { proposal, currentWeights } = await proposeRetune(sql, market);
-      console.log(`🧠 LEARN retuner — ${proposal.reason}\n`);
-      if (!proposal.proposed) { console.log("No proposal (keep deciding)."); return; }
-      console.log("Proposed weight changes (current → proposed):");
-      for (const d of proposal.diff) {
-        console.log(`  ${d.delta >= 0 ? "↑" : "↓"} ${d.key.padEnd(38)} ${d.from.toFixed(3)} → ${d.to.toFixed(3)} ` +
-          `(${d.delta >= 0 ? "+" : ""}${d.delta.toFixed(3)}; revealed signal ${d.signal >= 0 ? "+" : ""}${d.signal})`);
+      const { proposal, appetite } = await proposeRetune(sql, market);
+      console.log(`🧠 LEARN retuner (weights) — ${proposal.reason}\n`);
+      if (proposal.proposed) {
+        console.log("Proposed weight changes (current → proposed):");
+        for (const d of proposal.diff) {
+          console.log(`  ${d.delta >= 0 ? "↑" : "↓"} ${d.key.padEnd(38)} ${d.from.toFixed(3)} → ${d.to.toFixed(3)} ` +
+            `(${d.delta >= 0 ? "+" : ""}${d.delta.toFixed(3)}; revealed signal ${d.signal >= 0 ? "+" : ""}${d.signal})`);
+        }
       }
-      void currentWeights;
+      console.log(`\n🎚️  Exit appetite (adaptive exit mix) — ${appetite.reason}`);
+      if (appetite.proposed != null) console.log(`  management_appetite ${appetite.from.toFixed(2)} → ${appetite.proposed.toFixed(2)}`);
+      if (!proposal.proposed && appetite.proposed == null) { console.log("\nNo proposal yet (keep deciding)."); return; }
       if (flag("apply")) {
         const res = await applyRetune(sql, market);
         console.log(res

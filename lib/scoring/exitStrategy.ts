@@ -82,6 +82,9 @@ const INTENSITY: Record<ExitStrategy, number> = {
   ltr: 0.1, section8: 0.3, by_room: 0.4, mtr: 0.55, str: 0.85, assisted: 1.0,
 };
 
+/** Operating intensity for a strategy (0..1) — used by the LEARN loop to learn management_appetite. */
+export const strategyIntensity = (s: ExitStrategy | string): number => INTENSITY[s as ExitStrategy] ?? 0.5;
+
 // Default rent multipliers vs the LTR whole-house monthly rent (modeled until real comps).
 const DEFAULT_MULTIPLIER: Partial<Record<ExitStrategy, number>> = {
   mtr: 1.4, str: 2.5, assisted: 3.0,
