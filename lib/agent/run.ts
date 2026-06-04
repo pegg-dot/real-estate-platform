@@ -7,6 +7,7 @@ import { generateText, streamText, stepCountIs } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { getSql } from "../db/client.js";
 import { agentTools, type Proposal } from "./tools.js";
+import { knowledgePreamble } from "./knowledge.js";
 
 /** The structured tail of a streamed agent turn (the visible text is delivered via onText). */
 export interface AgentStreamTail {
@@ -20,9 +21,11 @@ const SYSTEM = `You are LOT's operator agent for Nate — an AI-native buy-and-h
 You are the neutral, do-anything agent — decide what's needed and use the right tool(s); one turn
 can explain, query, interrogate, coach, and propose. You can:
 - READ anything in the database via query_db (read-only SQL) + structured tools (get_parcel,
-  list_leads, portfolio_summary, buy_ahead, get_interrogation, get_coaching). Pull real data and
-  cite it; never make up numbers. get_interrogation(apn) = Pace-structures/Grant-challenges a deal;
-  get_coaching(leadId) = a cited call playbook.
+  get_dossier, list_leads, portfolio_summary, buy_ahead, get_interrogation, get_coaching). Pull real
+  data and cite it; never make up numbers. get_dossier(apn) = the full CITED analysis (scoring +
+  financing guardrails + cited rules) — prefer it for a deep answer on one property.
+  get_interrogation(apn) = Pace-structures/Grant-challenges a deal; get_coaching(leadId) = a cited
+  call playbook. When you lean on a distilled rule or expert lens from your knowledge, cite it.
 - EXPLAIN plainly when asked (you also know the plays): bird-dogging, wholesaling, cash, seller-
   finance (free-and-clear owners / defer cap gains; Dodd-Frank/SAFE if a consumer-occupant),
   subject-to (take the deed, keep their low-rate loan; due-on-sale + Garn-St-Germain caveat, always
@@ -60,9 +63,10 @@ export async function runAnalyst(
   const sql = getSql();
   try {
     const { query_db } = agentTools(sql);   // read-only SQL tool only — no proposes, no writes
+    const kb = await knowledgePreamble(sql);
     const { text, steps } = await generateText({
       model: anthropic("claude-sonnet-4-6"),
-      system: ANALYST_SYSTEM, messages, tools: { query_db }, stopWhen: stepCountIs(6),
+      system: ANALYST_SYSTEM + kb, messages, tools: { query_db }, stopWhen: stepCountIs(6),
     });
     const trace = steps.flatMap((s) => s.toolCalls.map((c) => ({ tool: c.toolName, args: c.input })));
     return { text, trace, proposals: [] };
@@ -80,9 +84,10 @@ export async function runAgent(
   const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const sql = getSql();
   try {
+    const kb = await knowledgePreamble(sql);
     const { text, steps } = await generateText({
       model: anthropic("claude-sonnet-4-6"),
-      system: SYSTEM,
+      system: SYSTEM + kb,
       messages,
       tools: agentTools(sql),
       stopWhen: stepCountIs(8),
@@ -114,9 +119,10 @@ export async function streamAgent(
   const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const sql = getSql();
   try {
+    const kb = await knowledgePreamble(sql);
     const result = streamText({
       model: anthropic("claude-sonnet-4-6"),
-      system: SYSTEM, messages, tools: agentTools(sql), stopWhen: stepCountIs(8),
+      system: SYSTEM + kb, messages, tools: agentTools(sql), stopWhen: stepCountIs(8),
     });
     for await (const delta of result.textStream) onText(delta);
     const steps = await result.steps;
@@ -141,9 +147,10 @@ export async function streamAnalyst(
   const sql = getSql();
   try {
     const { query_db } = agentTools(sql);   // read-only SQL tool only — no proposes, no writes
+    const kb = await knowledgePreamble(sql);
     const result = streamText({
       model: anthropic("claude-sonnet-4-6"),
-      system: ANALYST_SYSTEM, messages, tools: { query_db }, stopWhen: stepCountIs(6),
+      system: ANALYST_SYSTEM + kb, messages, tools: { query_db }, stopWhen: stepCountIs(6),
     });
     for await (const delta of result.textStream) onText(delta);
     const steps = await result.steps;

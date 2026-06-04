@@ -12,6 +12,8 @@ import { advisePortfolio } from "../db/portfolio.js";
 import { buyAheadShortlist } from "../db/growth.js";
 import { interrogateForApn } from "../interrogate/forDeal.js";
 import { buildPlaybookForLead } from "../coach/forLead.js";
+import { renderDossierForApn } from "../dossier/fromDb.js";
+import { loadActiveThesis } from "../db/thesis.js";
 
 const MARKET = "Charlottesville";
 
@@ -45,6 +47,17 @@ export async function queryDb(sql: Sql, args: { query: string }): Promise<{ rows
 export async function getParcel(sql: Sql, args: { apn: string }): Promise<unknown> {
   const [row] = await sql`select * from deal_genome where market = ${MARKET} and apn = ${args.apn} limit 1`;
   return row ?? { error: `no parcel ${args.apn}` };
+}
+
+// The full CITED dossier (markdown) — re-runs scoring/financing/sensitivity from live data and
+// resolves the cited creative-finance rules. Previously CLI-only; now the agent can pull it.
+export async function getDossier(sql: Sql, args: { apn: string }): Promise<unknown> {
+  try {
+    const thesis = await loadActiveThesis(sql);
+    if (!thesis) return { error: "no active thesis to render a dossier against" };
+    const md = await renderDossierForApn(sql, MARKET, args.apn, thesis);
+    return { dossier: md.slice(0, 6000) };   // bounded so it can't blow the context window
+  } catch (e) { return { error: (e as Error).message }; }
 }
 
 export async function getInterrogation(sql: Sql, args: { apn: string }): Promise<unknown> {
@@ -108,6 +121,11 @@ export function agentTools(sql: Sql) {
       description: "Full scored deal_genome row for one parcel by APN (score, financing, exit_strategies, hbu, owner, risk).",
       inputSchema: z.object({ apn: z.string() }),
       execute: (args) => getParcel(sql, args),
+    }),
+    get_dossier: tool({
+      description: "The full CITED dossier (markdown) for a parcel: scoring, financing with creative-finance guardrails + cited rules, sensitivity, owner situation. Use for a deep, citation-grounded answer about one property.",
+      inputSchema: z.object({ apn: z.string() }),
+      execute: (args) => getDossier(sql, args),
     }),
     list_leads: tool({
       description: "Top mailable leads ranked by stack score, with motivation/bunny/structure/channel.",
