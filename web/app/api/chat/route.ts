@@ -41,7 +41,9 @@ function creditsError(raw: string): string {
     ? "This needs Anthropic credits to answer — add billing to enable it. (The chat, agents, and history all work; only the model replies need credits.)"
     : /ANTHROPIC_API_KEY/i.test(raw)
       ? "ANTHROPIC_API_KEY isn't set — add it to .env."
-      : (raw.match(/✗\s*(.+)/)?.[1]?.split("\n")[0] ?? raw.slice(0, 300));
+      : /EMAXCONNSESSION|max clients|too many connections|remaining connection slots/i.test(raw)
+        ? "The database is briefly at its connection limit — give it a few seconds and try again. (If this is frequent, switch SUPABASE_DB_URL to the transaction-mode pooler on port 6543.)"
+        : (raw.match(/✗\s*(.+)/)?.[1]?.split("\n")[0] ?? raw.slice(0, 300));
 }
 
 export async function POST(req: Request) {

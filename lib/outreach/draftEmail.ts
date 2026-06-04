@@ -9,9 +9,11 @@ import { readSituation } from "../enrich/situation.js";
 
 export interface EmailDraft { to: string; subject: string; body: string; leadId: string; entityType: string | null }
 
-// CAN-SPAM requires a physical mailing address + a working opt-out. Address is a placeholder until
-// the operator sets a real one; flagged so it can't silently ship blank.
-const SENDER_ADDRESS = "[your mailing address], Charlottesville, VA";
+// CAN-SPAM requires a physical mailing address + a working opt-out. The address comes from
+// OUTREACH_SENDER_ADDRESS; when unset we emit this sentinel so the SEND path can hard-refuse to
+// ship a non-compliant email (a blank/placeholder address is itself a CAN-SPAM violation).
+export const NO_SENDER_ADDRESS = "[[SET OUTREACH_SENDER_ADDRESS]]";
+const SENDER_ADDRESS = process.env.OUTREACH_SENDER_ADDRESS || NO_SENDER_ADDRESS;
 
 export function canSpamFooter(): string {
   return `\n\n—\n${SENDER_ADDRESS}\n` +

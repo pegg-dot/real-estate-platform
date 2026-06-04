@@ -13,6 +13,7 @@ export default async function OutreachPage() {
     join owner o on o.id = oe.owner_id
     left join lead l on l.id = oe.lead_id
     left join property p on p.id = l.property_id
+    where oe.user_id = ${uid}
     order by oe.created_at desc limit 100`;
 
   // spec 025-B: email drafts the Outreach Writer agent produced, awaiting review/send

@@ -29,8 +29,14 @@ export async function queryDb(sql: Sql, args: { query: string }): Promise<{ rows
   const p = prepareReadQuery(args.query, 200);
   if (!p.ok) return { error: `query refused: ${p.reason}` };
   try {
-    const rows = await sql.unsafe(p.sql);
-    return { rows: Array.from(rows).slice(0, 200) };
+    // run inside a transaction with a hard statement_timeout so a pathological query (pg_sleep,
+    // a giant generate_series) can't hang the request or exhaust the pool. `set local` is scoped
+    // to this txn and reset on commit, so it never leaks to other pooled queries.
+    const rows = await sql.begin(async (tx) => {
+      await tx.unsafe("set local statement_timeout = 5000");   // 5s
+      return tx.unsafe(p.sql);
+    });
+    return { rows: Array.from(rows as Iterable<unknown>).slice(0, 200) };
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -76,15 +82,18 @@ export const proposeEnrichOwner = (apn: string): Proposal =>
 export const proposeAdvanceDeal = (apn: string, toStage: string): Proposal =>
   ({ kind: "proposal", action: "track-deal", params: { apn, toStage }, summary: `Move ${apn} toward ${toStage}`, requiresApproval: true });
 
-export const proposeEmail = (a: { to: string; subject: string; body: string; isOwner?: boolean }): Proposal => ({
-  kind: "proposal", action: "send-email",
-  params: { to: a.to, subject: a.subject, body: a.body },
-  summary: `Email ${a.to}: ${a.subject}`,
+// The operator can PROPOSE an email — which saves it as a reviewable DRAFT (mail-first, human-approved).
+// It never sends here; the actual send happens on /outreach, behind the compliance gate (opt-out /
+// gate_state / physical-address check). `save-email-draft` is the real, wired action.
+export const proposeEmail = (a: { to: string; subject: string; body: string; leadId?: string; isOwner?: boolean }): Proposal => ({
+  kind: "proposal", action: "save-email-draft",
+  params: { to: a.to, subject: a.subject, body: a.body, leadId: a.leadId },
+  summary: `Save email draft to ${a.to}: ${a.subject}`,
   requiresApproval: true,
   compliance: a.isOwner
-    ? ["CAN-SPAM: include a physical mailing address", "CAN-SPAM: include a working unsubscribe/opt-out",
-       "route through the compliance gate (DNC/opt-out) — never auto-send; you approve the draft"]
-    : ["you approve the draft before it sends"],
+    ? ["Saved as a draft — nothing sends here.", "Sending (on /outreach) runs the compliance gate: opt-out / mailability / a real physical address.",
+       "CAN-SPAM: a working opt-out + physical mailing address are required before it can send."]
+    : ["Saved as a draft for your review — you approve the send."],
 });
 
 /** The AI-SDK tool registry, bound to a DB connection. */

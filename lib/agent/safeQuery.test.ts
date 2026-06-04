@@ -53,4 +53,25 @@ describe("prepareReadQuery — the agent's read-only SQL boundary", () => {
   it("rejects a write dressed up in a CTE", () => {
     expect(prepareReadQuery("with x as (delete from lead returning *) select * from x").ok).toBe(false);
   });
+
+  it("blocks reads of sensitive tables (connector tokens, app_secret, sessions)", () => {
+    for (const q of [
+      "select access_token from connector",
+      "select * from connector",
+      "select value from app_secret",
+      "select * from app_user",
+    ]) {
+      expect(prepareReadQuery(q).ok, q).toBe(false);
+    }
+  });
+
+  it("blocks server-side file/exfil functions", () => {
+    expect(prepareReadQuery("select pg_read_file('/etc/passwd')").ok).toBe(false);
+    expect(prepareReadQuery("select * from pg_shadow").ok).toBe(false);
+  });
+
+  it("still allows ordinary domain reads", () => {
+    expect(prepareReadQuery("select apn, score from deal_genome where score > 70").ok).toBe(true);
+    expect(prepareReadQuery("select count(*) from lead").ok).toBe(true);
+  });
 });
