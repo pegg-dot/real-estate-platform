@@ -100,7 +100,12 @@ export function buildAction(action: string, p: Record<string, unknown>): { scrip
       return { script: "deal.ts", args: ["--track", p.apn] };
     case "transition-deal":
       if (!isUuid(p.dealId)) throw new Error("transition-deal needs a valid dealId");
-      if (p.pass) return { script: "deal.ts", args: ["--transition", String(p.dealId), "--pass", "--reason", "no_time"] };
+      // pass carries the user's reason chip (a taste judgment like cash_flow_thin feeds the LEARN
+      // loop; an exogenous chip like no_time is logged but excluded from retuning). Default no_time.
+      if (p.pass) {
+        const reason = p.reason && /^[a-z_]+$/.test(String(p.reason)) ? String(p.reason) : "no_time";
+        return { script: "deal.ts", args: ["--transition", String(p.dealId), "--pass", "--reason", reason] };
+      }
       if (typeof p.toStage !== "string" || !/^[a-z_]+$/.test(p.toStage)) throw new Error("transition-deal needs a valid toStage");
       return { script: "deal.ts", args: ["--transition", String(p.dealId), "--to", p.toStage, ...(p.reason && /^[a-z_]+$/.test(String(p.reason)) ? ["--reason", String(p.reason)] : [])] };
     case "add-rent-comp":

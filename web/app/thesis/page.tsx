@@ -51,7 +51,13 @@ export default function ThesisPage() {
   async function activate(version: number) {
     setBusy(`act${version}`); setOut(null);
     const r = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "thesis-activate", version }) }).then((x) => x.json());
-    setBusy(null); setOut(r.ok ? `${r.output}\n(Re-score to apply it to the map.)` : `⚠️ ${r.error}`); if (r.ok) loadTheses();
+    if (!r.ok) { setBusy(null); setOut(`⚠️ ${r.error}`); return; }
+    loadTheses();
+    // close the loop automatically: activating a thesis re-ranks the map (a thesis that's active but
+    // un-scored shows the OLD ranking, which is the #1 reason the learning loop felt inert).
+    const rs = await fetch("/api/rescore", { method: "POST" }).then((x) => x.json()).catch(() => ({}));
+    setBusy(null);
+    setOut(`${r.output}\n\n🔄 Re-scoring the whole map to thesis v${version} now — ${rs.message ?? "started"}. The map re-ranks in a few minutes.`);
   }
 
   return (
