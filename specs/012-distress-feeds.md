@@ -34,5 +34,19 @@ not a determination — a complaint is a lead, not proof.
   **paid vendor** (PropStream / BatchData). Operator action: connect an account → a loader inserts
   `source='propstream'`, `signal_type='foreclosure'`, etc. No schema or motivation change needed.
 
+## Macro distress-TIMING signals (added 2026-06-02 · Grant×Pace source)
+The `distress_signal` table holds OBSERVED, per-parcel tells. `lib/distress/macro.ts` adds the
+inferred, cohort-level half — *when* a class of owner gets squeezed even with a clean parcel:
+- **maturing debt** — a commercial (5+ unit) note is a 5/7/10-yr balloon; one maturing into a
+  higher-rate market forces a refinance at a worse rate (the 2024–27 CRE squeeze).
+- **rate reset** — a low-rate-era buyer (≤4.5%) on an adjustable note hits its first reset into
+  today's rate: payment shock with no transaction of their own.
+- **insurance spike** — a market whose premiums are spiking/rising (coastal FL) erodes cash flow
+  independent of the loan (`insuranceTrend` per market config; Charlottesville = stable).
+
+Every signal is `confidence: "modeled"` (we INFER the note/insurance posture from purchase era +
+units + market trend — we don't observe the actual loan). Surfaced on the deep DOSSIER
+(`npm run dossier -- --dossier <apn>`) as "a reason to reach out, not proof". 7 tests.
+
 ## Operator action (docs/TODO-nate.md)
 - (optional) a paid distress vendor account for foreclosure/lis-pendens/probate coverage.

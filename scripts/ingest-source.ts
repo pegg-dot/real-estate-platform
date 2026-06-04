@@ -1,0 +1,85 @@
+#!/usr/bin/env -S tsx
+/**
+ * Ingest a source into the expert-mind knowledge layer (spec 016): distill -> show the
+ * "what I learned" diff (new/updated/conflict, never a silent overwrite) -> store on --apply.
+ *
+ *   npm run ingest-source -- config/knowledge/pace-morby-artifacts.json [--apply]
+ *
+ * .json = the deterministic, offline path (hand-curated artifacts). A raw transcript (.txt/.md)
+ * uses the LLM extractor, which needs Anthropic billing — gated with a clear message until then.
+ */
+import fs from "node:fs";
+import { getSql } from "../lib/db/client.js";
+import { diffArtifacts, type Artifact } from "../lib/knowledge/distill.js";
+import { loadArtifacts, storeArtifacts } from "../lib/db/knowledge.js";
+import { llmExtractor } from "../lib/knowledge/extract.js";
+import path from "node:path";
+
+function loadFromJson(path: string): Artifact[] {
+  const j = JSON.parse(fs.readFileSync(path, "utf8")) as {
+    source?: string; speaker?: string; as_of?: string; artifacts?: Array<Partial<Artifact>>;
+  };
+  const src = j.source ?? path;
+  // as_of must be ISO (YYYY-MM-DD) — resolveParamValue's recency tie-break does a string compare,
+  // so a malformed date would sort wrong. Reject non-ISO to null rather than silently mis-rank.
+  const iso = (d: string | null | undefined): string | null =>
+    (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d : null;
+  const fileAsOf = iso(j.as_of);
+  if (j.as_of && !fileAsOf) console.warn(`  ⚠ ignoring non-ISO as_of "${j.as_of}" (expected YYYY-MM-DD)`);
+  // file-level source/speaker are defaults; a per-artifact field (if present) overrides; asOf is
+  // computed last so it's always ISO-or-null regardless of where it came from.
+  return (j.artifacts ?? []).map((a) => ({
+    source: src, speaker: j.speaker ?? null, ...a, asOf: iso((a as Artifact).asOf ?? fileAsOf),
+  })) as Artifact[];
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const file = args.find((a) => !a.startsWith("--"));
+  const apply = args.includes("--apply");
+  if (!file) {
+    console.error("usage: ingest-source <file.json|file.txt> [--apply]");
+    process.exit(1);
+  }
+
+  let artifacts: Artifact[];
+  if (file.endsWith(".json")) {
+    artifacts = loadFromJson(file);
+  } else {
+    // raw transcript/book -> LLM distillation (credit-gated; degrades cleanly without billing)
+    try {
+      const text = fs.readFileSync(file, "utf8");
+      artifacts = await llmExtractor(text, { source: path.basename(file) });
+    } catch (e) {
+      console.error(`LLM distillation unavailable: ${(e as Error).message}\n` +
+        "Offline alternative: pass a .json artifacts file (see config/knowledge/pace-morby-artifacts.json).");
+      process.exit(2);
+    }
+  }
+
+  const sql = getSql();
+  try {
+    const existing = await loadArtifacts(sql);
+    const diff = diffArtifacts(artifacts, existing);
+    console.log(`\nWhat I learned from ${file}:`);
+    console.log(`  new ${diff.summary.new} · updated ${diff.summary.updated} · conflict ${diff.summary.conflict} · unchanged ${diff.summary.unchanged}\n`);
+    for (const e of diff.entries) {
+      const tag = e.status.toUpperCase().padEnd(9);
+      const was = e.existingValue ? `  (was: ${e.existingValue})` : "";
+      console.log(`  ${tag} ${e.artifact.kind}:${e.artifact.key}${was}`);
+    }
+    if (diff.summary.conflict > 0) {
+      console.log(`\n  ⚠ ${diff.summary.conflict} conflict(s) NOT stored — a different source disagrees; resolve manually.`);
+    }
+    if (apply) {
+      const res = await storeArtifacts(sql, diff.entries);
+      console.log(`\n✓ stored ${res.stored}, held back ${res.conflicts} conflict(s).`);
+    } else {
+      console.log(`\n(dry run — re-run with --apply to store)`);
+    }
+  } finally {
+    await sql.end();
+  }
+}
+
+main().catch((e) => { console.error("✗", e.message); process.exit(1); });

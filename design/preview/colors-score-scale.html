@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="card.css">
+<style>
+  .dot { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: var(--text-oncolor); box-shadow: 0 1px 3px rgba(0,0,0,.45), inset 0 0 0 1.5px rgba(255,255,255,.35); }
+  .ramp { height: 16px; border-radius: 999px; background: linear-gradient(90deg, #ef6b5e 0%, #e6a44f 50%, #46c08a 100%); }
+  .wash { font-weight: 700; font-size: 13px; padding: 3px 9px; border-radius: 999px; }
+</style>
+</head>
+<body>
+<div class="card-grid">
+  <div>
+    <div class="ramp"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">
+      <span>0 · weak</span><span>50 · moderate</span><span>80 · strong</span>
+    </div>
+  </div>
+  <div class="row" style="gap:26px;margin-top:2px;">
+    <div style="display:flex;align-items:center;gap:9px;">
+      <div class="dot" style="background:var(--score-weak);">38</div>
+      <span class="wash" style="background:var(--score-weak-wash);color:var(--score-weak-text);">weak</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:9px;">
+      <div class="dot" style="background:var(--score-moderate);">64</div>
+      <span class="wash" style="background:var(--score-moderate-wash);color:var(--score-moderate-text);">moderate</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:9px;">
+      <div class="dot" style="background:var(--score-strong);">78</div>
+      <span class="wash" style="background:var(--score-strong-wash);color:var(--score-strong-text);">strong</span>
+    </div>
+  </div>
+  <div class="cap">A continuous red→amber→green ramp scores every parcel by thesis fit. Clean circular map dots carry the number; soft washes back the chips. No neon.</div>
+</div>
+</body>
+</html>

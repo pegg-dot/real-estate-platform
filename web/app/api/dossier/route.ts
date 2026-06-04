@@ -10,7 +10,8 @@ export async function GET(req: Request) {
   const [row] = await sql()<Array<{ id: string } & Record<string, unknown>>>`
     select id, apn, address, zone_code, by_room_legal, beds, est_market_value, latest_assessed,
            score, headline_model, headline_coc, coc_low, coc_high, data_confidence,
-           recommended_structure, gate_passed, gate_failures, low_confidence,
+           recommended_structure, recommended_exit_strategy, exit_strategies,
+           recommended_use, hbu, gate_passed, gate_failures, low_confidence,
            owner_name, owner_entity_type, is_absentee, tenure_years,
            last_arms_price, last_arms_date, flood_zone, components, financing, sensitivity
     from deal_genome where market = ${MARKET} and apn = ${apn} limit 1`;

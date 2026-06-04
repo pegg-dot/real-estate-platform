@@ -92,6 +92,16 @@
         "risk_penalty_insurance_flood_condo": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
+    "exit_strategy": {
+      "type": "object",
+      "description": "Exit-strategy optimizer config (spec 019). Optional; lib/thesis/schema.ts (Zod) is the runtime source of truth and supplies defaults (management_appetite 0.25, all strategies but assisted).",
+      "additionalProperties": false,
+      "properties": {
+        "management_appetite": { "type": "number", "minimum": 0, "maximum": 1, "description": "operating capacity 0..1; down-ranks high-touch strategies. Distinct from the management_simplicity scoring weight." },
+        "allowed_exit_strategies": { "type": "array", "items": { "enum": ["ltr", "by_room", "mtr", "str", "section8", "assisted"] } },
+        "rent_multipliers": { "type": "object", "additionalProperties": { "type": "number" } }
+      }
+    },
     "hard_constraints": {
       "type": "object",
       "description": "Gates applied as pass/fail in scoring (spec 003), not silent low scores.",

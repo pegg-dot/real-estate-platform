@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
 
@@ -7,7 +7,7 @@ import path from "node:path";
 const execFileAsync = promisify(execFile);   // execFile = NO shell; args are an array, never interpolated
 const REPO = path.resolve(process.cwd(), "..");          // web/ -> repo root
 const TSX = path.join(REPO, "node_modules", ".bin", "tsx");
-const ALLOWED = new Set(["sourcing.ts", "learn.ts", "rents.ts", "brief.ts", "thesis.ts", "deal.ts", "refresh-market.ts", "enrich.ts"]);
+const ALLOWED = new Set(["sourcing.ts", "learn.ts", "rents.ts", "brief.ts", "thesis.ts", "deal.ts", "refresh-market.ts", "enrich.ts", "coach.ts", "portfolio.ts", "agent.ts", "interrogate.ts", "chat.ts", "growth.ts"]);
 
 export async function runEngine(script: string, args: string[], timeoutMs = 120_000): Promise<string> {
   if (!ALLOWED.has(script)) throw new Error(`script not allowed: ${script}`);
@@ -15,6 +15,48 @@ export async function runEngine(script: string, args: string[], timeoutMs = 120_
     cwd: REPO, env: process.env, timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024,
   });
   return stdout;
+}
+
+/**
+ * Stream an engine script's stdout to the browser (spec 024 streaming follow-up). Same allowlist +
+ * array-args (no shell) safety as runEngine, but stdout is piped byte-for-byte into a Web
+ * ReadableStream so the chat answer renders as it generates. If the child fails BEFORE emitting any
+ * output (e.g. no Anthropic credits) the mapped error is written into the stream as the message
+ * text; a mid-stream failure appends a short interrupted-note so a partial answer still renders.
+ */
+export function runEngineStream(
+  script: string, args: string[], mapErr: (raw: string) => string,
+  opts: { timeoutMs?: number; cleanup?: () => void } = {},
+): ReadableStream<Uint8Array> {
+  if (!ALLOWED.has(script)) throw new Error(`script not allowed: ${script}`);
+  const timeoutMs = opts.timeoutMs ?? 180_000;
+  const child = spawn(TSX, [path.join("scripts", script), ...args], { cwd: REPO, env: process.env });
+  const enc = new TextEncoder();
+  let wroteStdout = false;
+  let stderr = "";
+  const killTimer = setTimeout(() => child.kill("SIGKILL"), timeoutMs);
+  const done = () => { clearTimeout(killTimer); try { opts.cleanup?.(); } catch { /* best-effort */ } };
+
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      child.stdout.on("data", (b: Buffer) => { wroteStdout = true; controller.enqueue(new Uint8Array(b)); });
+      child.stderr.on("data", (b: Buffer) => { stderr += b.toString(); });
+      child.on("error", (e) => {
+        done();
+        controller.enqueue(enc.encode(mapErr(e.message)));
+        controller.close();
+      });
+      child.on("close", (code) => {
+        done();
+        if (code !== 0) {
+          const msg = mapErr(stderr || `engine exited with code ${code}`);
+          controller.enqueue(enc.encode(wroteStdout ? `\n\n_[stream interrupted: ${msg}]_` : msg));
+        }
+        controller.close();
+      });
+    },
+    cancel() { done(); child.kill("SIGKILL"); },
+  });
 }
 
 // strict uuid (starts with a hex digit, so it can never be read as a flag)
@@ -45,6 +87,10 @@ export function buildAction(action: string, p: Record<string, unknown>): { scrip
       return { script: "learn.ts", args: ["--apply"] };
     case "enrich-leads":
       return { script: "enrich.ts", args: ["--leads", String(Math.min(100, Math.max(1, Number(p.n) || 25)))], timeout: 180_000 };
+    case "coach":
+      // build the call playbook for a lead (spec 015); returns JSON the LeadActions panel renders
+      if (!isUuid(p.leadId)) throw new Error("coach: leadId must be a uuid");
+      return { script: "coach.ts", args: [String(p.leadId), "--json"] };
     case "thesis-from":
       if (typeof p.prose !== "string" || !p.prose.trim()) throw new Error("describe your thesis first");
       return { script: "thesis.ts", args: ["--from", noFlag(p.prose.trim(), 4000, "thesis description")], timeout: 90_000 };
@@ -54,7 +100,12 @@ export function buildAction(action: string, p: Record<string, unknown>): { scrip
       return { script: "deal.ts", args: ["--track", p.apn] };
     case "transition-deal":
       if (!isUuid(p.dealId)) throw new Error("transition-deal needs a valid dealId");
-      if (p.pass) return { script: "deal.ts", args: ["--transition", String(p.dealId), "--pass", "--reason", "no_time"] };
+      // pass carries the user's reason chip (a taste judgment like cash_flow_thin feeds the LEARN
+      // loop; an exogenous chip like no_time is logged but excluded from retuning). Default no_time.
+      if (p.pass) {
+        const reason = p.reason && /^[a-z_]+$/.test(String(p.reason)) ? String(p.reason) : "no_time";
+        return { script: "deal.ts", args: ["--transition", String(p.dealId), "--pass", "--reason", reason] };
+      }
       if (typeof p.toStage !== "string" || !/^[a-z_]+$/.test(p.toStage)) throw new Error("transition-deal needs a valid toStage");
       return { script: "deal.ts", args: ["--transition", String(p.dealId), "--to", p.toStage, ...(p.reason && /^[a-z_]+$/.test(String(p.reason)) ? ["--reason", String(p.reason)] : [])] };
     case "add-rent-comp":

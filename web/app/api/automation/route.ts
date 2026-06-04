@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { sql, MARKET } from "../../lib/db";
+import { logAction } from "../../lib/actionLog";
+import { LEGACY_USER_ID } from "../../lib/user";
 
 export const dynamic = "force-dynamic";
 
@@ -51,5 +53,6 @@ export async function POST(req: Request) {
     { cwd: REPO, env: process.env, detached: true, stdio: "ignore" });
   child.unref();
   await setSetting("last_auto_refresh", { at: new Date().toISOString() });
+  await logAction(LEGACY_USER_ID, { action: "automation.tick", actor: "automation", status: "ok", detail: { reason: "stale data auto-refresh", ageDays: age == null ? null : Math.round(age) } });
   return Response.json({ triggered: true, reason: `your data was ~${age == null ? "never" : Math.round(age) + "d"} old — auto-updating in the background now` });
 }

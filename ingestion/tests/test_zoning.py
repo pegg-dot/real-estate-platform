@@ -63,3 +63,24 @@ def test_attach_unknown_market_flags_for_determination_not_assumed_legal():
     assert out["by_room_legal"] is None
     assert out["provenance"]["by_room_legal"]["confidence"] == "unknown"
     assert "determination" in out["zoning"]["note"].lower()
+
+
+# --- STR legality (spec 019 Part A): the exit-strategy optimizer's STR gate ----------------
+
+def test_shipped_config_marks_str_restricted_in_charlottesville():
+    rules = zoning.load_zoning_rules(CVILLE)
+    # Cville restricts non-owner-occupied whole-house STR -> the modeled default gates STR off.
+    assert rules["default"]["str_allowed"] is False
+
+
+def test_attach_carries_str_allowed_from_the_rule():
+    rules = zoning.load_zoning_rules(CVILLE)
+    out = zoning.attach_zoning({"zone_code": "RN-A", "provenance": {}}, rules)
+    assert out["str_allowed"] is False
+    assert out["zoning"]["str_allowed"] is False
+
+
+def test_attach_unknown_zone_leaves_str_allowed_unknown_not_assumed():
+    # unknown zone must NOT assume STR legal — str_allowed stays None (unknown != allowed)
+    out = zoning.attach_zoning({"zone_code": "ZZZ", "provenance": {}}, rules=None)
+    assert out["str_allowed"] is None

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 48 48" role="img" aria-label="LOT topographic mark" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M24 2.5C34.5 2 45.5 10 45.5 23.5C46 35 36.5 45.5 24 45.5C12.5 46 2 36 2.5 23.5C2 12.5 13 3 24 2.5Z" stroke="#c8785c" stroke-width="1.6" opacity="0.62"></path>
+  <path d="M24 8.5C32 8 40 14 39.5 23.5C40 31.5 32.5 39.5 24 39.5C15.5 40 8.5 32.5 8.5 23.5C8 15.5 16 9 24 8.5Z" stroke="#d3924e" stroke-width="1.7" opacity="0.85"></path>
+  <path d="M24 14.5C29.5 14 34 18.5 33.5 23.5C34 28 29.5 33.5 24 33.5C18.5 34 14 29 14.5 23.5C14 18.5 18.5 15 24 14.5Z" stroke="#8a9d57" stroke-width="1.9"></path>
+  <path d="M24 20.3C26.6 20 28 21.6 27.8 23.6C28 25.6 26.4 27.6 24 27.6C21.6 27.7 20 25.6 20.2 23.6C20 21.6 21.6 20.4 24 20.3Z" stroke="#99cf87" stroke-width="2"></path>
+  <circle cx="24" cy="23.7" r="1.5" fill="#99cf87" stroke="none"></circle>
+</svg>

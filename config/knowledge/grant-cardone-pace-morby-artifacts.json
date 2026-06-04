@@ -1,0 +1,14 @@
+{
+  "$comment": "Deterministic distillation of the Grant Cardone × Pace Morby creative-finance deep-dive (offline path for spec 016 — hand-curated from docs/knowledge-base/Sources/grant-cardone-pace-morby--creative-finance.md so it works without LLM credits). Exemplars feed the spec-015 coach; each is attributed + confidence-tagged. The five coach exemplars the source calls out: F-150 terms-explainer, common-enemy opener, foreclosure/subject-to script, legacy structuring (Mario), payment-around-need (Susan).",
+  "source": "Grant Cardone × Pace Morby — creative-finance deep-dive",
+  "speaker": "Pace Morby",
+  "as_of": "2025-01-01",
+  "artifacts": [
+    { "kind": "exemplar", "key": "objection#explain-terms-f150", "value": "Think of it like my F-150: Kelley Blue Book said it was worth $5k, but I sold it on payments for $12.5k because the buyer cared about the monthly, not the sticker. Your house is 'worth 40' to a cash buyer, but you want 100 — let me give you terms and you get your number.", "confidence": "modeled" },
+    { "kind": "exemplar", "key": "objection#common-enemy-opener", "value": "We noticed your house went off market — what was your agent not able to get you that you were looking for?", "confidence": "modeled" },
+    { "kind": "exemplar", "key": "situation#pre-foreclosure-subject-to", "value": "You're behind / going through a divorce — we'll catch up your payments, put a couple grand in your hand, take over the payments and deed it to us. It's called subject-to. You down?", "confidence": "modeled" },
+    { "kind": "exemplar", "key": "situation#legacy-annuity", "value": "Instead of a 5-year balloon, let's turn this into a 50-year annuity for your son — when he's 62 he still gets a check every month. Turn this property into a memory you set up for him.", "confidence": "modeled" },
+    { "kind": "exemplar", "key": "objection#payment-around-need", "value": "What does your life actually cost month to month — is it the $375 for the RV spot? Then let's set your payment right at that. The number serves you, not a spreadsheet.", "confidence": "modeled" },
+    { "kind": "exemplar", "key": "objection#bank-permission-reframe", "value": "The real question isn't 'why would the bank let you?' — it's 'why do I need the bank's permission to buy a house from a willing seller?' The seller and I can agree on terms directly.", "confidence": "modeled" }
+  ]
+}

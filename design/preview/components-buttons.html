@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="card.css">
+<style>
+  button{font-family:inherit;cursor:pointer;}
+  .btn{border:1px solid var(--border-strong);background:var(--bg-panel);color:var(--text-primary);border-radius:5px;padding:7px 12px;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+  .btn:hover{background:var(--bg-panel-2);border-color:var(--border-accent);}
+  .btn-primary{border:1px solid transparent;background:var(--accent);color:#fff;border-radius:5px;padding:7px 13px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
+  .btn-primary:hover{background:var(--accent-bright);}
+  .btn-ghost{border:none;background:transparent;color:var(--text-secondary);padding:6px 9px;border-radius:5px;font-size:12px;display:inline-flex;align-items:center;gap:6px;}
+  .btn-ghost:hover{background:var(--bg-panel-2);color:var(--text-primary);}
+  .btn-danger{border:1px solid var(--border-strong);background:var(--bg-panel);color:var(--critical);border-radius:5px;padding:7px 12px;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+  .btn-danger:hover{background:var(--critical-wash);border-color:var(--critical);}
+</style>
+</head>
+<body>
+<div class="card-grid">
+  <div class="row" style="align-items:center;gap:10px;">
+    <button class="btn-primary"><i class="ti ti-plus"></i> Track this deal</button>
+    <button class="btn"><i class="ti ti-file-text"></i> Full dossier</button>
+    <button class="btn-ghost"><i class="ti ti-mail"></i> Draft mailer</button>
+    <button class="btn-danger"><i class="ti ti-circle-x"></i> Reject</button>
+  </div>
+  <div class="row" style="align-items:center;gap:10px;">
+    <button class="btn" style="padding:5px 9px;font-size:11px;"><i class="ti ti-refresh"></i> Generate leads</button>
+    <button class="btn-primary" style="padding:5px 11px;font-size:11px;">Open</button>
+    <span style="width:34px;height:34px;border-radius:999px;background:var(--scrim);border:1px solid var(--border-strong);display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);"><i class="ti ti-compass"></i></span>
+    <span style="width:34px;height:34px;border-radius:999px;background:var(--scrim);border:1px solid var(--accent);display:inline-flex;align-items:center;justify-content:center;color:var(--accent-bright);"><i class="ti ti-stack-2"></i></span>
+  </div>
+  <div class="cap">Primary = accent fill. Secondary = panel + hairline. Ghost for inline actions, danger for reject/kill. Round controls float over the map.</div>
+</div>
+</body>
+</html>

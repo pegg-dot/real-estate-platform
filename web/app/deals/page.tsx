@@ -19,23 +19,25 @@ export default async function DealsPage() {
   const byStage = (s: string) => deals.filter((d) => d.stage === s);
 
   return (
-    <div className="page">
-      <h1 style={{ fontSize: 18, marginBottom: 4 }}>Pipeline — the deal board</h1>
-      <p className="muted" style={{ marginBottom: 14 }}>
-        Every deal you're tracking, by stage.
-        {deals.length === 0 && " — empty: a deal is born when an inbound reply is recorded (`npm run leads -- --inbound <leadId>`)."}
-      </p>
-      <div style={{ display: "flex", gap: 12, overflowX: "auto" }}>
+    <div className="page wide">
+      <div className="screen-head" style={{ padding: "0 16px" }}>
+        <h1>Pipeline</h1>
+        <span className="sub">the deal board{deals.length === 0 ? " — empty: a deal is born when an inbound reply is recorded" : ""}</span>
+      </div>
+      <div className="board">
         {STAGES.map((s) => {
           const items = byStage(s);
           return (
-            <div key={s} style={{ minWidth: 190, background: "#f8fafc", borderRadius: 8, padding: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "#475569", marginBottom: 8 }}>
-                {s.replace(/_/g, " ")} <span className="muted">({items.length})</span>
+            <div key={s} className="col">
+              <div className="col-head">
+                <span className="eyebrow">{s.replace(/_/g, " ")}</span>
+                <span className="muted mono" style={{ fontSize: 11 }}>{items.length}</span>
               </div>
-              {items.map((d) => (
-                <DealCard key={d.id} dealId={d.id} stage={d.stage} address={d.address} score={d.score} structure={d.recommended_structure} />
-              ))}
+              <div className="col-body">
+                {items.map((d) => (
+                  <DealCard key={d.id} dealId={d.id} stage={d.stage} address={d.address} score={d.score} structure={d.recommended_structure} />
+                ))}
+              </div>
             </div>
           );
         })}

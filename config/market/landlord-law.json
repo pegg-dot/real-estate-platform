@@ -1,0 +1,23 @@
+{
+  "_comment": "State landlord-law friendliness for the market-selection gate (Grant×Pace source). Tiers: friendly | neutral | caution | avoid. 'avoid' blocks expansion; 'caution' warns (trending unfriendly). This is a screening heuristic, not legal advice — verify current statute before entering a market. Default for unlisted states = neutral.",
+  "version": "2026.1",
+  "tiers": {
+    "OR": { "tier": "avoid", "note": "statewide rent control + just-cause eviction (SB 608); strongly tenant-favorable" },
+    "WA": { "tier": "avoid", "note": "just-cause eviction statewide, long notice periods, local rent-stabilization moves" },
+    "CA": { "tier": "avoid", "note": "statewide rent cap + just-cause (AB 1482); slow, costly evictions" },
+    "NY": { "tier": "avoid", "note": "HSTPA 2019 rent regulation + long eviction timelines; very tenant-favorable" },
+    "NJ": { "tier": "avoid", "note": "local rent control common, slow eviction courts, strong tenant protections" },
+    "MD": { "tier": "avoid", "note": "tenant-favorable trend; local rent control (Montgomery/PG), longer eviction process" },
+    "CO": { "tier": "caution", "note": "turning unfriendly — recent eviction-protection + for-cause legislation; watch closely" },
+    "MN": { "tier": "caution", "note": "Minneapolis/St. Paul rent-control measures; statewide neutral but trending" },
+    "IL": { "tier": "caution", "note": "Chicago tenant ordinances are strict; statewide preemption of rent control under pressure" },
+    "VA": { "tier": "friendly", "note": "landlord-favorable, fast unlawful-detainer process — first LOT market (Charlottesville)" },
+    "FL": { "tier": "friendly", "note": "landlord-favorable, no state rent control, fast eviction — second LOT market (Miami-Dade)" },
+    "TX": { "tier": "friendly", "note": "landlord-favorable, fast eviction, no state income tax" },
+    "GA": { "tier": "friendly", "note": "landlord-favorable, quick dispossessory process" },
+    "TN": { "tier": "friendly", "note": "landlord-favorable, no state rent control" },
+    "NC": { "tier": "friendly", "note": "landlord-favorable summary-ejectment process" },
+    "IN": { "tier": "friendly", "note": "landlord-favorable, statewide preemption of rent control" },
+    "AL": { "tier": "friendly", "note": "landlord-favorable, fast eviction" }
+  }
+}

@@ -18,6 +18,13 @@
     "rents": "tsx scripts/rents.ts",
     "deal": "tsx scripts/deal.ts",
     "enrich": "tsx scripts/enrich.ts",
+    "ingest-source": "tsx scripts/ingest-source.ts",
+    "ingest-concepts": "tsx scripts/ingest-concepts.ts",
+    "coach": "tsx scripts/coach.ts",
+    "growth": "tsx scripts/growth.ts",
+    "portfolio": "tsx scripts/portfolio.ts",
+    "agent": "tsx scripts/agent.ts",
+    "interrogate": "tsx scripts/interrogate.ts",
     "thesis": "tsx scripts/thesis.ts"
   },
   "devDependencies": {

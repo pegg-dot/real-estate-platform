@@ -72,6 +72,78 @@ describe("recommendFinancing — NEED vs GREED", () => {
     expect(consumer.attorneyReviewRequired).toBe(true);  // consumer-occupant: SAFE/Dodd-Frank applies
   });
 
+  // Recent buyer, BIG gain, high equity — the screenshot house: bought $103k in 2020, now $266k
+  // (61% gain) but only ~6 yrs held. The OLD gate (capGainsExposure required tenure>=10) gave this
+  // CASH-ONLY despite a huge tax to defer. A big gain is a big gain regardless of tenure.
+  const RECENT_FLIPPER: FinancingInput = {
+    estMarketValue: 266_000, lastSalePrice: 103_000, lastSaleDate: "2020-04-19",
+    ownerType: "person", isAbsentee: true, distressSignals: [],
+    listingStatus: "off_market", buyerCashAvailable: 1_000_000,
+    currentMarketRate: 0.07, noi: 22_000, asOf: "2026-06-01",
+  };
+
+  it("high-gain SHORT-tenure owner still gets a quantified SELLER FINANCE offer (gain, not tenure, drives it)", () => {
+    const r = recommendFinancing(RECENT_FLIPPER);
+    const sf = r.recommended.find((x) => x.structure === "seller_finance");
+    expect(sf, "61% gain should trigger seller-finance even at 6yr tenure").toBeDefined();
+    expect(sf!.capGains!.sellerBenefit).toBeGreaterThan(0);
+  });
+
+  it("cap-gains model recognizes depreciation recapture AT SALE (installment can't defer it)", () => {
+    // long-held rental: lots of accumulated depreciation -> a recapture slug taxed now either way
+    const r = recommendFinancing(TIRED_LANDLORD);
+    const cg = r.recommended.find((x) => x.structure === "seller_finance")!.capGains!;
+    expect(cg.accumulatedDepreciation).toBeGreaterThan(0);
+    expect(cg.recaptureTax).toBeGreaterThan(0);
+    // recapture is recognized at sale in BOTH cash and installment, so the deferral benefit
+    // reflects ONLY the capital-gain portion — it must be strictly less than taxing the whole gain.
+    expect(cg.sellerBenefit).toBeLessThan(cg.cashTaxNow);
+    // and the deferred PV still carries the recapture (recognized now), so PV >= recaptureTax
+    expect(cg.deferredTaxPV).toBeGreaterThanOrEqual(cg.recaptureTax);
+  });
+
+  it("emits numeric cashInDeal even when estMarketValue arrives as a DB string (postgres numeric)", () => {
+    // postgres.js returns numeric columns as STRINGS; the type says number but runtime can be a string.
+    // The persisted financing JSON must carry clean numbers, not "790400.00".
+    const r = recommendFinancing({ ...WERTLAND_1301, estMarketValue: "1077800" as unknown as number });
+    for (const o of r.recommended) {
+      expect(typeof o.buyer.cashInDeal, `${o.structure} cashInDeal must be a number`).toBe("number");
+      expect(Number.isFinite(o.buyer.cashInDeal)).toBe(true);
+    }
+  });
+
+  it("subject-to on a 5+ unit (commercial) property carries a TOXIC-DEBT balloon/reset warning", () => {
+    // commercial MF financing is usually a short-term balloon or adjustable note — sub2 inherits a
+    // balloon that can come due. We can't see the loan terms, so we FLAG (don't silently recommend).
+    const mfNeed: FinancingInput = {
+      estMarketValue: 1_200_000, lastSalePrice: 1_180_000, lastSaleDate: "2021-06-01",
+      ownerType: "llc", isAbsentee: true, distressSignals: ["preforeclosure"],
+      listingStatus: "off_market", buyerCashAvailable: 2_000_000,
+      currentMarketRate: 0.07, noi: 70_000, asOf: "2026-06-01", units: 8,
+    };
+    const sub2 = recommendFinancing(mfNeed).recommended.find((x) => x.structure === "subject_to");
+    expect(sub2, "sub2 should still be offered for commercial MF, but flagged").toBeDefined();
+    expect(sub2!.legalGuardrail.toLowerCase()).toMatch(/balloon|toxic|adjustable|reset|short-term/);
+    expect(sub2!.attorneyReviewRequired).toBe(true);
+
+    // a single-family (residential, 30-yr fixed) sub2 does NOT carry the commercial toxic-debt warning
+    const sf = recommendFinancing({ ...mfNeed, units: 2, estMarketValue: 400_000, lastSalePrice: 395_000, noi: 18_000 })
+      .recommended.find((x) => x.structure === "subject_to");
+    expect(sf!.legalGuardrail.toLowerCase()).not.toMatch(/balloon|toxic/);
+  });
+
+  it("subject-to guardrail keeps the due-on-sale warning AND cites the ~0.1% called-due datapoint", () => {
+    const need: FinancingInput = {
+      estMarketValue: 400_000, lastSalePrice: 395_000, lastSaleDate: "2021-06-01",
+      ownerType: "person", isAbsentee: false, distressSignals: ["preforeclosure"],
+      listingStatus: "off_market", buyerCashAvailable: 1_000_000,
+      currentMarketRate: 0.07, noi: 18_000, asOf: "2026-06-01",
+    };
+    const sub2 = recommendFinancing(need).recommended.find((x) => x.structure === "subject_to")!;
+    expect(sub2.legalGuardrail.toLowerCase()).toMatch(/due-on-sale/); // guardrail KEPT
+    expect(sub2.legalGuardrail).toMatch(/0\.1%|rarely|seldom/i);      // datapoint added, not a green light
+  });
+
   it("subject-to carries the due-on-sale guardrail and refutes the land-trust myth", () => {
     // construct a NEED case with a real rate gap (3% loan vs 7% market)
     const need: FinancingInput = {

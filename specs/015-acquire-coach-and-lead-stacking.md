@@ -39,6 +39,13 @@ mode** where the AI plays the seller's inferred persona and scores the rep (rapp
 bunny-found / structure-fit) — Pace's "daily dial" as software. Scripts inherit `complianceGate`
 (mail default; call/text gated; never auto-send).
 
+**Exemplars added 2026-06-02 (Grant×Pace source → `config/knowledge/grant-cardone-pace-morby-artifacts.json`):**
+F-150 terms-explainer, common-enemy expired-listing opener, payment-around-need (Susan's $375/mo),
+and the "why the bank's permission?" reframe (objection#); plus the foreclosure/subject-to script
+and the legacy 50-yr-annuity (Mario) as `situation#` exemplars. `forLead.ts` now also pulls
+situation-MATCHED exemplars so the foreclosure script surfaces only for sub2/pre-foreclosure leads
+and the legacy annuity only for seller-finance / long-tenure leads — not on every call. All cited.
+
 ## Implementation plan (build order)
 1. **Stack score** (`lib/sourcing/stack.ts`) over the shipped signals + a Leads-queue column; tests.
 2. **Channel router** + **marketing-ROI/funnel** rollup (reuse pipeline + learn data).

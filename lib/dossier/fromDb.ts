@@ -10,6 +10,8 @@ import { loadMarketAssumptions } from "../config/assumptions.js";
 import { loadRentComps } from "../db/rentComps.js";
 import { scoreRow, DEFAULT_BUYER_CASH, type Thesis } from "../pipeline/scoreMarket.js";
 import { renderDossier, type DossierFacts } from "./render.js";
+import { macroDistressSignals } from "../distress/macro.js";
+import { rateForYear } from "../financing/recommend.js";
 
 interface GenomeRow extends ScorableRow {
   gpin: string | null; address: string | null; zone_code: string | null;
@@ -52,5 +54,18 @@ export async function renderDossierForApn(
     ownerEntityType: row.ownerEntityType, isAbsentee: row.isAbsentee,
     lastSalePrice: row.lastArmsPrice, lastSaleDate: row.lastArmsDate, confidence: "modeled",
   };
-  return renderDossier(facts, score, financing, rules, { sensitivity, gates, dataConfidence, rentFloor, rentSource });
+  const dossier = renderDossier(facts, score, financing, rules, { sensitivity, gates, dataConfidence, rentFloor, rentSource });
+
+  // Macro distress-TIMING tells (spec 012 enhancement): inferred, cohort-level pressure (balloon
+  // maturity / ARM reset / insurance spike) — appended as modeled context, never a determination.
+  const saleYear = row.lastArmsDate ? Number(row.lastArmsDate.slice(0, 4)) : null;
+  const units = (row.beds != null && row.beds >= a.multifamilyBedThreshold) ? Math.max(1, Math.round(row.beds / 3)) : 1;
+  const macro = macroDistressSignals({
+    state: a.state, lastSaleYear: saleYear, units, asOfYear: Number(when.slice(0, 4)),
+    purchaseEraRate: saleYear ? rateForYear(saleYear) : a.currentMarketRate,
+    currentMarketRate: a.currentMarketRate, insuranceTrend: a.insuranceTrend ?? "stable",
+  });
+  if (macro.length === 0) return dossier;
+  const lines = macro.map((s) => `  • [${s.severity}] ${s.type.replace(/_/g, " ")} — ${s.detail} (modeled)`);
+  return `${dossier}\n\n## Macro distress-timing tells (modeled — a reason to reach out, not proof)\n${lines.join("\n")}`;
 }

@@ -45,7 +45,7 @@ export default function RentsPage() {
         <span className="muted" style={{ fontSize: 12 }}>or pull from RentCast:</span>
         <I v={rc.address} set={(v) => setRc({ ...rc, address: v })} ph="full address, City, VA" w={200} />
         <I v={rc.beds} set={(v) => setRc({ ...rc, beds: v })} ph="beds" w={60} />
-        <button onClick={fetchRentCast} disabled={busy} style={{ padding: "6px 12px", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Fetch RentCast</button>
+        <button onClick={fetchRentCast} disabled={busy} style={{ padding: "6px 12px", border: "1px solid var(--border-strong)", background: "var(--bg-panel)", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Fetch RentCast</button>
         <span className="muted" style={{ fontSize: 11 }}>(needs RENTCAST_API_KEY)</span>
       </div>
 
@@ -57,6 +57,6 @@ export default function RentsPage() {
   );
 }
 function I({ v, set, ph, w }: { v: string; set: (s: string) => void; ph: string; w: number }) {
-  return <input value={v} onChange={(e) => set(e.target.value)} placeholder={ph} style={{ width: w, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 12 }} />;
+  return <input value={v} onChange={(e) => set(e.target.value)} placeholder={ph} style={{ width: w, padding: "6px 8px", border: "1px solid var(--border-strong)", borderRadius: 6, fontSize: 12 }} />;
 }
-const btn: React.CSSProperties = { padding: "6px 12px", border: "1px solid #0f172a", background: "#0f172a", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 };
+const btn: React.CSSProperties = { padding: "6px 12px", border: "1px solid var(--accent)", background: "var(--accent)", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 };

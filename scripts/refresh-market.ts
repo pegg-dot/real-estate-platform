@@ -21,10 +21,12 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import type { Sql } from "../lib/db/client.js";
 import { getSql } from "../lib/db/client.js";
-import { seedKnowledgeRules } from "../lib/db/knowledge.js";
+import { seedKnowledgeRules, seedExpertProfiles } from "../lib/db/knowledge.js";
 import { loadActiveThesis, saveThesis } from "../lib/db/thesis.js";
 import { genericThesis } from "../lib/thesis/compile.js";
 import { scoreMarket, type Thesis } from "../lib/pipeline/scoreMarket.js";
+import { loadMarketAssumptions } from "../lib/config/assumptions.js";
+import { landlordLawGate } from "../lib/market/landlordLaw.js";
 import { renderDossierForApn } from "../lib/dossier/fromDb.js";
 import { runScout, showLatestChanges } from "../lib/scout/run.js";
 import { runRegulatoryRadar } from "../lib/db/radar.js";
@@ -116,8 +118,14 @@ async function main() {
 
   // 2. REASON — seed the cited knowledge rules, then score + finance
   console.log(`[2/3] scoring ${market}…`);
+  // market-selection guardrail (004): screen the state's landlord-law posture before underwriting
+  const law = landlordLawGate(loadMarketAssumptions(market).state);
+  if (!law.pass) console.log(`      ⛔ landlord-law: AVOID — ${law.reason} (this market is tenant-favorable; reconsider)`);
+  else if (law.warn) console.log(`      ⚠️  landlord-law: CAUTION — ${law.reason}`);
+  else console.log(`      ✓ landlord-law: ${law.tier} — ${law.reason}`);
   const sql = getSql(dsn);
   await seedKnowledgeRules(sql);   // so every financing citation resolves to real text
+  await seedExpertProfiles(sql);   // Pace/Grant profiles for the deal-interrogation engine (spec 023)
   const thesis = await resolveThesis(sql);
   const res = await scoreMarket(sql, { market, thesis });
   console.log(`      scored ${res.scored} · non-target(institution) ${res.nonTarget} · ` +

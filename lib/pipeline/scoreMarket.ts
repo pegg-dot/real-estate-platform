@@ -9,10 +9,12 @@
  */
 import type { Sql } from "../db/client.js";
 import { readScorableProperties, upsertScore, type ScorableRow, type ScoreRecord } from "../db/properties.js";
-import { loadMarketAssumptions, proFormaFor, fmrScheduleFor, type MarketAssumptions } from "../config/assumptions.js";
+import { loadMarketAssumptions, proFormaFor, fmrScheduleFor, hbuAssumptionsFor, zoningCapacityFor, type MarketAssumptions } from "../config/assumptions.js";
+import { highestAndBestUse, type HbuResult } from "../scoring/hbu.js";
 import { scoreProperty, haversineMiles, type ScoreInput, type ScoreResult } from "../scoring/score.js";
-import { perBedroomRent } from "../scoring/rent.js";
+import { perBedroomRent, perHouseRentFactor } from "../scoring/rent.js";
 import { hudFmrMonthlyFloor, rentVsHudFloor } from "../scoring/fmr.js";
+import { optimizeExitStrategies, DEFAULT_EXIT_THESIS, type ExitOptimization, type ExitStrategy, type ExitThesis } from "../scoring/exitStrategy.js";
 import { estimateRealRent, type RentComp } from "../rent/comps.js";
 import { sensitivity, type SensitivityResult } from "../scoring/sensitivity.js";
 import { evaluateGates } from "../scoring/gates.js";
@@ -25,6 +27,11 @@ export interface Thesis {
   goal: { preferred_cash_on_cash?: number; min_cash_on_cash?: number };
   scoring_weights: Record<string, number>;
   hard_constraints?: Record<string, unknown>;
+  exit_strategy?: {                       // spec 019: optimizer config (defaults applied if absent)
+    management_appetite: number;
+    allowed_exit_strategies: string[];
+    rent_multipliers?: Record<string, number>;
+  };
 }
 
 export interface ScoreMarketResult {
@@ -58,6 +65,8 @@ export interface ScoredRow {
   dataConfidence: number;
   rentFloor: RentFloor;          // HUD FMR real floor / sanity cross-check (004a)
   rentSource: "modeled" | "real-comps";  // did real rent comps drive the per-bed rent? (013)
+  exitStrategy: ExitOptimization;        // the ranked exit-strategy menu + recommendation (019)
+  hbu: HbuResult;                        // highest-and-best-use of the dirt: hold/flip/develop/wholesale (020)
 }
 
 /** Score + finance a single scorable row — the shared per-property logic (pipeline + dossier). */
@@ -72,11 +81,18 @@ export function scoreRow(
   const realRent = (opts.comps && opts.comps.length && row.lat != null && row.lng != null)
     ? estimateRealRent(row.lat, row.lng, opts.comps, { preferByRoom: true })
     : null;
-  const modeledPerBed = perBedroomRent(distMiles, a.rentModel);  // spatially-aware modeled rent
+  // per-HOUSE quality factor (spec 021) so two same-bed houses don't get identical modeled rents:
+  // a nicer house (more improvement value per sqft) rents above a plainer one. Applies to the
+  // MODELED rent only — a real comp is already per-house, so it skips the factor.
+  const qFactor = perHouseRentFactor({
+    improvementValue: (row.assessedTotal != null && row.assessedLand != null) ? row.assessedTotal - row.assessedLand : null,
+    sqft: row.sqft, yearBuilt: row.yearBuilt,
+  }, a.improvementBaselinePerSqft);
+  const modeledPerBed = Math.round(perBedroomRent(distMiles, a.rentModel) * qFactor);  // spatially-aware + per-house
   const perBed = realRent?.perBedRent ?? modeledPerBed;
   const rentSource = realRent ? "real-comps" as const : "modeled" as const;
   const wholeHouseMonthlyRent = row.beds != null
-    ? row.beds * a.wholeHouseMonthlyRentPerBed
+    ? Math.round(row.beds * a.wholeHouseMonthlyRentPerBed * qFactor)
     : Math.round(price * a.wholeHouseFallbackMonthlyRentToPrice);
   const scoreInput: ScoreInput = {
     apn: row.apn, price, beds: row.beds, byRoomLegal: row.byRoomLegal, lat: row.lat, lng: row.lng,
@@ -108,12 +124,17 @@ export function scoreRow(
     minCashOnCash: thesis.goal.min_cash_on_cash ?? 0.08,
   }, thesis.hard_constraints ?? {});
 
+  // estimate CURRENT units (~3 beds/unit above the MF bed threshold) — shared with HBU below and
+  // used by the financing toxic-debt gate (5+ units => commercial balloon/adjustable note risk).
+  const currentUnits = (row.beds != null && row.beds >= a.multifamilyBedThreshold)
+    ? Math.max(1, Math.round(row.beds / 3)) : 1;
+
   const financing = recommendFinancing({
     estMarketValue: price, lastSalePrice: row.lastArmsPrice, lastSaleDate: row.lastArmsDate,
     ownerType: (row.ownerEntityType as FinancingInput["ownerType"]) ?? "unknown",
     isAbsentee: Boolean(row.isAbsentee), distressSignals: [], listingStatus: "off_market",
     buyerCashAvailable: cash, currentMarketRate: a.currentMarketRate,
-    noi: score.headline.proForma.noi, asOf, capGainsRate: a.capGainsRate,
+    noi: score.headline.proForma.noi, asOf, capGainsRate: a.capGainsRate, units: currentUnits,
   });
 
   // HUD FMR real floor / sanity cross-check (004a): does the MODELED whole-house rent dip
@@ -133,7 +154,38 @@ export function scoreRow(
     cbsaName: fmrSched?.cbsaName ?? null,
   };
 
-  return { score, financing, sensitivity: sens, gates, dataConfidence: conf, rentFloor, rentSource };
+  // Exit-strategy optimizer (spec 019): underwrite every legal+feasible way to run the parcel
+  // (LTR/by-room/MTR/STR/Section8/assisted) and rank by thesis fit. Reuses the SAME modeled
+  // per-bed/whole-house rents, HUD FMR floor, and per-parcel expense profile as the headline.
+  const exitThesis: ExitThesis = thesis.exit_strategy
+    ? {
+        management_appetite: thesis.exit_strategy.management_appetite,
+        allowed_exit_strategies: thesis.exit_strategy.allowed_exit_strategies as ExitStrategy[],
+        strategy_rent_multipliers: thesis.exit_strategy.rent_multipliers as ExitThesis["strategy_rent_multipliers"],
+      }
+    : DEFAULT_EXIT_THESIS;
+  const exitStrategy = optimizeExitStrategies(
+    {
+      price, beds: row.beds, byRoomLegal: row.byRoomLegal, strAllowed: row.strAllowed,
+      distMiles, perBedroomMonthlyRent: perBed, wholeHouseMonthlyRent,
+    },
+    exitThesis, pfa, fmrSched);
+
+  // Highest-and-best-use of the dirt (spec 020): hold vs flip vs develop (ADU/add-units) vs
+  // wholesale, gated on land-vs-improvement + zoning capacity, ranked by the same management
+  // appetite. The hold baseline is the headline CoC we just computed.
+  const cap = zoningCapacityFor(a.market, row.zoneCode);
+  // currentUnits estimated above (shared with the financing toxic-debt gate). A high-bed parcel is
+  // likely already multifamily, so we don't assume 1 (which would invent develop headroom on a built-out building).
+  const hbu = highestAndBestUse(
+    {
+      price, assessedLand: row.assessedLand, assessedTotal: row.assessedTotal, yearBuilt: row.yearBuilt,
+      holdCashOnCash: score.headline.proForma.cashOnCash, currentUnits,
+      allowedUnits: cap.allowedUnits, aduAllowed: cap.aduAllowed,
+    },
+    hbuAssumptionsFor(a), { management_appetite: exitThesis.management_appetite });
+
+  return { score, financing, sensitivity: sens, gates, dataConfidence: conf, rentFloor, rentSource, exitStrategy, hbu };
 }
 
 export async function scoreMarket(
@@ -154,9 +206,38 @@ export async function scoreMarket(
     // institutions/government (UVA, the City) are never acquisition targets — don't score them
     if (row.ownerEntityType === "institution") { nonTarget++; continue; }
 
-    const { score: scoredRes, financing, sensitivity: sens, gates, dataConfidence: conf } =
+    const { score: scoredRes, financing, sensitivity: sens, gates, dataConfidence: conf, exitStrategy, hbu } =
       scoreRow(row, a, opts.thesis, asOf, cash, { comps });
     const top: Structure = financing.recommended[0]?.structure ?? "cash";
+    // compact HBU menu for the genome/dev-upside map (full numbers live in `detail`)
+    const hbuMenu = {
+      recommended: hbu.recommended,
+      landSharePct: hbu.landSharePct,
+      confidence: hbu.confidence,        // 'modeled' — develop/flip economics are config, not appraised
+      note: hbu.note,                    // the honesty caveat travels with the persisted result
+      ranked: hbu.ranked.map((u) => ({
+        use: u.use, annualizedReturn: Number(u.annualizedReturn.toFixed(4)),
+        upsideVsHold: Number(u.upsideVsHold.toFixed(4)), intensity: u.intensity,
+        thesisFit: Number(u.thesisFit.toFixed(4)),
+        // carry the modeled IRR detail so the UI can show the carry drag + capital-tied-up months,
+        // not just a bare % (rounded to keep the jsonb tidy; develop/flip have irrAnnual/carry/horizonMonths)
+        detail: Object.fromEntries(Object.entries(u.detail).map(([k, v]) => [k, Number(Number(v).toFixed(4))])),
+      })),
+      excluded: hbu.excluded,
+    };
+    // compact, queryable menu for the genome/dossier (full pro-formas stay in `proformas`)
+    const exitMenu = {
+      ranked: exitStrategy.ranked.map((r) => ({
+        strategy: r.strategy,
+        grossAnnualRent: r.grossAnnualRent,
+        cashOnCash: Number(r.proForma.cashOnCash.toFixed(4)),
+        mgmtIntensity: r.mgmtIntensity,
+        thesisFit: Number(r.thesisFit.toFixed(4)),
+        rentBasis: r.rentBasis,                 // 'hud_fmr' for Section 8, else 'modeled'
+        ...(r.guardrail ? { guardrail: r.guardrail } : {}),
+      })),
+      excluded: exitStrategy.excluded,
+    };
 
     records.push({
       propertyId: row.id,
@@ -174,6 +255,10 @@ export async function scoreMarket(
       components: scoredRes.components,
       proformas: scoredRes.proFormas,
       recommendedStructure: top,
+      recommendedExitStrategy: exitStrategy.recommended,
+      exitStrategies: exitMenu,
+      recommendedUse: hbu.recommended,
+      hbu: hbuMenu,
       financing,
       lowConfidence: scoredRes.lowConfidence,
     });

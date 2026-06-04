@@ -1,0 +1,13 @@
+{
+  "$comment": "Curated, CITED growth corridors for Charlottesville (path-of-progress, spec 017). Planned/upzoned priority areas from the 2021 Comprehensive Plan + 2024 Development Code. Approximate bounding boxes — a POSITIONING signal, not a promise; confirm against current city plans before acting. Reuses the zoning_rule stability-flag convention (curated + dated, never asserted).",
+  "market": "Charlottesville",
+  "source_url": "https://www.charlottesville.gov/1005/Comprehensive-Plan",
+  "as_of_date": "2024-02-19",
+  "stability_flag": "Corridors per the 2021 Comp Plan + 2024 Development Code; city plans evolve — re-confirm before a land-banking buy.",
+  "corridors": [
+    { "name": "Strategic Investment Area (SIA)", "minLat": 38.018, "maxLat": 38.030, "minLng": -78.492, "maxLng": -78.478, "note": "Comp Plan priority redevelopment area south of downtown" },
+    { "name": "West Main Street", "minLat": 38.029, "maxLat": 38.036, "minLng": -78.487, "maxLng": -78.476, "note": "downtown-to-UVA mixed-use corridor, heavily upzoned" },
+    { "name": "Emmet Street / US-29", "minLat": 38.040, "maxLat": 38.065, "minLng": -78.502, "maxLng": -78.488, "note": "north corridor, form-based upzoning + transit investment" },
+    { "name": "Cherry Avenue", "minLat": 38.023, "maxLat": 38.032, "minLng": -78.503, "maxLng": -78.494, "note": "Comp Plan revitalization corridor" }
+  ]
+}

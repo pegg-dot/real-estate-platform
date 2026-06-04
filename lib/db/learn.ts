@@ -8,7 +8,8 @@
  */
 import type { Sql } from "./client.js";
 import { computeDivergence, type DivergenceReport, type LabeledDecision } from "../learn/divergence.js";
-import { proposeWeightRetune, type DecisionFeatures, type RetuneOpts, type RetuneProposal } from "../learn/retune.js";
+import { proposeWeightRetune, proposeAppetiteRetune, type DecisionFeatures, type ExitDecision, type RetuneOpts, type RetuneProposal, type AppetiteProposal } from "../learn/retune.js";
+import { strategyIntensity } from "../scoring/exitStrategy.js";
 import { isThesisRelevant } from "../learn/taxonomy.js";
 import { loadActiveThesis, saveThesis } from "./thesis.js";
 import type { Thesis } from "../thesis/schema.js";
@@ -41,7 +42,11 @@ function extractRaws(components: unknown): Record<string, number> {
   return out;
 }
 
-export interface RetuneResult { proposal: RetuneProposal; currentWeights: Record<string, number> }
+export interface RetuneResult {
+  proposal: RetuneProposal;
+  currentWeights: Record<string, number>;
+  appetite: AppetiteProposal;                 // adaptive exit mix (management_appetite)
+}
 
 /**
  * Propose a retuned thesis from Nate's frozen, thesis-relevant decisions (one per deal). Reads
@@ -53,19 +58,30 @@ export async function proposeRetune(sql: Sql, market: string, opts?: RetuneOpts)
   if (!active) throw new Error("no active thesis — author one before retuning");
   const current = active.scoring_weights as unknown as Record<string, number>;
 
-  const rows = await sql<Array<{ action: string; reason_chip: string | null; frozen_components: unknown }>>`
-    select distinct on (dd.deal_id) dd.action, dd.reason_chip, dd.frozen_components
+  // also pull each decision's recommended exit strategy (current value via deal_genome — a fair
+  // approximation; freezing it on the decision row at write time is a future refinement) so we can
+  // learn management_appetite from the operating intensity your advances favor vs your passes.
+  const rows = await sql<Array<{ action: string; reason_chip: string | null; frozen_components: unknown; exit_strategy: string | null }>>`
+    select distinct on (dd.deal_id) dd.action, dd.reason_chip, dd.frozen_components, g.recommended_exit_strategy as exit_strategy
     from deal_decision dd
     join property p on p.id = dd.property_id
     join market m on m.id = p.market_id
+    left join deal_genome g on g.market = ${market} and g.apn = p.apn
     where m.name = ${market} and dd.action in ('advance', 'pass') and dd.frozen_components is not null
     order by dd.deal_id, dd.decided_at desc`;
 
-  const decisions: DecisionFeatures[] = rows
-    .filter((r) => isThesisRelevant(r.reason_chip))
-    .map((r) => ({ action: r.action as "advance" | "pass", components: extractRaws(r.frozen_components) }));
+  const relevant = rows.filter((r) => isThesisRelevant(r.reason_chip));
+  const decisions: DecisionFeatures[] = relevant.map((r) => ({ action: r.action as "advance" | "pass", components: extractRaws(r.frozen_components) }));
+  const exitDecisions: ExitDecision[] = relevant
+    .filter((r) => r.exit_strategy != null)
+    .map((r) => ({ action: r.action as "advance" | "pass", intensity: strategyIntensity(r.exit_strategy!) }));
 
-  return { proposal: proposeWeightRetune(current, decisions, opts), currentWeights: current };
+  const currentAppetite = Number((active.exit_strategy?.management_appetite ?? 0.25));
+  return {
+    proposal: proposeWeightRetune(current, decisions, opts),
+    currentWeights: current,
+    appetite: proposeAppetiteRetune(currentAppetite, exitDecisions, opts),
+  };
 }
 
 /**
@@ -73,10 +89,12 @@ export async function proposeRetune(sql: Sql, market: string, opts?: RetuneOpts)
  * reviews the diff and activates with `npm run thesis --activate <v>`). Returns null if below floor.
  */
 export async function applyRetune(sql: Sql, market: string, opts?: RetuneOpts): Promise<{ version: number } | null> {
-  const { proposal } = await proposeRetune(sql, market, opts);
-  if (!proposal.proposed) return null;
-  const active = await loadActiveThesis(sql);
-  const next = { ...(active as Thesis), scoring_weights: proposal.proposed as unknown as Thesis["scoring_weights"] };
+  const { proposal, appetite } = await proposeRetune(sql, market, opts);
+  if (!proposal.proposed && appetite.proposed == null) return null;   // nothing learned yet
+  const active = await loadActiveThesis(sql) as Thesis;
+  const next: Thesis = { ...active };
+  if (proposal.proposed) next.scoring_weights = proposal.proposed as unknown as Thesis["scoring_weights"];
+  if (appetite.proposed != null) next.exit_strategy = { ...active.exit_strategy, management_appetite: appetite.proposed };
   const version = await saveThesis(sql, next, { activate: false });
   return { version };
 }

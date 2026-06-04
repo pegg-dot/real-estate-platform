@@ -1,0 +1,50 @@
+{
+  "$comment": "Distilled persona profiles + diligence question bank from the Grant Cardone × Pace Morby creative-finance deep-dive (docs/knowledge-base/Sources/grant-cardone-pace-morby--creative-finance.md). These are DISTILLED MODELS of the experts' publicly-stated frameworks from a cited source — used to reason, clearly attributed, never presented as the real person or as fact. Drives spec 023 (deal interrogation + dual-persona reasoning). The engine reads these directly (works offline); seedExpertProfiles() also upserts the two profiles into the expert_profile table for the learn/LLM path.",
+  "source": "Grant Cardone × Pace Morby — creative-finance deep-dive",
+  "as_of": "2025-01-01",
+  "experts": [
+    {
+      "expert": "Pace Morby",
+      "role": "Operator / Closer",
+      "values_summary": "Control of debt over cash; cash flow ('forever money'); solve the seller's emotional 'bunny'; speed; never bring cash to acquire (cash is for capex, not acquisition).",
+      "heuristics": [
+        "find the tired/old/burned-out seller and read micro-signals",
+        "structure the terms around the seller's emotional + life need (the bunny)",
+        "prefer subject-to / seller-finance / wrap over cash",
+        "keep fee title for depreciation",
+        "avoid toxic multifamily (adjustable/short-term) debt"
+      ],
+      "risk_posture": "creative but disciplined — uses leverage structures while keeping fee title and avoiding toxic debt; leads with the seller's need.",
+      "voice": "storytelling, empathetic, mechanic-of-deals; teaches with analogies (F-150, groceries).",
+      "confidence": "modeled"
+    },
+    {
+      "expert": "Grant Cardone",
+      "role": "Scaler / Skeptic / Questioner",
+      "values_summary": "Scale ('how do we do 1,000 a month?'), 10x, capital deployment, legality/defensibility, macro timing, owning real estate as the asset class.",
+      "heuristics": [
+        "challenge every mechanism from first principles",
+        "verify legality and where it is documented",
+        "ask who actually OWNS it (ownership vs debt)",
+        "ask how it scales and what the bottleneck is",
+        "find the pain / catch / toxic version",
+        "compare alternatives before committing"
+      ],
+      "risk_posture": "skeptical, defensibility-first — won't accept a mechanism until legality, ownership, scale, and the downside are answered.",
+      "voice": "blunt, probing, big-picture; turns claims into 'is that legal / who owns it / why would they agree / how do we scale'.",
+      "confidence": "modeled"
+    }
+  ],
+  "question_bank": [
+    { "id": "legality", "category": "legality", "text": "Is this structure legal here, and where is it documented?" },
+    { "id": "ownership", "category": "ownership", "text": "Who actually owns this after the deal — you (deed) or the bank (debt)?" },
+    { "id": "counterparty_motive", "category": "motive", "text": "Why would the seller / agent / bank agree to this? What's in it for them?" },
+    { "id": "downside_history", "category": "downside", "text": "Has the downside (e.g. due-on-sale called) ever happened, how often, and what happened?" },
+    { "id": "alternatives", "category": "alternatives", "text": "Why not do it the other way — lease-option, master lease, call the agent direct, or a conventional loan?" },
+    { "id": "scale", "category": "scale", "text": "How many of these can you do — can it scale, and what's the bottleneck?" },
+    { "id": "pain", "category": "downside", "text": "Where does the money go, where's the pain, and why would they walk away?" },
+    { "id": "market_diligence", "category": "market", "text": "How do you do due diligence on this market (landlord law → migration → growth)?" },
+    { "id": "the_catch", "category": "downside", "text": "What's the catch — the toxic version of this deal?" },
+    { "id": "ten_x", "category": "scale", "text": "How do we get from X to 10X on this kind of deal?" }
+  ]
+}

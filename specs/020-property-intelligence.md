@@ -1,4 +1,4 @@
-# Spec 008 — Property Intelligence (highest-and-best-use/development + equity & distress)
+# Spec 020 — Property Intelligence (highest-and-best-use/development + equity & distress)
 
 **Status:** ready to build (combines former 009 + 010) · **Depends on:** 003 (underwrite),
 002 (zoning, land/impr split, sales), 004 (equity estimate) · **Unlocks:** the podcast's
@@ -17,7 +17,7 @@ develop, hold, service. With Charlottesville's upzoning, many SF lots are now **
 plays** (ADU / add-units / tear-down-rebuild) worth more than their hold yield.
 
 ### The ways to evaluate per parcel
-1. **Hold** — existing score (003) + exit-strategy optimizer (007). Baseline.
+1. **Hold** — existing score (003) + exit-strategy optimizer (019). Baseline.
 2. **Fix & flip** — if improvement is dated/low: ARV − purchase − rehab − holding − ~10% sale.
 3. **Develop / build (the upzoning play)** ⭐:
    - **Land-vs-improvement signal:** high `assessed_land` share of `assessed_total` → value is
@@ -59,7 +59,7 @@ low-rate owners are the **subject-to lay-down** a cash offer physically can't so
 ### Outputs
 Deal-Genome fields: `est_loan_balance`, `gross_equity`, `true_equity`, `would_write_check`,
 `distress_score` (+ components, confidence-tagged). A **distress/equity map layer** (005) and a
-**"no-equity sub2 target" lead feed** into 007's queue with the structure pre-set.
+**"no-equity sub2 target" lead feed** into 019's queue with the structure pre-set.
 
 ---
 
@@ -77,10 +77,19 @@ Deal-Genome fields: `est_loan_balance`, `gross_equity`, `true_equity`, `would_wr
 1. Promote loan-balance estimate to a shared field; compute true-equity + `would_write_check`
    + distress score (Part B core — all our data).
 2. Land-vs-improvement + zoning-capacity → development upside (Part A core).
-3. Map layers (005) + the sub2-target lead feed into 007.
+3. Map layers (005) + the sub2-target lead feed into 019.
 4. Fix-flip/wholesale metrics; HUD/ARV/build-cost calibration later.
 
 ## Honest flags
 ARV, rehab, build costs, and loan balances are *estimated*/config — every downstream flag carries
 confidence and never asserts sub2 viability on a guess (reuse 004's rule). Zoning capacity is
 curated + cited with the stability flag. Indicative, not entitlement/financial advice.
+
+**Modeling limitations (code-review, do not over-trust the develop ranking):** develop/flip returns
+are annualized SCREENING PROXIES, not IRRs — they systematically favor one-time plays vs a perpetual
+hold; an IRR / equivalent-annual model is a future underwriter pass. Develop value is driven by config
+per-unit constants (price-insensitive above the `minViablePrice` floor), so a depressed assessed value
+plus high zoned capacity can over-rank develop — the result carries `confidence: "modeled"` so it is
+never presented as real. `currentUnits` is estimated from beds (~3/unit) for likely-multifamily;
+`allowed_units` is the TOTAL cap (ADU-inclusive, no double-count). Wholesale is off for a buy-and-hold
+thesis (`wholesaleEnabled: false`).

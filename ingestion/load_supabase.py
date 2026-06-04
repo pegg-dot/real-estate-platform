@@ -54,16 +54,18 @@ def upsert_zoning_rules(conn, market_id: str, rules: dict) -> int:
         conn.execute(
             "insert into zoning_rule "
             "  (market_id, zone_code, max_unrelated_occupants, by_room_legal, "
-            "   rooming_house_allowed, source_url, as_of_date, stability_flag) "
-            "values (%s,%s,%s,%s,%s,%s,%s,%s) "
+            "   rooming_house_allowed, str_allowed, source_url, as_of_date, stability_flag) "
+            "values (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
             "on conflict (market_id, zone_code) do update set "
             "  max_unrelated_occupants = excluded.max_unrelated_occupants, "
             "  by_room_legal = excluded.by_room_legal, "
             "  rooming_house_allowed = excluded.rooming_house_allowed, "
+            "  str_allowed = excluded.str_allowed, "
             "  source_url = excluded.source_url, as_of_date = excluded.as_of_date, "
             "  stability_flag = excluded.stability_flag",
             (market_id, zone_code, rule.get("max_unrelated_occupants"),
              rule.get("by_room_legal"), rule.get("rooming_house_allowed"),
+             rule.get("str_allowed"),
              rules.get("source_url"), rules.get("as_of_date"), rules.get("stability_flag")),
         )
     conn.commit()
@@ -230,6 +232,25 @@ def load_properties(conn, market_id: str, properties: list[dict]) -> dict:
                 "  is_arms_length = excluded.is_arms_length",
                 sale_params)
         counts["sale"] = len(sale_params)
+
+    # owner.portfolio_size = parcels held per owner in this market (spec 019 Part B; the
+    # tired-landlord gate). Persisted here so it stays fresh on every load, not just at read time.
+    with conn.cursor() as cur:
+        cur.execute(
+            "update owner o set portfolio_size = sub.n "
+            "from (select owner_id, count(*)::int n from property "
+            "        where owner_id is not null and market_id = %s group by owner_id) sub "
+            "where sub.owner_id = o.id and (o.portfolio_size is distinct from sub.n)",
+            (market_id,))
+        # owner.tenure_years = years since the owner's most-recent arm's-length acquisition
+        # (spec 019 Part B; the tired-landlord hold-duration gate). Long hold => high tenure.
+        cur.execute(
+            "update owner o set tenure_years = sub.yrs "
+            "from (select p.owner_id, extract(year from age(now(), max(s.sale_date)))::int yrs "
+            "        from property p join sale s on s.property_id = p.id and s.is_arms_length "
+            "        where p.owner_id is not null and p.market_id = %s group by p.owner_id) sub "
+            "where sub.owner_id = o.id and (o.tenure_years is distinct from sub.yrs)",
+            (market_id,))
 
     conn.commit()
     return counts

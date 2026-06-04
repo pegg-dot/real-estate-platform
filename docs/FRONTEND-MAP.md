@@ -1,5 +1,13 @@
 # LOT Frontend Map — IA, backend↔frontend coverage, and the Claude-design brief
 
+> 🎨 **Design system: fully applied (2026-06-02).** Phase 1 = Map + deal drawer; Phase 2 = every
+> other screen (Home, Brief, Pipeline, Leads, Settings, Chat, Thesis, Playbook, Changes, Radar,
+> Learn, Rents, Outreach, Schedule, Dev) restyled to the dark "operational terminal" — shared topbar,
+> tokens in `web/app/tokens.css`, atoms in `web/app/ui.tsx`, ported classes in `globals.css`.
+> (Specs 024/025 merged the old Ask + Agent pages into the unified **Chat** at `/chat`; both old
+> paths now redirect there. `/schedule` was added by spec 025.)
+> Visual-only; all data wiring + guardrails + disclaimers preserved.
+
 **This is the single source of truth for the UI:** what pages exist and *why*, what data + actions
 each needs, and — critically — **what's wired vs. what's a GAP.** It answers two fears directly:
 1. *"How do I know the backend is wired to the frontend / what if we skip stuff?"* → the **Coverage
@@ -41,13 +49,13 @@ Legend: ✅ built · 🟡 partial (some data/actions missing) · ❌ GAP (engine
 - **Actions:** Generate leads · Propose retune · Draft mailer (per MAIL row) · → Pipeline.
 - **Status:** ✅ wired (`/api/brief`, `/api/actions`).
 
-### 2. Map — explore & filter ✅
+### 2. Map — explore & filter ✅ · 🎨 restyled to design system (2026-06-02)
 - **Why:** spatial scan of every scored parcel; the NL filter is the "AI-native" front door.
-- **Route:** `/`.
-- **Data:** `/api/parcels` GeoJSON (apn, address, lat/lng, score, coc, byRoom, gatePassed, distress)
-  with filters (minScore, maxPrice, minBeds, byRoomLegalOnly, absenteeOnly, distressOnly, maxDistanceMiles).
-- **Actions:** NL search bar → `/api/filter` (Claude → filter) · click a dot → Deal panel.
-- **Status:** ✅ wired. 🟡 color ramp tops at 85 but real scores cap ~79 — recalibrate to ~40–79.
+- **Route:** `/map`.
+- **Data:** `/api/parcels` GeoJSON (apn, address, lat/lng, score, colorValue, price, coc, byRoom, gatePassed, distress)
+  with filters (minScore, maxPrice, minBeds, byRoomLegalOnly, absenteeOnly, distressOnly, developOnly, maxDistanceMiles).
+- **Actions:** NL search bar → `/api/filter` (Claude → filter) · lens selector (best_use/cash_flow/appreciation/by_room/score) · click a dot / Top-match row → Deal panel.
+- **Status:** ✅ wired + restyled to the LOT design system (dark terminal: left command rail, dark Mapbox + design score-ramp dots, floating chrome, dark deal drawer). Tokens in `web/app/tokens.css`, atoms in `web/app/ui.tsx`, ported classes in `globals.css`. Kept Mapbox (not the kit's Leaflet); 3D omitted (no Google 3D Tiles wired).
 
 ### 3. Deal panel / Deal detail — the dossier 🟡
 - **Why:** the underwrite. Everything you need to decide on one parcel.

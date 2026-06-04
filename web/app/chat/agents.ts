@@ -1,0 +1,110 @@
+/* Unified-chat agent registry (spec 024) — UI source of truth for the agent picker + suggestions.
+   The engine half (routing/execution) lives in lib/chat/dispatch.ts; these ids are the shared
+   contract. Each agent reuses a capability LOT already built. */
+export interface AgentMeta {
+  id: "auto" | "explainer" | "operator" | "interrogator" | "coach" | "outreach" | "scheduler" | "analyst" | "roleplay";
+  name: string;
+  icon: string;        // Tabler icon suffix
+  blurb: string;
+  placeholder: string;
+  suggestions: string[];
+  contextKinds: Array<"parcel" | "lead">;   // what it can take attached (Phase 3)
+}
+
+export const AGENTS: AgentMeta[] = [
+  {
+    id: "auto", name: "Auto", icon: "sparkles", contextKinds: ["parcel", "lead"],
+    blurb: "The do-anything default — explains, queries the DB, interrogates deals, coaches, and proposes actions. It decides.",
+    placeholder: "Ask anything — it'll explain, look it up, interrogate a deal, or propose an action…",
+    suggestions: [
+      "Interrogate 230014000, then draft a mailer for the owner.",
+      "Show the top by-room-legal leads near grounds and coach me on the best one.",
+      "What's the smartest financing play here, and why — with the numbers?",
+    ],
+  },
+  {
+    id: "explainer", name: "Explainer", icon: "book", contextKinds: [],
+    blurb: "Teaches the plays, the buy-box, and the guardrails — in plain English.",
+    placeholder: "Ask anything — strategies, what to say to a seller, how the app works…",
+    suggestions: [
+      "What's the best financing play for a tired, out-of-state landlord with lots of equity?",
+      "What is subject-to, and when should I use it?",
+      "What do I say to someone who just inherited a house they don't want?",
+    ],
+  },
+  {
+    id: "operator", name: "Operator", icon: "robot", contextKinds: ["parcel", "lead"],
+    blurb: "Reads the whole database, runs the analyses, and proposes actions you approve.",
+    placeholder: 'e.g. "show tired-landlord leads near grounds under $400k and draft a mailer for the top one"',
+    suggestions: [
+      "Show the top 10 by-room-legal parcels under $400k near grounds.",
+      "Which owners look most motivated this week, and why?",
+      "Summarize my portfolio and the best next buy.",
+    ],
+  },
+  {
+    id: "interrogator", name: "Deal Interrogator", icon: "search", contextKinds: ["parcel"],
+    blurb: "Pace structures it · Grant challenges it · a synthesis verdict — for one deal.",
+    placeholder: "Give me an APN (or ＋ Add a deal from the map) to interrogate…",
+    suggestions: [
+      "Interrogate 230014000.",
+      "What's the toxic version of a subject-to on a commercial building?",
+      "Why would a tired landlord agree to seller-financing?",
+    ],
+  },
+  {
+    id: "coach", name: "Negotiation Coach", icon: "target", contextKinds: ["lead"],
+    blurb: "A cited call playbook + objection prep for a specific lead.",
+    placeholder: "Attach a lead (＋ Add from Leads) or paste its id for the call playbook…",
+    suggestions: [
+      "How do I open a call with an expired-listing seller?",
+      "They said 'I want my money now' — what do I say?",
+      "Build the playbook for my top lead.",
+    ],
+  },
+];
+
+AGENTS.push({
+  id: "outreach", name: "Outreach Writer", icon: "mail", contextKinds: ["lead"],
+  blurb: "Drafts a CAN-SPAM-compliant, situation-personalized owner email you review before anything sends.",
+  placeholder: "Attach a lead (＋ Add from Leads) or paste its id to draft an owner email…",
+  suggestions: [
+    "Draft an email to my top lead.",
+    "Write a gentle note to an inherited-property owner.",
+    "Draft a tired-landlord outreach email.",
+  ],
+});
+
+AGENTS.push({
+  id: "scheduler", name: "Scheduler", icon: "calendar", contextKinds: ["lead", "parcel"],
+  blurb: "Proposes call reminders, follow-ups, visits, and deadlines you approve onto your Schedule.",
+  placeholder: 'e.g. "call them Tuesday" or attach a lead for a follow-up cadence…',
+  suggestions: [
+    "Remind me to call my top lead in 2 days.",
+    "Set a follow-up cadence for this lead.",
+    "Schedule a property visit next Friday.",
+  ],
+});
+
+AGENTS.push({
+  id: "analyst", name: "Analyst", icon: "chart-bar", contextKinds: ["parcel", "lead"],
+  blurb: "Answers ad-hoc data questions by running read-only SQL and returning tables — sandboxed (SELECT-only).",
+  placeholder: 'e.g. "median CoC by zone near grounds" or "how many by-room-legal under $400k?"',
+  suggestions: [
+    "Median cash-on-cash by zone for by-room-legal parcels.",
+    "How many scored parcels are under $400k and by-room legal?",
+    "Top 10 parcels by appreciation potential near grounds.",
+  ],
+});
+AGENTS.push({
+  id: "roleplay", name: "Negotiation Simulator", icon: "microphone", contextKinds: ["lead"],
+  blurb: "Plays the seller's persona so you can practice the call, then scores you (rapport / discovery / structure-fit).",
+  placeholder: "Attach a lead (or just start) — I'll play the seller; say 'score me' to get graded…",
+  suggestions: [
+    "Let's practice — I'll open the call.",
+    "Play a tired, out-of-state landlord.",
+    "Play a skeptical inherited-property heir.",
+  ],
+});
+
+export const agentById = (id: string): AgentMeta => AGENTS.find((a) => a.id === id) ?? AGENTS[0];

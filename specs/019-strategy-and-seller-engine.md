@@ -1,4 +1,8 @@
-# Spec 007 — Strategy & Seller Engine (exit-strategy optimizer + motivation/bunny outreach)
+# Spec 019 — Strategy & Seller Engine (exit-strategy optimizer + motivation/bunny outreach)
+
+> Renumbered from 007 -> 019 on 2026-06-02 to clear the duplicate-prefix collision with the
+> shipped 007-rent-reality-and-insurance.md (referenced as "spec 007" in code). Spec numbers
+> are priority tags, not build order; this module is built first.
 
 **Status:** RECONCILED 2026-06-02 — Part B largely shipped under specs 009/012/014; this
 spec is now scoped to the real gap (Part A) plus a thin Part B reconciliation. ·
@@ -31,7 +35,7 @@ these; wrap them.
 | Tier B pluggable vendor adapters (probate, propstream) | ✅ stubs | `lib/enrich/adapters.ts` (`EnrichAdapter` seam, off until keyed) |
 | Owner intel / distress signals | ✅ | `owner_intel` (mig 0012), distress (mig 0010 / spec 012) |
 
-**Net:** Part A is essentially unbuilt. Part B's *machinery* exists but is not framed as 007's
+**Net:** Part A is essentially unbuilt. Part B's *machinery* exists but is not framed as this spec's
 typed `motivation_type → bunny → structure → angle` lead contract, and `owner.portfolio_size`
 is read-time only (never persisted).
 

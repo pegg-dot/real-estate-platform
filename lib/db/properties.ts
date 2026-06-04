@@ -13,6 +13,7 @@ export interface ScorableRow {
   estMarketValue: number | null;
   beds: number | null;
   byRoomLegal: boolean | null;
+  strAllowed: boolean | null;    // STR zoning gate, resolved from zoning_rule ('*' fallback)
   lat: number | null;
   lng: number | null;
   isAbsentee: boolean | null;
@@ -22,6 +23,11 @@ export interface ScorableRow {
   floodZone: string | null;
   isCondo: boolean | null;
   estAnnualInsurance: number | null;   // real per-parcel insurance (risk_profile), null -> modeled
+  assessedLand: number | null;         // latest-year assessed land value (HBU land-vs-improvement)
+  assessedTotal: number | null;        // latest-year assessed total
+  zoneCode: string | null;             // for zoning-capacity lookup (HBU develop gate)
+  yearBuilt: number | null;            // for the flip "dated building" gate
+  sqft: number | null;                 // for the per-house rent quality factor (spec 021)
 }
 
 /** One row per property in a market, with the joined signals the engines need. */
@@ -33,6 +39,12 @@ export async function readScorableProperties(sql: Sql, market: string): Promise<
       p.est_market_value                                   as "estMarketValue",
       p.beds,
       p.by_room_legal                                      as "byRoomLegal",
+      -- STR legality with the '*' citywide-default fallback: prefer an exact zone row when one
+      -- exists (even if its value is null=unknown), else the market default. Never assumes legal.
+      (select zr.str_allowed from zoning_rule zr
+         where zr.market_id = p.market_id and zr.zone_code in (p.zone_code, '*')
+         order by (zr.zone_code = '*')                      -- false (exact zone) sorts before '*'
+         limit 1)                                           as "strAllowed",
       p.lat, p.lng,
       o.is_absentee                                        as "isAbsentee",
       o.entity_type                                        as "ownerEntityType",
@@ -44,7 +56,14 @@ export async function readScorableProperties(sql: Sql, market: string): Promise<
          order by s.sale_date desc limit 1)                as "lastArmsDate",
       r.flood_zone                                         as "floodZone",
       r.is_condo                                           as "isCondo",
-      r.est_annual_insurance                               as "estAnnualInsurance"
+      r.est_annual_insurance                               as "estAnnualInsurance",
+      (select a.assessed_land from assessment a
+         where a.property_id = p.id order by a.year desc nulls last limit 1)  as "assessedLand",
+      (select a.assessed_total from assessment a
+         where a.property_id = p.id order by a.year desc nulls last limit 1)  as "assessedTotal",
+      p.zone_code                                          as "zoneCode",
+      p.year_built                                         as "yearBuilt",
+      p.sqft
     from property p
     join market m on m.id = p.market_id
     left join owner o on o.id = p.owner_id
@@ -70,6 +89,10 @@ export interface ScoreRecord {
   components: unknown;
   proformas: unknown;
   recommendedStructure: string;
+  recommendedExitStrategy: string | null;   // exit-strategy optimizer ranked #1 (spec 019)
+  exitStrategies: unknown;                   // the ranked/excluded menu
+  recommendedUse: string | null;            // highest-and-best-use ranked #1 (spec 020)
+  hbu: unknown;                              // the HBU menu (uses + upside-vs-hold + gate reasons)
   financing: unknown;
   lowConfidence: boolean;
 }
@@ -80,13 +103,16 @@ export async function upsertScore(sql: Sql, s: ScoreRecord): Promise<void> {
     insert into property_score (
       property_id, thesis_version, score, headline_model, headline_cap_rate, headline_coc,
       coc_low, coc_high, data_confidence, gate_passed, gate_failures, sensitivity,
-      components, proformas, recommended_structure, financing, low_confidence, computed_at)
+      components, proformas, recommended_structure, recommended_exit_strategy, exit_strategies,
+      recommended_use, hbu, financing, low_confidence, computed_at)
     values (
       ${s.propertyId}, ${s.thesisVersion}, ${s.score}, ${s.headlineModel},
       ${s.headlineCapRate}, ${s.headlineCoc}, ${s.cocLow}, ${s.cocHigh}, ${s.dataConfidence},
       ${s.gatePassed}, ${sql.json(s.gateFailures as Json)}, ${sql.json(s.sensitivity as Json)},
       ${sql.json(s.components as Json)},
       ${sql.json(s.proformas as Json)}, ${s.recommendedStructure},
+      ${s.recommendedExitStrategy}, ${sql.json(s.exitStrategies as Json)},
+      ${s.recommendedUse}, ${sql.json(s.hbu as Json)},
       ${sql.json(s.financing as Json)}, ${s.lowConfidence}, now())
     on conflict (property_id, thesis_version) do update set
       score = excluded.score, headline_model = excluded.headline_model,
@@ -95,7 +121,11 @@ export async function upsertScore(sql: Sql, s: ScoreRecord): Promise<void> {
       data_confidence = excluded.data_confidence, gate_passed = excluded.gate_passed,
       gate_failures = excluded.gate_failures, sensitivity = excluded.sensitivity,
       components = excluded.components, proformas = excluded.proformas,
-      recommended_structure = excluded.recommended_structure, financing = excluded.financing,
+      recommended_structure = excluded.recommended_structure,
+      recommended_exit_strategy = excluded.recommended_exit_strategy,
+      exit_strategies = excluded.exit_strategies,
+      recommended_use = excluded.recommended_use, hbu = excluded.hbu,
+      financing = excluded.financing,
       low_confidence = excluded.low_confidence, computed_at = now()
   `;
 }

@@ -90,12 +90,12 @@ const sec: React.CSSProperties = { fontSize: 16, marginTop: 26, marginBottom: 10
 
 function Play({ name, what, fits, say, catch: c }: { name: string; what: string; fits: string; say: string; catch: string }) {
   return (
-    <div style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", marginBottom: 12 }}>
+    <div style={{ border: "1px solid var(--border-soft)", borderRadius: 10, padding: "14px 16px", marginBottom: 12 }}>
       <h3 style={{ fontSize: 15, marginBottom: 8 }}>{name}</h3>
       <Line k="What it is" v={what} />
       <Line k="When it fits" v={fits} />
-      <div style={{ margin: "8px 0", padding: "8px 10px", background: "#f0fdf4", borderRadius: 6, fontSize: 13.5 }}>
-        <strong style={{ color: "#166534" }}>What to say: </strong><em>{say}</em>
+      <div style={{ margin: "8px 0", padding: "8px 10px", background: "var(--positive-wash)", borderRadius: 6, fontSize: 13.5 }}>
+        <strong style={{ color: "var(--positive)" }}>What to say: </strong><em>{say}</em>
       </div>
       <Line k="The catch" v={c} />
     </div>
@@ -106,6 +106,6 @@ function Line({ k, v }: { k: string; v: string }) {
 }
 function Box({ tone, children }: { tone: "dark" | "light"; children: React.ReactNode }) {
   const dark = tone === "dark";
-  return <div style={{ background: dark ? "#0f172a" : "#f8fafc", color: dark ? "#e2e8f0" : "inherit",
+  return <div style={{ background: dark ? "var(--bg-chrome)" : "var(--bg-panel-2)", color: dark ? "var(--text-secondary)" : "var(--text-primary)",
     padding: "14px 16px", borderRadius: 10, marginBottom: 18, fontSize: 14 }}>{children}</div>;
 }

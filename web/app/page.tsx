@@ -2,11 +2,12 @@
 import { useEffect, useState } from "react";
 
 const SECTIONS = [
-  { href: "/ask", icon: "💬", name: "Ask LOT", desc: "Ask anything in plain English — strategies, what to say to a seller, what to do with a deal." },
+  { href: "/chat", icon: "💬", name: "Chat", desc: "One chat, four agents: Explainer (the plays), Operator (acts on the DB), Deal Interrogator, and Negotiation Coach." },
   { href: "/brief", icon: "🗞️", name: "Brief", desc: "Your weekly to-do list: who to mail, which deals to act on, what just opened up." },
   { href: "/map", icon: "🗺️", name: "Map", desc: "Every parcel on a map, red→green by how well it fits you. Filter by typing what you want." },
   { href: "/leads", icon: "📇", name: "Leads", desc: "Ranked list of motivated, by-the-room-legal owners to contact — and a button to draft the letter." },
-  { href: "/deals", icon: "📋", name: "Pipeline", desc: "The deals you're pursuing, from watch → analyzing → offer → owned. Advance or pass each one." },
+  { href: "/deals", icon: "📋", name: "Pipeline", desc: "The deals you're pursuing, from watch → analyzing → offer → owned. Advance or pass each one (pick a why — it teaches LOT)." },
+  { href: "/portfolio", icon: "🏢", name: "Portfolio", desc: "Your holdings + the best next-buy recommendation, sequenced to your capital and horizon." },
   { href: "/thesis", icon: "🎯", name: "Thesis", desc: "Describe what you're looking for; the whole map re-ranks to it. Switch between versions." },
   { href: "/playbook", icon: "📖", name: "Playbook", desc: "The creative-finance plays explained simply — what each is, when it fits, and what to say." },
   { href: "/changes", icon: "🛰️", name: "Changes", desc: "What moved since last week — price drops, sales, deals crossing into your shortlist." },
@@ -14,7 +15,9 @@ const SECTIONS = [
   { href: "/learn", icon: "🧠", name: "Learn", desc: "LOT gets sharper from your advance/pass decisions and proposes thesis tweaks for your OK." },
   { href: "/rents", icon: "🏷️", name: "Rents", desc: "Add real rent comps you know — they override the modeled rent and make scores more accurate." },
   { href: "/outreach", icon: "✉️", name: "Outreach", desc: "The mailers you've approved, with their compliance receipt." },
-  { href: "/settings", icon: "⚙️", name: "Settings & Run", desc: "Every maintenance command as a button — update data, enrich leads, set your mail budget." },
+  { href: "/schedule", icon: "📅", name: "Schedule", desc: "Calls, follow-ups, and visits the Scheduler agent proposed and you approved — your follow-up cadence." },
+  { href: "/activity", icon: "🧾", name: "Activity", desc: "The audit ledger — every send, calendar sync, deal decision, and automation run, with its outcome." },
+  { href: "/settings", icon: "⚙️", name: "Settings & Run", desc: "Every maintenance command as a button — update data, enrich leads, connect Gmail, set your mail budget." },
 ];
 
 export default function Home() {
@@ -32,34 +35,35 @@ export default function Home() {
 
   function ask(e: React.FormEvent) {
     e.preventDefault();
-    if (q.trim()) { sessionStorage.setItem("lot_ask", q.trim()); window.location.href = "/ask"; }
+    if (q.trim()) { sessionStorage.setItem("lot_ask", q.trim()); window.location.href = "/chat"; }
   }
   return (
     <div className="page" style={{ maxWidth: 920 }}>
       {autoMsg && (
-        <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 14, textAlign: "center" }}>
+        <div style={{ background: "var(--positive-wash)", border: "1px solid var(--positive)", color: "var(--positive)", borderRadius: "var(--radius-md)", padding: "8px 12px", fontSize: 13, marginBottom: 14, textAlign: "center" }}>
           {autoMsg}
         </div>
       )}
       <div style={{ textAlign: "center", padding: "8px 0 22px" }}>
-        <h1 style={{ fontSize: 28, marginBottom: 6 }}>LOT — your buying machine</h1>
+        <h1 style={{ font: "var(--text-display)", marginBottom: 6 }}>LOT — your buying machine</h1>
         <p className="muted" style={{ fontSize: 15, maxWidth: 600, margin: "0 auto 18px" }}>
           Find, score, and finance buy-and-hold rentals in Charlottesville. New here? Just ask it anything,
           or pick a section below — each one says what it does.
         </p>
-        <form onSubmit={ask} style={{ display: "flex", gap: 8, maxWidth: 560, margin: "0 auto" }}>
+        <form onSubmit={ask} className="composer" style={{ maxWidth: 560 }}>
+          <i className="ti ti-sparkles" aria-hidden />
           <input value={q} onChange={(e) => setQ(e.target.value)}
             placeholder='Ask LOT anything — "what financing fits a tired landlord?"'
-            style={{ flex: 1, padding: "12px 14px", border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 15 }} />
-          <button type="submit" style={{ padding: "12px 22px", border: "none", background: "#0f172a", color: "#fff", borderRadius: 10, cursor: "pointer", fontSize: 15, fontWeight: 600 }}>Ask</button>
+            style={{ fontSize: 15 }} />
+          <button type="submit" className="btn-primary">Ask</button>
         </form>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 12 }}>
         {SECTIONS.map((s) => (
-          <a key={s.href} href={s.href} style={{ display: "block", border: "1px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", transition: "box-shadow .15s" }}
-            onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)")}
-            onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}>
+          <a key={s.href} href={s.href} className="card" style={{ display: "block", transition: "border-color .15s, background .15s" }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--bg-panel-2)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-soft)"; e.currentTarget.style.background = "var(--bg-panel)"; }}>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{s.icon} {s.name}</div>
             <div className="muted" style={{ fontSize: 13, lineHeight: 1.45 }}>{s.desc}</div>
           </a>
