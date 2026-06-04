@@ -229,3 +229,28 @@ refresh only fires when someone opens the homepage on the persistent host).
 out from *your* Gmail (CAN-SPAM footer; estate/trust drafts flagged for manual review; you approve
 each). Scheduler proposes events → you approve → **Add to Calendar** → real Google Calendar event.
 Your brother signs in with his Google account, connects his own Gmail, and works his own workspace.
+
+---
+
+## Deep audit round 2 (2026-06-04) — what was fixed + what's parked
+
+Fixed this round (all pushed): the IDOR + compliance-at-send + dead-action + SQL-guard security
+holes; the LEARN loop now actually closes (taste-chip capture on the Pipeline + auto-rescore on
+Activate); multi-user chrome (who-am-I + Sign out); the knowledge layer is wired into the LLM agents
+(cited rules/lenses in-prompt + a `get_dossier` tool + the playbook/creative-finance/glossary corpus
+ingested + a `search_knowledge` tool); a system **/activity** audit ledger; richer chat context-feed.
+
+**PARKED — multi-market data acquisition (revisit condition: you're ready to go beyond Charlottesville
++ commit to a paid parcel API).** Today onboarding a new market needs an engineer to write
+county-specific ingestion (the pipeline is hardwired to Charlottesville's ArcGIS, and markets are
+compile-time, not runtime). The moat (scoring/financing/by-room legality) is market-agnostic; only
+the data layer is bespoke. When ready, the plan is: a `CountyAdapter` interface with a **Regrid
+(Landgrid)** adapter (nationwide parcels/owners/assessments via one API — named in
+docs/knowledge-base/RESEARCH-FINDINGS.md), runtime market registration (move the `assumptions.ts`
+REGISTRY into the DB / read `data_source_config`), and a thin "add a market" onboarding flow. That
+converts "one engineer per market" → "type a city, pick the campus, get a scored map." You chose to
+stay Charlottesville-deep for now.
+
+**Ops note (not blocking):** under heavy concurrent use the DB hits the 15-client session-pooler cap
+(EMAXCONNSESSION, now shown as a friendly retry). If it gets frequent on the deployed host, switch
+SUPABASE_DB_URL to the transaction-mode pooler (port 6543).
