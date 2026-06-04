@@ -22,6 +22,9 @@ RUN cd web && npm run build
 
 # Runtime is production; tsx subprocesses inherit this env. Build happened above with dev deps present.
 ENV NODE_ENV=production
+# Run FROM web/ so the engine bridge's REPO=../ resolves to the repo root (/app). next start reads the
+# port from $PORT (Railway-injected) natively, so the CMD needs no shell — exec form avoids the
+# "executable 'cd' not found" failure when a host runs the start command without a shell.
+WORKDIR /app/web
 EXPOSE 3000
-# Start from web/ so the engine bridge's REPO=../ points at the repo root. Bind $PORT (Railway-injected) on 0.0.0.0.
-CMD ["sh", "-c", "cd web && node_modules/.bin/next start -p ${PORT:-3000} -H 0.0.0.0"]
+CMD ["./node_modules/.bin/next", "start", "-H", "0.0.0.0"]
