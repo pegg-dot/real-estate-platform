@@ -1,0 +1,12 @@
+# Keep the build context lean and secrets out of the image. Deps are reinstalled in-image via npm ci;
+# env comes from the host (Railway variables) at runtime, never baked in.
+.git
+node_modules
+web/node_modules
+.next
+web/.next
+.env
+.env.*
+*.log
+ingestion
+**/__pycache__
