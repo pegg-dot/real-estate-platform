@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
   try {
     const created = await createCalendarEvent(token, { summary: ev.title, description: ev.notes ?? undefined, startIso: ev.starts_at });
-    await sql()`update scheduled_event set status = 'synced', detail = coalesce(detail, '{}'::jsonb) || ${sql().json({ gcalEventId: created.id, gcalLink: created.htmlLink })} where id = ${id}`;
+    await sql()`update scheduled_event set status = 'synced', detail = coalesce(detail, '{}'::jsonb) || ${sql().json({ gcalEventId: created.id, gcalLink: created.htmlLink })} where id = ${id} and user_id = ${userId}`;
     return Response.json({ ok: true, output: "added to Google Calendar", link: created.htmlLink });
   } catch (e) {
     return Response.json({ ok: false, error: `Calendar sync failed: ${(e as Error).message}` }, { status: 502 });
