@@ -158,3 +158,17 @@ with real, free numbers) + a small **UVA-listings scrape** for the by-bed premiu
 That's $0 to start and more honest than a generic AVM, because the by-the-room number is
 local and we control it. When volume justifies it, swap in a paid vendor — it's a one-file
 change (`config/market-assumptions/<market>.json` + a `lib/rent/` source).
+
+---
+
+## Audit execution (2026-06-03) — connectors, multi-user, HBU fix
+
+- **Gmail/Calendar connectors + multi-user accounts** are BUILT and flag-gated OFF. To turn on
+  (incl. your brother + your Gmails), follow **`docs/operator-setup.md`** (Google Cloud OAuth,
+  env vars, deploy). ⚠️ Rotate the Google client secret first (it was shared in chat).
+- **HBU IRR is now live + correct** (a Postgres numeric→string concat bug had floored develop
+  returns at −99%; fixed + re-scored).
+- **Pre-existing data-quality item (not launch-blocking):** ~26 parcels assessed at ~$100 (vacant
+  slivers / common-area artifacts) show wild negative hold cash-on-cash (e.g. −5700%/yr) because
+  fixed costs exceed near-zero modeled rent. Consider gating parcels below a price floor out of the
+  scored map, or clamping the displayed hold CoC. Orthogonal to the IRR work.
