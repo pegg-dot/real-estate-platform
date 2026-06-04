@@ -60,6 +60,20 @@ export async function getDossier(sql: Sql, args: { apn: string }): Promise<unkno
   } catch (e) { return { error: (e as Error).message }; }
 }
 
+// Retrieval over the distilled corpus (knowledge_note = the ingested playbook/creative-finance/
+// glossary; knowledge_rule = the cited deal rules). Lets the agent pull a concept on demand without
+// bloating every prompt — the retrieval half of the knowledge layer.
+export async function searchKnowledge(sql: Sql, args: { query: string }): Promise<unknown> {
+  const q = `%${(args.query ?? "").slice(0, 120)}%`;
+  try {
+    const notes = await sql`select title, left(body, 700) as body, source from knowledge_note
+      where title ilike ${q} or body ilike ${q} order by length(body) limit 5`;
+    const rules = await sql`select slug, condition, recommendation, source from knowledge_rule
+      where condition ilike ${q} or recommendation ilike ${q} limit 5`;
+    return { notes, rules, note: "cite the source when you use one; informational, not legal/financial advice" };
+  } catch (e) { return { error: (e as Error).message }; }
+}
+
 export async function getInterrogation(sql: Sql, args: { apn: string }): Promise<unknown> {
   try { const { address, review } = await interrogateForApn(sql, MARKET, args.apn); return { address, ...review }; }
   catch (e) { return { error: (e as Error).message }; }
@@ -126,6 +140,11 @@ export function agentTools(sql: Sql) {
       description: "The full CITED dossier (markdown) for a parcel: scoring, financing with creative-finance guardrails + cited rules, sensitivity, owner situation. Use for a deep, citation-grounded answer about one property.",
       inputSchema: z.object({ apn: z.string() }),
       execute: (args) => getDossier(sql, args),
+    }),
+    search_knowledge: tool({
+      description: "Search LOT's distilled domain knowledge (the playbook, creative-finance plays, glossary, and cited deal rules) for a concept. Use when a question is about strategy/plays/terms rather than a specific parcel.",
+      inputSchema: z.object({ query: z.string().describe("a concept or term, e.g. 'subject-to due-on-sale' or 'by-the-room legality'") }),
+      execute: (args) => searchKnowledge(sql, args),
     }),
     list_leads: tool({
       description: "Top mailable leads ranked by stack score, with motivation/bunny/structure/channel.",
