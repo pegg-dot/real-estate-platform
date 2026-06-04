@@ -129,7 +129,7 @@ async function main() {
   const thesis = await resolveThesis(sql);
   const res = await scoreMarket(sql, { market, thesis });
   console.log(`      scored ${res.scored} · non-target(institution) ${res.nonTarget} · ` +
-    `no-value ${res.skipped} · low-confidence(no beds) ${res.lowConfidence}`);
+    `below-floor(junk) ${res.belowFloor} · no-value ${res.skipped} · low-confidence(no beds) ${res.lowConfidence}`);
 
   // 3. SHOW — only CONFIDENT opportunities (low-confidence pro-formas are a guess, not ranked here)
   // Confidence-weighted shortlist: a thin/modeled deal shouldn't out-rank a fully-real one

@@ -39,6 +39,7 @@ export interface ScoreMarketResult {
   scored: number;
   skipped: number;          // no est_market_value -> can't underwrite
   nonTarget: number;        // institution/govt-owned -> never an acquisition target
+  belowFloor: number;       // priced below SCORE_PRICE_FLOOR -> junk sliver, gated out of scoring
   lowConfidence: number;    // scored, but beds unknown -> pro-forma is a guess
 }
 
@@ -49,6 +50,19 @@ const yearsSince = (iso: string, asOf: string) =>
 /** Default trust capital (all-cash). Buyer-profile assumption shared by the pipeline +
  * the single-parcel dossier path so it can't drift between them. */
 export const DEFAULT_BUYER_CASH = 5_000_000;
+
+/** Junk-parcel hygiene: parcels priced below this floor (vacant slivers / common-area artifacts,
+ * often assessed near $0) are gated OUT of scoring — fixed costs dwarf near-zero modeled rent and
+ * produce meaningless hold cash-on-cash (e.g. -5700%/yr). They aren't real acquisition targets. */
+export const SCORE_PRICE_FLOOR = 5_000;
+/** Backstop for the map/panel: clamp the DISPLAYED hold cash-on-cash so a stray outlier that slips
+ * past the gate can't distort the view. -1.0 = -100%/yr (you'd lose your whole cash basis in a year). */
+export const DISPLAY_COC_FLOOR = -1.0;
+/** True when a parcel is priced below the scoring floor (null price handled separately by the caller). */
+export const belowPriceFloor = (estMarketValue: number | null, floor = SCORE_PRICE_FLOOR): boolean =>
+  estMarketValue != null && estMarketValue < floor;
+/** Clamp a hold cash-on-cash to the display floor (purely cosmetic; the underlying pro-forma is kept). */
+export const clampDisplayCoc = (coc: number, floor = DISPLAY_COC_FLOOR): number => Math.max(coc, floor);
 
 export interface RentFloor {
   hudFmrMonthly: number | null;   // real HUD whole-house FMR for this bed count
@@ -198,13 +212,16 @@ export async function scoreMarket(
   const rows = await readScorableProperties(sql, opts.market);
   const comps = await loadRentComps(sql, opts.market);   // real rent comps override modeled $/bed
 
-  let scored = 0, skipped = 0, nonTarget = 0, lowConfidence = 0;
+  let scored = 0, skipped = 0, nonTarget = 0, belowFloor = 0, lowConfidence = 0;
   const records: ScoreRecord[] = [];
 
   for (const row of rows) {
     if (row.estMarketValue == null) { skipped++; continue; }
     // institutions/government (UVA, the City) are never acquisition targets — don't score them
     if (row.ownerEntityType === "institution") { nonTarget++; continue; }
+    // junk parcels (vacant slivers / common-area artifacts assessed near $0) aren't real deals and
+    // produce meaningless hold cash-on-cash — gate them out of scoring entirely
+    if (belowPriceFloor(row.estMarketValue)) { belowFloor++; continue; }
 
     const { score: scoredRes, financing, sensitivity: sens, gates, dataConfidence: conf, exitStrategy, hbu } =
       scoreRow(row, a, opts.thesis, asOf, cash, { comps });
@@ -245,7 +262,7 @@ export async function scoreMarket(
       score: Number(scoredRes.score.toFixed(2)),
       headlineModel: scoredRes.headline.model,
       headlineCapRate: Number(scoredRes.headline.proForma.capRate.toFixed(4)),
-      headlineCoc: Number(scoredRes.headline.proForma.cashOnCash.toFixed(4)),
+      headlineCoc: Number(clampDisplayCoc(scoredRes.headline.proForma.cashOnCash).toFixed(4)),
       cocLow: Number(sens.cocLow.toFixed(4)),
       cocHigh: Number(sens.cocHigh.toFixed(4)),
       dataConfidence: conf,
@@ -273,5 +290,5 @@ export async function scoreMarket(
     await Promise.all(records.slice(i, i + CHUNK).map((r) => upsertScore(sql, r)));
   }
 
-  return { market: opts.market, scored, skipped, nonTarget, lowConfidence };
+  return { market: opts.market, scored, skipped, nonTarget, belowFloor, lowConfidence };
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
 import { getSql, type Sql } from "../db/client.js";
-import { scoreMarket, scoreRow, type Thesis } from "./scoreMarket.js";
+import { scoreMarket, scoreRow, belowPriceFloor, clampDisplayCoc, SCORE_PRICE_FLOOR, DISPLAY_COC_FLOOR, type Thesis } from "./scoreMarket.js";
 import { loadMarketAssumptions } from "../config/assumptions.js";
 import type { ScorableRow } from "../db/properties.js";
 import thesisJson from "../../config/thesis.example.json" with { type: "json" };
@@ -117,5 +117,41 @@ d("scoreMarket — the ingest -> score bridge (integration)", () => {
       join property p on p.id = property_score.property_id where p.apn = '040303000'`;
     expect(Object.keys(r!.components)).toContain("cash_on_cash");
     expect(Array.isArray(r!.financing.recommended)).toBe(true);
+  });
+});
+
+// Junk-parcel hygiene (pure): ~26 sub-$100 parcels (vacant slivers / common-area artifacts) produce
+// absurd negative hold cash-on-cash because fixed costs dwarf near-zero modeled rent. Gate them out
+// of scoring (price floor) AND clamp the displayed hold CoC as a global backstop for any outlier.
+describe("junk-parcel gate + CoC clamp (pure)", () => {
+  it("gates parcels priced below the floor", () => {
+    expect(belowPriceFloor(100)).toBe(true);          // a $100 vacant sliver
+    expect(belowPriceFloor(SCORE_PRICE_FLOOR - 1)).toBe(true);
+    expect(belowPriceFloor(SCORE_PRICE_FLOOR)).toBe(false);   // at the floor is allowed
+    expect(belowPriceFloor(300_000)).toBe(false);     // a real house
+  });
+
+  it("treats null price as not-below-floor (the null check handles it separately)", () => {
+    expect(belowPriceFloor(null)).toBe(false);
+  });
+
+  it("honors a custom floor", () => {
+    expect(belowPriceFloor(8_000, 10_000)).toBe(true);
+    expect(belowPriceFloor(8_000, 5_000)).toBe(false);
+  });
+
+  it("clamps an absurd negative CoC to the display floor", () => {
+    expect(clampDisplayCoc(-57)).toBe(DISPLAY_COC_FLOOR);   // -5700%/yr -> floor
+    expect(DISPLAY_COC_FLOOR).toBeLessThan(0);
+  });
+
+  it("leaves a sane CoC untouched", () => {
+    expect(clampDisplayCoc(0.08)).toBe(0.08);          // +8%
+    expect(clampDisplayCoc(-0.5)).toBe(-0.5);          // a bad-but-real -50%
+    expect(clampDisplayCoc(DISPLAY_COC_FLOOR)).toBe(DISPLAY_COC_FLOOR);
+  });
+
+  it("honors a custom clamp floor", () => {
+    expect(clampDisplayCoc(-9, -2)).toBe(-2);
   });
 });
