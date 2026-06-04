@@ -72,6 +72,21 @@ describe("highestAndBestUse", () => {
     expect(out.excluded.find((e) => e.use === "develop")!.reason).toMatch(/current density|no added/i);
   });
 
+  it("coerces numeric inputs that arrive as strings (Postgres numeric→string) — string price must equal numeric", () => {
+    // the pipeline feeds DB values; numeric columns come back as strings. A string price must NOT be
+    // string-concatenated into the develop exit value (the bug that produced a −99% floored return).
+    const numeric = highestAndBestUse(landHeavy({ price: 58_300, assessedLand: 58_300, assessedTotal: 58_300, allowedUnits: 2 }), A, { management_appetite: 0.9 });
+    const stringy = highestAndBestUse(
+      landHeavy({ price: "58300.00" as unknown as number, assessedLand: "58300.00" as unknown as number, assessedTotal: "58300.00" as unknown as number, allowedUnits: 2 }),
+      A, { management_appetite: 0.9 });
+    const devN = numeric.ranked.find((r) => r.use === "develop")!;
+    const devS = stringy.ranked.find((r) => r.use === "develop")!;
+    expect(devS.detail.profit).toBe(devN.detail.profit);
+    expect(devS.annualizedReturn).toBe(devN.annualizedReturn);
+    expect(devN.detail.profit!).toBeGreaterThan(0);          // building 1 unit at 350k value / 250k cost IS profitable
+    expect(devN.annualizedReturn).toBeGreaterThan(0);        // …so the IRR is positive, never the −0.99 floor
+  });
+
   it("computes the develop/flip return as an annualized IRR over a carry-laden schedule", () => {
     const out = highestAndBestUse(landHeavy({ yearBuilt: 1968 }), A, { management_appetite: 0.9 });
     const dev = out.ranked.find((r) => r.use === "develop")!;

@@ -8,7 +8,7 @@
 import fs from "node:fs";
 import { getSql } from "../lib/db/client.js";
 import { dispatchChat, dispatchChatStream, type ChatAgentId, type ChatMsg, type ContextRef } from "../lib/chat/dispatch.js";
-import { encodeFinal } from "../lib/chat/streamProtocol.js";
+import { encodeFinal, stripSentinel } from "../lib/chat/streamProtocol.js";
 
 function readJson<T>(flag: string): T | undefined {
   const i = process.argv.indexOf(flag);
@@ -30,7 +30,7 @@ async function main() {
     if (process.argv.includes("--stream")) {
       // stream the visible text to stdout as it arrives, then a single trailing metadata frame
       // (␞ + JSON {trace, proposals}) the web route forwards verbatim to the client
-      const tail = await dispatchChatStream(sql, agent, messages, context, (delta) => process.stdout.write(delta));
+      const tail = await dispatchChatStream(sql, agent, messages, context, (delta) => process.stdout.write(stripSentinel(delta)));
       process.stdout.write(encodeFinal(tail));
       return;
     }

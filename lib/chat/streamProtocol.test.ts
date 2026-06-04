@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SENTINEL, encodeFinal, parseChatStream } from "./streamProtocol.js";
+import { SENTINEL, encodeFinal, parseChatStream, stripSentinel } from "./streamProtocol.js";
 
 describe("chat stream protocol (text deltas + trailing JSON sentinel)", () => {
   it("separates streamed text from the trailing metadata frame", () => {
@@ -25,5 +25,13 @@ describe("chat stream protocol (text deltas + trailing JSON sentinel)", () => {
     const wire = "answer" + encodeFinal({ trace: [], proposals: [] });
     const { text } = parseChatStream(wire);
     expect(text.includes(SENTINEL)).toBe(false);
+  });
+
+  it("stripSentinel removes a stray sentinel from a text delta but keeps the rest", () => {
+    expect(stripSentinel(`a${SENTINEL}b`)).toBe("ab");
+    expect(stripSentinel("plain delta")).toBe("plain delta");
+    // a guarded delta can never re-introduce a false frame boundary
+    const guarded = stripSentinel(`oops${SENTINEL}{"proposals":[]}`) + encodeFinal({ trace: [], proposals: [{ kind: "proposal", action: "x", params: {}, summary: "s", requiresApproval: true } as never] });
+    expect(parseChatStream(guarded).meta?.proposals.length).toBe(1);
   });
 });

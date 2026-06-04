@@ -96,7 +96,10 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
   };
   const hbu = (d?.hbu ?? {}) as {
     landSharePct?: number | null;
-    ranked?: Array<{ use: string; annualizedReturn: number; upsideVsHold: number }>;
+    note?: string;
+    ranked?: Array<{ use: string; annualizedReturn: number; upsideVsHold: number;
+      detail?: { irrAnnual?: number; carry?: number; horizonMonths?: number } }>;
+    excluded?: Array<{ use: string; reason: string }>;
   };
 
   const score = d?.score != null ? Math.round(Number(d.score)) : null;
@@ -268,10 +271,24 @@ export default function DealPanel({ apn, onClose }: { apn: string; onClose: () =
               <Section title="Best use of the dirt (HBU, spec 020)" badge={<Sev kind="warn">modeled</Sev>}>
                 <Row k="Recommended use" v={String(d.recommended_use ?? "—")} />
                 {hbu.landSharePct != null && <Row k="Land share" v={`${Number(hbu.landSharePct).toFixed(0)}%`} />}
-                {hbu.ranked.map((u, i) => (
-                  <Row key={i} k={u.use} v={`${pct(u.annualizedReturn)}/yr${u.upsideVsHold > 0 ? ` (+${pct(u.upsideVsHold)} vs hold)` : ""}`} />
-                ))}
-                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>modeled screening estimate — not an appraisal</div>
+                {hbu.ranked.map((u, i) => {
+                  // develop/flip carry an IRR pro-forma; show the carry drag + capital-tied-up months
+                  const c = u.detail;
+                  const carryNote = c && (c.carry || c.horizonMonths)
+                    ? ` · ${c.horizonMonths ?? "?"}mo${c.carry ? `, ~$${Math.round(c.carry).toLocaleString()} carry` : ""}`
+                    : "";
+                  const isIrr = c && c.irrAnnual != null && (u.use === "develop" || u.use === "flip");
+                  return (
+                    <Row key={i} k={u.use}
+                      v={`${pct(u.annualizedReturn)}/yr${isIrr ? " IRR" : ""}${u.upsideVsHold > 0 ? ` (+${pct(u.upsideVsHold)} vs hold)` : ""}${carryNote}`} />
+                  );
+                })}
+                {hbu.excluded && hbu.excluded.length > 0 && (
+                  <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+                    Excluded: {hbu.excluded.map((e) => `${e.use} (${e.reason})`).join(" · ")}
+                  </div>
+                )}
+                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{hbu.note ?? "modeled screening estimate — not an appraisal"}</div>
               </Section>
             )}
 

@@ -28,6 +28,7 @@ export default function ChatPage() {
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [ctx, setCtx] = useState<CtxEntity[]>([]);
+  const [approved, setApproved] = useState<Set<string>>(new Set());   // proposals already run this session (disable re-approve)
   const endRef = useRef<HTMLDivElement>(null);
 
   // the context-feed: entities attached via "＋ Add to chat" on other pages (localStorage-backed)
@@ -149,10 +150,15 @@ export default function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const propKey = (p: Proposal) => `${p.action}:${p.summary}:${JSON.stringify(p.params)}`;
   async function approve(p: Proposal) {
-    if (p.action === "send-email") { alert("Email transport isn't configured yet — the draft is ready; add an email API key to enable sending."); return; }
-    const r = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: p.action, ...p.params }) }).then((x) => x.json());
-    alert(r.ok ? `✓ ${p.summary} — done` : `⚠️ ${r.error}`);
+    const key = propKey(p);
+    if (approved.has(key)) return;                       // guard against a double-click / re-render
+    setApproved((s) => new Set(s).add(key));             // optimistic disable
+    const r = await fetch("/api/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: p.action, ...p.params }) })
+      .then((x) => x.json()).catch(() => ({ ok: false, error: "network error" }));
+    if (!r.ok) { setApproved((s) => { const n = new Set(s); n.delete(key); return n; }); alert(`⚠️ ${r.error}`); return; }
+    alert(r.duplicate ? r.output : `✓ ${p.summary} — done`);   // server is idempotent; surface "already saved" cleanly
   }
 
   const shown = convs.filter((c) => !search || c.title.toLowerCase().includes(search.toLowerCase()));
@@ -200,7 +206,9 @@ export default function ChatPage() {
                           <div style={{ padding: 11 }}>
                             <div style={{ fontWeight: 600 }}>{p.summary}</div>
                             {(p.compliance ?? []).map((c, k) => <div key={k} className="muted" style={{ fontSize: 11, marginTop: 2 }}>⚖️ {c}</div>)}
-                            <button onClick={() => approve(p)} className="btn-primary btn-sm" style={{ marginTop: 8 }}>Approve &amp; run</button>
+                            <button onClick={() => approve(p)} disabled={approved.has(propKey(p))} className="btn-primary btn-sm" style={{ marginTop: 8 }}>
+                              {approved.has(propKey(p)) ? "✓ Approved" : "Approve & run"}
+                            </button>
                           </div>
                         </div>
                       ))}

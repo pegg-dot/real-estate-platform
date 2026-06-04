@@ -219,6 +219,9 @@ export async function scoreMarket(
         use: u.use, annualizedReturn: Number(u.annualizedReturn.toFixed(4)),
         upsideVsHold: Number(u.upsideVsHold.toFixed(4)), intensity: u.intensity,
         thesisFit: Number(u.thesisFit.toFixed(4)),
+        // carry the modeled IRR detail so the UI can show the carry drag + capital-tied-up months,
+        // not just a bare % (rounded to keep the jsonb tidy; develop/flip have irrAnnual/carry/horizonMonths)
+        detail: Object.fromEntries(Object.entries(u.detail).map(([k, v]) => [k, Number(Number(v).toFixed(4))])),
       })),
       excluded: hbu.excluded,
     };

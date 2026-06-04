@@ -1,9 +1,11 @@
 import { sql } from "../lib/db";
+import { currentUserId } from "../lib/user";
 import DraftRow from "./DraftRow";
 
 export const dynamic = "force-dynamic";
 
 export default async function OutreachPage() {
+  const uid = await currentUserId();
   const rows = await sql()<Array<{ subject: string | null; status: string; created_at: string;
     owner_name: string | null; address: string | null; gate_snapshot: { passed?: boolean } | null }>>`
     select oe.subject, oe.status, oe.created_at, o.name as owner_name, p.address, oe.gate_snapshot
@@ -19,6 +21,7 @@ export default async function OutreachPage() {
     from email_draft d
     left join lead l on l.id = d.lead_id
     left join property p on p.id = l.property_id
+    where d.user_id = ${uid}
     order by d.created_at desc limit 50`;
 
   return (

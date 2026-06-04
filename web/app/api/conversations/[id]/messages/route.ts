@@ -1,4 +1,5 @@
 import { sql } from "../../../../lib/db";
+import { currentUserId } from "../../../../lib/user";
 
 export const dynamic = "force-dynamic";
 
@@ -6,11 +7,16 @@ const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-
 const AGENTS = new Set(["auto", "explainer", "operator", "interrogator", "coach", "outreach", "scheduler", "analyst", "roleplay"]);
 
 // Append one turn to a conversation (spec 024 Phase 2). Titles the conversation from the first user
-// message and bumps updated_at (via the conversation trigger) so the sidebar re-sorts.
+// message and bumps updated_at (via the conversation trigger) so the sidebar re-sorts. Owner-scoped:
+// you can only append to your own conversation.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   if (!isUuid(params.id)) return Response.json({ error: "bad id" }, { status: 400 });
   let b: { role?: string; agent?: string; content?: string; context?: unknown; tool_trace?: unknown; proposals?: unknown };
   try { b = await req.json(); } catch { return Response.json({ error: "bad json" }, { status: 400 }); }
+
+  const uid = await currentUserId();
+  const [owned] = await sql()<Array<{ id: string }>>`select id from conversation where id = ${params.id} and user_id = ${uid}`;
+  if (!owned) return Response.json({ error: "not found" }, { status: 404 });
 
   const role = b.role === "assistant" ? "assistant" : "user";
   const agent = typeof b.agent === "string" && AGENTS.has(b.agent) ? b.agent : null;

@@ -2,6 +2,7 @@
 /* Settings & Run — restyled to the design system. The "Run commands" section is gated behind a
    passcode the operator sets (spec 027): set/unlock → buttons → /api/run (verified server-side). */
 import { useEffect, useState } from "react";
+import Connectors from "./Connectors";
 
 interface Config { weekly_mail_budget: number; lifetime_mail_cap: number; cooldown_days: number; outreach_enabled: boolean }
 interface Auto { autoEnabled: boolean; lastRefreshAgeDays: number | null; isDue: boolean }
@@ -157,6 +158,10 @@ export default function SettingsPage() {
           <button onClick={saveCfg} disabled={busy === "cfg"} className="btn-primary" style={{ marginTop: 6 }}>{busy === "cfg" ? "Saving…" : "Save settings"}</button>
         </Section>
       )}
+
+      <Section title="🔌 Connections (Gmail / Calendar)">
+        <Connectors />
+      </Section>
 
       {out && <pre style={{ background: "var(--bg-chrome)", color: "var(--text-secondary)", padding: 12, borderRadius: "var(--radius-sm)", fontSize: 12, marginTop: 14, whiteSpace: "pre-wrap", fontFamily: "var(--font-mono)", border: "1px solid var(--border-soft)" }}>{out.text}</pre>}
     </div>

@@ -21,6 +21,16 @@ export function encodeFinal(meta: ChatStreamMeta): string {
 }
 
 /**
+ * Strip any literal sentinel char from a streamed text delta. The sentinel must appear exactly once
+ * in the whole stream (the boundary before the metadata frame); a model that ever emitted a raw
+ * 0x1E in prose would otherwise split the client early and drop the proposals. Vanishingly rare, but
+ * we guard it rather than trust it — the char carries no visible meaning, so removing it is lossless.
+ */
+export function stripSentinel(textDelta: string): string {
+  return textDelta.includes(SENTINEL) ? textDelta.split(SENTINEL).join("") : textDelta;
+}
+
+/**
  * Split an accumulated stream buffer into the visible text and (if the sentinel has arrived) the
  * decoded metadata. While still streaming (no sentinel yet) meta is null and text is what's arrived.
  * A malformed metadata frame degrades to null meta rather than throwing — the text still renders.

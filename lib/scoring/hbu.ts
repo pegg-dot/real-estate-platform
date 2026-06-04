@@ -117,6 +117,17 @@ function thesisFit(annualizedReturn: number, intensity: number, appetite: number
 export function highestAndBestUse(
   input: HbuInput, a: HbuAssumptions, thesis: { management_appetite: number },
 ): HbuResult {
+  // Numeric DB columns arrive as strings (Postgres numeric→string). Coerce at entry so arithmetic
+  // is real arithmetic — otherwise `input.price + valueCreated` STRING-CONCATENATES and the develop
+  // exit value collapses to ≈price, flooring the IRR at −0.99. (Multiplication coerced silently, so
+  // only the develop `+` was bitten — and unit tests using numeric literals never saw it.)
+  const num = (v: number | null | undefined): number | null => (v == null ? null : Number(v));
+  input = {
+    ...input,
+    price: Number(input.price), holdCashOnCash: Number(input.holdCashOnCash), currentUnits: Number(input.currentUnits),
+    assessedLand: num(input.assessedLand), assessedTotal: num(input.assessedTotal),
+    allowedUnits: num(input.allowedUnits), yearBuilt: num(input.yearBuilt),
+  };
   const appetite = clamp(thesis.management_appetite);
   const landShare = (input.assessedLand != null && input.assessedTotal && input.assessedTotal > 0)
     ? input.assessedLand / input.assessedTotal : null;

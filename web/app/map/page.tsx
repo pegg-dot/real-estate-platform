@@ -45,6 +45,8 @@ export default function MapPage() {
   const [busy, setBusy] = useState(false);
   const [fc, setFc] = useState<typeof EMPTY>(EMPTY);
   const [changes, setChanges] = useState<Array<{ change_type: string; severity: string; address: string | null; apn: string }>>([]);
+  const [showGrowth, setShowGrowth] = useState(false);     // path-of-progress overlay (spec 017)
+  const [growthFc, setGrowthFc] = useState<typeof EMPTY>(EMPTY);
 
   const dataUrl = `/api/parcels?${filterQs ? filterQs + "&" : ""}lens=${lens}${developOnly ? "&developOnly=true" : ""}`;
 
@@ -65,6 +67,20 @@ export default function MapPage() {
     fetch("/api/changes").then((r) => r.json()).then((j) => { if (live) setChanges(j?.changes ?? []); }).catch(() => {});
     return () => { live = false; };
   }, []);
+
+  // growth-corridor cells, fetched once the overlay is first turned on (spec 017 — positioning signal)
+  useEffect(() => {
+    if (!showGrowth || growthFc.features.length) return;
+    fetch("/api/growth").then((r) => r.json()).then((j) => {
+      const features = (j?.cells ?? [])
+        .filter((c: { lat?: number; lng?: number }) => c.lat != null && c.lng != null)
+        .map((c: { lat: number; lng: number; corridorScore: number }) => ({
+          type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [c.lng, c.lat] },
+          properties: { score: c.corridorScore ?? 0 },
+        }));
+      setGrowthFc({ type: "FeatureCollection", features } as typeof EMPTY);
+    }).catch(() => {});
+  }, [showGrowth, growthFc.features.length]);
 
   const onClick = useCallback((e: MapLayerMouseEvent) => {
     const f = e.features?.[0];
@@ -149,8 +165,11 @@ export default function MapPage() {
             <span className="lk"><span className="dotc" style={{ background: "var(--accent-bright)" }} /> Development upside only</span>
             <Toggle on={developOnly} onClick={() => setDevelopOnly((v) => !v)} />
           </div>
+          <div className="lyr" style={{ marginTop: 4 }}>
+            <span className="lk"><span className="dotc" style={{ background: "var(--landmark)" }} /> Growth corridors</span>
+            <Toggle on={showGrowth} onClick={() => setShowGrowth((v) => !v)} />
+          </div>
           <div className="lyr dim"><span className="lk"><span className="dotc" style={{ background: "var(--positive)" }} /> By-room legal zone</span><span className="mono" style={{ fontSize: 10 }}>pending</span></div>
-          <div className="lyr dim"><span className="lk"><span className="dotc" style={{ background: "var(--landmark)" }} /> Off-market leads</span><span className="mono" style={{ fontSize: 10 }}>pending</span></div>
         </div>
 
         <div className="card">
@@ -209,6 +228,19 @@ export default function MapPage() {
           cursor="pointer"
           attributionControl={false}
         >
+          {/* growth-corridor "path of progress" heat layer (spec 017), under the parcels */}
+          {showGrowth && (
+            <Source id="growth-src" type="geojson" data={growthFc}>
+              <Layer id="growth-heat" type="heatmap" paint={{
+                "heatmap-weight": ["interpolate", ["linear"], ["get", "score"], 0, 0, 100, 1],
+                "heatmap-intensity": 0.9,
+                "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 11, 20, 15, 45],
+                "heatmap-opacity": 0.45,
+                "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"],
+                  0, "rgba(0,0,0,0)", 0.35, "#2c3e8c", 0.65, "#c8785c", 1, "#f0ede6"],
+              } as never} />
+            </Source>
+          )}
           <Source id="parcels-src" type="geojson" data={fc}>
             {/* soft glow halo beneath the dot */}
             <Layer id="parcels-glow" type="circle" paint={{

@@ -14,7 +14,8 @@ const SECTIONS = [
   { href: "/learn", icon: "🧠", name: "Learn", desc: "LOT gets sharper from your advance/pass decisions and proposes thesis tweaks for your OK." },
   { href: "/rents", icon: "🏷️", name: "Rents", desc: "Add real rent comps you know — they override the modeled rent and make scores more accurate." },
   { href: "/outreach", icon: "✉️", name: "Outreach", desc: "The mailers you've approved, with their compliance receipt." },
-  { href: "/settings", icon: "⚙️", name: "Settings & Run", desc: "Every maintenance command as a button — update data, enrich leads, set your mail budget." },
+  { href: "/schedule", icon: "📅", name: "Schedule", desc: "Calls, follow-ups, and visits the Scheduler agent proposed and you approved — your follow-up cadence." },
+  { href: "/settings", icon: "⚙️", name: "Settings & Run", desc: "Every maintenance command as a button — update data, enrich leads, connect Gmail, set your mail budget." },
 ];
 
 export default function Home() {
