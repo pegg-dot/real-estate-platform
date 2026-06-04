@@ -23,6 +23,7 @@ const SECONDARY: Array<{ href: string; label: string }> = [
   { href: "/rents", label: "Rents" },
   { href: "/outreach", label: "Outreach" },
   { href: "/schedule", label: "Schedule" },
+  { href: "/activity", label: "Activity" },
   { href: "/settings", label: "Settings" },
 ];
 

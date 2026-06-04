@@ -2,6 +2,7 @@ import { sql } from "../../../lib/db";
 import { getGoogleAccessToken, googleConfigured } from "../../../lib/connectors";
 import { currentUserId } from "../../../lib/user";
 import { sendGmail } from "../../../lib/google";
+import { logAction } from "../../../lib/actionLog";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +33,12 @@ export async function POST(req: Request) {
   // ── compliance gate at SEND time (not just draft time) ──────────────────────────────────────
   // Opt-out + mailability: a lead that opted out, or that the gate marked estate/probate (manual
   // review) or excluded, must not be emailed. (Drafts with no lead — manual one-offs — skip this.)
-  if (draft.opted_out) return Response.json({ ok: false, error: "this owner opted out — cannot send (suppressed)." }, { status: 403 });
+  if (draft.opted_out) {
+    await logAction(userId, { action: "email.send", target: id, status: "blocked", detail: { reason: "opted_out" } });
+    return Response.json({ ok: false, error: "this owner opted out — cannot send (suppressed)." }, { status: 403 });
+  }
   if (draft.gate_state && draft.gate_state !== "mailable") {
+    await logAction(userId, { action: "email.send", target: id, status: "blocked", detail: { reason: draft.gate_state } });
     return Response.json({ ok: false, error: `this lead is '${draft.gate_state}', not mailable (estate/probate → manual review; institution/illegal → excluded).` }, { status: 403 });
   }
   // CAN-SPAM physical address: refuse to ship a placeholder/blank sender address.
@@ -44,8 +49,10 @@ export async function POST(req: Request) {
   try {
     const { id: gmailId } = await sendGmail(token, { to: draft.to_addr, subject: draft.subject, body: draft.body });
     await sql()`update email_draft set status = 'sent', detail = coalesce(detail, '{}'::jsonb) || ${sql().json({ gmailId, sentBy: userId })} where id = ${id} and user_id = ${userId}`;
+    await logAction(userId, { action: "email.send", target: id, status: "ok", detail: { to: draft.to_addr, gmailId } });
     return Response.json({ ok: true, output: `✓ sent to ${draft.to_addr}` });
   } catch (e) {
+    await logAction(userId, { action: "email.send", target: id, status: "error", detail: { error: (e as Error).message } });
     return Response.json({ ok: false, error: `Gmail send failed: ${(e as Error).message}` }, { status: 502 });
   }
 }

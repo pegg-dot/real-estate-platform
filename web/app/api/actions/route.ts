@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { runEngine, buildAction } from "../../lib/engine";
 import { sql } from "../../lib/db";
-import { currentUserId } from "../../lib/user";
+import { currentUserId, LEGACY_USER_ID } from "../../lib/user";
+import { logAction } from "../../lib/actionLog";
 
 export const dynamic = "force-dynamic";
 
@@ -53,10 +54,12 @@ export async function POST(req: Request) {
 
     const { script, args, timeout } = buildAction(body.action, body);
     const output = await runEngine(script, args, timeout);
+    await logAction(await currentUserId(), { action: `engine.${body.action}`, target: String(body.apn ?? body.leadId ?? body.dealId ?? ""), status: "ok" });
     return Response.json({ ok: true, output: output.trim() });
   } catch (e) {
     // surface engine/LLM errors cleanly (incl. "$0 Anthropic credits") instead of a 500
     const err = e as { stderr?: string; message?: string };
+    await logAction(LEGACY_USER_ID, { action: "engine.action", status: "error", detail: { error: String(err.stderr || err.message || e).slice(0, 300) } });
     return Response.json({ ok: false, error: String(err.stderr || err.message || e).slice(0, 4000) });
   }
 }

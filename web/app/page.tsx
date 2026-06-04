@@ -16,6 +16,7 @@ const SECTIONS = [
   { href: "/rents", icon: "🏷️", name: "Rents", desc: "Add real rent comps you know — they override the modeled rent and make scores more accurate." },
   { href: "/outreach", icon: "✉️", name: "Outreach", desc: "The mailers you've approved, with their compliance receipt." },
   { href: "/schedule", icon: "📅", name: "Schedule", desc: "Calls, follow-ups, and visits the Scheduler agent proposed and you approved — your follow-up cadence." },
+  { href: "/activity", icon: "🧾", name: "Activity", desc: "The audit ledger — every send, calendar sync, deal decision, and automation run, with its outcome." },
   { href: "/settings", icon: "⚙️", name: "Settings & Run", desc: "Every maintenance command as a button — update data, enrich leads, connect Gmail, set your mail budget." },
 ];
 
