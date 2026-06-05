@@ -21,15 +21,22 @@ const EXTRACTED = z.object({
 });
 
 const SYSTEM = `You distill a real-estate investing transcript/book into structured, CITED knowledge.
-Extract only what the source actually says — never invent. Produce:
-- rules: condition -> recommendation (creative-finance/structure heuristics), confidence-tagged.
+Extract ONLY what the source actually says — never invent. Be FAITHFUL and THOROUGH: capture the
+reasoning, not just conclusions. Produce:
+- concepts: the source's FRAMEWORKS, mental models, definitions, and reasoning chains, each as a
+  self-contained explanation (key = a short slug like 'today-tomorrow-forever-money'; value = a full
+  multi-sentence explanation in the source's own logic). ALSO capture the source's explicit
+  "open questions / things to verify / what's new vs last time" as concepts. Favor MANY rich
+  concepts over few — this is where the playbook's depth lives.
+- rules: condition -> recommendation (creative-finance/structure/strategy heuristics), confidence-tagged.
 - exemplars: how the expert COMMUNICATES — objection->response (key 'objection#...') and
   situation->framing (key 'situation#...'); value = the verbatim framing.
 - params: named numeric calibrations (cost_to_sell_pct, mtr_multiplier, stale_on_market_days, etc.)
   as snake_case keys with the value as a string.
-- concepts: vocabulary/definitions.
-Tag confidence by how firmly the source asserts each item. Legal/financial claims stay as the
-source's OPINION — do not present them as settled fact.`;
+Capture EVERY distinct play/strategy the source names (wholesale, novation, subject-to, seller-finance,
+hybrid/"Morby" debt plays, gap/transactional funding, BRRRR, lease options, etc.) — as a concept
+(what/when/why) and, where it gives a heuristic, a rule. Tag confidence by how firmly the source
+asserts each item. Legal/financial claims stay as the source's OPINION — never settled fact.`;
 
 export const llmExtractor: Extractor = async (text, meta) => {
   if (!process.env.ANTHROPIC_API_KEY) {
