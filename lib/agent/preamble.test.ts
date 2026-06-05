@@ -24,5 +24,17 @@ describe("renderPreamble (pure)", () => {
     });
     expect(out).toContain("[cf#sub2]");
     expect(out).toContain("subject-to");
+    expect(out).toContain("WHEN low equity");
+  });
+
+  it("renders expert lenses with name, heuristics, and section header", () => {
+    const out = renderPreamble({
+      rules: [],
+      concepts: [],
+      experts: [{ expert: "Pace Morby", values_summary: "creative finance", heuristics: ["take the deed", "keep the loan"], risk_posture: "aggressive", source: "pace-morby" }],
+    });
+    expect(out).toContain("Expert lenses");
+    expect(out).toContain("Pace Morby");
+    expect(out).toContain("take the deed");
   });
 });

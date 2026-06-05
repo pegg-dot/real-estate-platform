@@ -14,7 +14,7 @@ export async function knowledgePreamble(sql: Sql): Promise<string> {
     const experts = await sql<PreambleExpert[]>`
       select expert, values_summary, heuristics, risk_posture, source from expert_profile order by expert`;
     const concepts = await sql<PreambleConcept[]>`
-      select title, left(body, 400) as body, source from knowledge_note order by length(body) desc limit 12`;
+      select coalesce(title, '(untitled)') as title, left(body, 400) as body, source from knowledge_note order by length(body) desc limit 12`;
     return renderPreamble({ rules, experts, concepts });
   } catch {
     return "";   // knowledge unavailable → agent still runs on its base prompt

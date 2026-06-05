@@ -3,7 +3,12 @@
  * surfaced alongside rules + expert lenses so the distilled reasoning actually reaches the agent. */
 export interface PreambleRule { slug: string | null; condition: string; recommendation: string; confidence: string; source: string | null }
 export interface PreambleExpert { expert: string; values_summary: string | null; heuristics: unknown; risk_posture: string | null; source: string | null }
-export interface PreambleConcept { title: string; body: string; source: string | null }
+export interface PreambleConcept {
+  title: string;
+  /** May be SQL-truncated (left(body, 400) in the DB query). */
+  body: string;
+  source: string | null;
+}
 
 export function renderPreamble(k: { rules: PreambleRule[]; experts: PreambleExpert[]; concepts: PreambleConcept[] }): string {
   if (!k.rules.length && !k.experts.length && !k.concepts.length) return "";
