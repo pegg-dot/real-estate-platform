@@ -3,6 +3,7 @@ import { exchangeCode, googleUserEmail } from "../../../../lib/google";
 import { authEnabled, isAllowed, SESSION_COOKIE } from "../../../../lib/user";
 import { signSession } from "../../../../lib/session";
 import { upsertAppUser } from "../../../../lib/appUser";
+import { publicOrigin } from "../../../../lib/origin";
 
 export const dynamic = "force-dynamic";
 const SESSION_TTL = 60 * 60 * 24 * 14;   // 14 days
@@ -11,7 +12,8 @@ const SESSION_TTL = 60 * 60 * 24 * 14;   // 14 days
 // upsert the app_user, and mint the signed session cookie. Fail-closed on every error.
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const back = (q: string) => Response.redirect(`${url.origin}/login?e=${encodeURIComponent(q)}`);
+  const origin = publicOrigin(req);   // public host behind the proxy (not the internal bind addr)
+  const back = (q: string) => Response.redirect(`${origin}/login?e=${encodeURIComponent(q)}`);
   if (!authEnabled() || !process.env.AUTH_SECRET) return back("auth-off");
 
   const code = url.searchParams.get("code");
@@ -25,7 +27,7 @@ export async function GET(req: Request) {
   try {
     const tokens = await exchangeCode({
       clientId: process.env.GOOGLE_CLIENT_ID!, clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      code, redirectUri: `${url.origin}/api/auth/google/callback`,
+      code, redirectUri: `${origin}/api/auth/google/callback`,
     });
     const email = await googleUserEmail(tokens.access_token);
     if (!email) return back("no-email");
@@ -34,7 +36,7 @@ export async function GET(req: Request) {
     const appUserId = await upsertAppUser(email, null);
     const token = signSession({ appUserId, email }, process.env.AUTH_SECRET!, SESSION_TTL);
     jar.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: SESSION_TTL });
-    return Response.redirect(`${url.origin}/`);
+    return Response.redirect(`${origin}/`);
   } catch (e) {
     return back(`error:${(e as Error).message}`.slice(0, 100));
   }
