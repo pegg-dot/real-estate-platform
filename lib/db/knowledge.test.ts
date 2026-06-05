@@ -33,7 +33,7 @@ d("loadArtifacts — integration (requires TEST_DATABASE_URL)", () => {
   it("loadArtifacts returns rules and concept-notes in the diff baseline", async () => {
     await sql`insert into knowledge_rule (slug, condition, recommendation, confidence, source)
       values ('t#r1', 'when X', 'do Y', 'real'::confidence_level, 'unit-test')
-      on conflict (slug) do update set recommendation = excluded.recommendation`;
+      on conflict (slug) do update set recommendation = excluded.recommendation, condition = excluded.condition`;
     await sql`insert into knowledge_note (title, body, source) values ('t-concept', 'a framework body', 'unit-test')
       on conflict (title, source) do update set body = excluded.body`;
     try {
