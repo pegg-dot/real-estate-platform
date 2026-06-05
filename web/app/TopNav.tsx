@@ -33,6 +33,7 @@ export default function TopNav() {
   // identity chip — only shows when multi-user auth is on (single-user shows nothing, unchanged)
   const [me, setMe] = useState<{ authEnabled: boolean; email: string | null } | null>(null);
   useEffect(() => { fetch("/api/me").then((r) => r.json()).then(setMe).catch(() => {}); }, []);
+  if (path === "/login") return null;   // login is a standalone full-screen entry — no app chrome
   return (
     <nav className="topbar">
       <a href="/" className="brand" aria-label="LOT home">
