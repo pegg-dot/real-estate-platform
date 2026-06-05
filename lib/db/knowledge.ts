@@ -59,9 +59,15 @@ export async function loadArtifacts(sql: Sql): Promise<Artifact[]> {
     select name, value::text as value, source, confidence::text as confidence, to_char(as_of,'YYYY-MM-DD') as as_of from knowledge_param`;
   const exemplars = await sql<Array<{ key: string; response: string; source: string | null; confidence: string; as_of: string | null }>>`
     select key, response, source, confidence::text as confidence, to_char(as_of,'YYYY-MM-DD') as as_of from knowledge_exemplar`;
+  const rules = await sql<Array<{ slug: string; condition: string; recommendation: string; source: string | null; confidence: string }>>`
+    select slug, condition, recommendation, source, confidence::text as confidence from knowledge_rule`;
+  const notes = await sql<Array<{ title: string; body: string; source: string | null }>>`
+    select title, body, source from knowledge_note`;
   return [
     ...params.map((p): Artifact => ({ kind: "param", key: p.name, value: p.value, source: p.source ?? "", confidence: p.confidence as Artifact["confidence"], asOf: p.as_of })),
     ...exemplars.map((e): Artifact => ({ kind: "exemplar", key: e.key, value: e.response, source: e.source ?? "", confidence: e.confidence as Artifact["confidence"], asOf: e.as_of })),
+    ...rules.map((r): Artifact => ({ kind: "rule", key: r.slug, value: r.recommendation, condition: r.condition, source: r.source ?? "", confidence: r.confidence as Artifact["confidence"], asOf: null })),
+    ...notes.map((n): Artifact => ({ kind: "concept", key: n.title, value: n.body, source: n.source ?? "", confidence: "unknown" as Artifact["confidence"], asOf: null })),
   ];
 }
 
