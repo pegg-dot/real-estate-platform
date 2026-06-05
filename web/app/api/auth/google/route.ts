@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { randomBytes } from "node:crypto";
 import { googleLoginUrl } from "../../../lib/google";
 import { authEnabled } from "../../../lib/user";
+import { publicOrigin } from "../../../lib/origin";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.AUTH_SECRET) {
     return Response.json({ error: "auth isn't configured — set GOOGLE_CLIENT_ID/SECRET and AUTH_SECRET." }, { status: 400 });
   }
-  const origin = new URL(req.url).origin;
+  const origin = publicOrigin(req);
   const state = randomBytes(16).toString("hex");
   (await cookies()).set("lot_auth_state", state, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 600 });
   return Response.redirect(googleLoginUrl({

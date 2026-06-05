@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { randomBytes } from "node:crypto";
 import { googleAuthUrl } from "../../../lib/google";
 import { googleConfigured } from "../../../lib/connectors";
+import { publicOrigin } from "../../../lib/origin";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function GET(req: Request) {
   if (!googleConfigured()) {
     return Response.json({ error: "Google connector isn't configured yet — set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and CONNECTOR_SECRET." }, { status: 400 });
   }
-  const origin = new URL(req.url).origin;
+  const origin = publicOrigin(req);
   const state = randomBytes(16).toString("hex");
   (await cookies()).set("lot_conn_state", state, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 600 });
   return Response.redirect(googleAuthUrl({
