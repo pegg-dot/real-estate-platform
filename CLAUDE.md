@@ -25,8 +25,12 @@ an **internal buying machine first** — see `../Knowledge Base/STRATEGY-REFRAME
    SMS/calls behind DNC-scrub + the live 2025 opt-out rule.
 
 ## Stack
-- Front-end: Next.js (App Router) + React + shadcn/ui on Vercel.
-- Backend/DB/Auth: Supabase (Postgres + Auth + Edge Functions + Cron + pgvector).
+- Front-end: Next.js 14 (App Router) in `/web`; shells out to the engine CLIs (`web/app/lib/engine.ts`).
+- Runs as ONE long-running container (Dockerfile + docker-compose.yml; Railway/Render/any VM) — NOT
+  Vercel/serverless. Migrations apply on boot (`docker-entrypoint.sh` → `scripts/apply-migrations.ts`,
+  tracked in `schema_migrations`). `/api/health` is the probe. See README "Run it yourself".
+- DB: plain Postgres 14+ (bundled in compose; Supabase/RDS/Neon work — nothing Supabase-specific;
+  pgvector optional). Auth: self-contained HMAC session + optional Google OAuth (`AUTH_ENABLED`).
 - Maps: Mapbox GL via react-map-gl (cluster + bounds-load; deck.gl later for overlays).
 - LLM: Vercel AI SDK. Avoid LangGraph unless a multi-agent graph is truly needed.
 - Knowledge layer: start full-context + prompt caching → pgvector + reranker only when
@@ -36,7 +40,8 @@ an **internal buying machine first** — see `../Knowledge Base/STRATEGY-REFRAME
 ## Conventions
 - TypeScript strict. Functions small and pure where possible.
 - Every feature ships with tests. Hooks run lint + tests on edit.
-- DB changes via Supabase migrations (skill: `add-supabase-migration`).
+- DB changes = a new numbered SQL file in `supabase/migrations/` (skill: `add-supabase-migration`);
+  the runner applies it on next boot / `npm run migrate`.
 - Secrets in env vars, never committed. `.mcp.json` references env, not literals.
 
 ## Domain knowledge (read these)
@@ -51,5 +56,6 @@ an **internal buying machine first** — see `../Knowledge Base/STRATEGY-REFRAME
 - Data pipelines: `/ingestion`. Investor thesis seed: `/config/thesis.example.json`.
 
 ## Current state
-Scaffold only. Charlottesville ingestion script is live-verified. Next: build
-`001-thesis-compiler`, then `002-charlottesville-ingest` into Supabase.
+A running system (see README "What works today" + "Build status"): Charlottesville ingest → scoring →
+financing → map/leads/pipeline/brief UI, agents, weekly loop. Self-hostable since 2026-08-30.
+Only Charlottesville has a county adapter. Env vars: `.env.example` is the complete list.
