@@ -47,6 +47,13 @@ describe("migration planner (idempotent runner)", () => {
     expect(p.apply).toEqual(FILES);            // … so it would re-apply 0001 and FAIL LOUDLY rather than guess
   });
 
+  it("--baseline (forceBaseline) records every unrecorded file without running any, whatever the DB looks like", () => {
+    // a database migrated by hand up to some point: no marker, maybe a partial tracking table
+    const p = planMigrations({ files: FILES, applied: ["0001_core_schema.sql"], trackingTableExists: true, markerTableExists: false, forceBaseline: true });
+    expect(p.apply).toEqual([]);
+    expect(p.baseline).toEqual(FILES.filter((f) => f !== "0001_core_schema.sql"));
+  });
+
   it("exposes the constants the runner and the health probe share", () => {
     expect(TRACKING_TABLE).toBe("schema_migrations");
     expect(BASELINE_MARKER).toEqual({ file: "0031_action_log.sql", table: "action_log" });

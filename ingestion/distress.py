@@ -11,10 +11,8 @@ Informational, not a determination — a complaint is a lead, not proof.
 """
 from __future__ import annotations
 
-import json
 import os
 import urllib.parse
-import urllib.request
 
 from ingestion.owner import _street_key
 
@@ -75,10 +73,9 @@ def fetch_distress_requests(limit: int = 8000) -> list[dict]:
         "orderByFields": "RequestID",
         "returnGeometry": "false", "resultRecordCount": str(limit), "f": "json",
     }
-    url = REQUESTS_LAYER + "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers={"User-Agent": "LOT-ingest/0.1"})
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+    from ingestion import charlottesville as cv
+    # GET with a query string (no params → cv._get does a plain GET) under the shared retry policy
+    data = cv._get(REQUESTS_LAYER + "?" + urllib.parse.urlencode(params))
     out = []
     for f in data.get("features", []):
         p = parse_request(f.get("attributes", {}))

@@ -25,6 +25,7 @@ services:
 
   app:
     build: .
+    init: true             # reap the detached refresh children the UI spawns (Next runs as PID 1 otherwise)
     env_file:
       - path: .env
         required: false      # zero-config first run works with no .env at all

@@ -13,10 +13,7 @@ Pure functions are unit-tested; `fetch_owners` is a thin network wrapper.
 """
 from __future__ import annotations
 
-import json
 import re
-import urllib.parse
-import urllib.request
 
 OWNER_TABLE = ("https://gisweb.charlottesville.org/arcgis/rest/services/"
                "NDS_parcel_relate/MapServer/1/query")
@@ -117,11 +114,8 @@ def fetch_owners(parcels) -> list:
     for clause in cv.build_parcel_filters(parcels):
         params = {"where": clause, "outFields": fields, "orderByFields": "OBJECTID",
                   "f": "json", "resultRecordCount": 1000}
-        # POST so a large ParcelNumber IN (...) can't overflow the URL length limit (404)
-        body = urllib.parse.urlencode(params).encode("utf-8")
-        req = urllib.request.Request(OWNER_TABLE, data=body, headers={
-            "User-Agent": "LOT-ingest/0.1", "Content-Type": "application/x-www-form-urlencoded"})
-        with urllib.request.urlopen(req, timeout=90) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        # POST (params → form body) so a large ParcelNumber IN (...) can't overflow the URL length
+        # limit (404); cv._get carries the shared retry/backoff policy.
+        data = cv._get(OWNER_TABLE, params)
         out.extend(f.get("attributes", {}) for f in data.get("features", []))
     return out

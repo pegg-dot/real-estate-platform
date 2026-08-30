@@ -9,6 +9,10 @@
  *   npx tsx scripts/apply-migrations.ts              apply everything pending
  *   npx tsx scripts/apply-migrations.ts --status     show the plan, change nothing
  *   npx tsx scripts/apply-migrations.ts <file.sql>   apply just that one pending file
+ *   npx tsx scripts/apply-migrations.ts --baseline   record every file as applied WITHOUT running any
+ *       (recovery for a hand-migrated / partially-migrated database the marker rule can't recognise —
+ *        only after you've confirmed the schema really is current; in Docker run it with
+ *        LOT_SKIP_MIGRATIONS=1 so the entrypoint doesn't try (and fail) first)
  *
  * Exit codes: 0 ok · 1 a migration failed · 2 could not connect (the entrypoint retries only on 2).
  */
@@ -19,6 +23,7 @@ import { BASELINE_MARKER, MIGRATIONS_DIR, TRACKING_TABLE, planMigrations } from 
 
 const args = process.argv.slice(2);
 const statusOnly = args.includes("--status");
+const forceBaseline = args.includes("--baseline");
 const only = args.find((a) => a.endsWith(".sql"));
 
 async function main() {
@@ -44,14 +49,16 @@ async function main() {
       ? (await sql<Array<{ filename: string }>>`select filename from schema_migrations`).map((r) => r.filename)
       : [];
 
-    const plan = planMigrations({ files, applied, trackingTableExists, markerTableExists });
+    const plan = planMigrations({ files, applied, trackingTableExists, markerTableExists, forceBaseline });
     if (only) {
       if (!files.includes(only)) throw new Error(`no such migration file: ${only}`);
       plan.apply = plan.apply.filter((f) => f === only);
     }
 
     for (const f of plan.orphaned) console.warn(`⚠ recorded as applied but missing on disk: ${f}`);
-    if (plan.baseline.length) {
+    if (forceBaseline) {
+      console.log(`⚠ --baseline: recording ${plan.baseline.length} file(s) as applied WITHOUT running them (operator override)`);
+    } else if (plan.baseline.length) {
       console.log(`ℹ existing database detected (${BASELINE_MARKER.table} present, no ${TRACKING_TABLE}) — ` +
         `baselining ${plan.baseline.length} already-applied migrations through ${BASELINE_MARKER.file}`);
     }

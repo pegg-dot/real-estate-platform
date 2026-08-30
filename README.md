@@ -41,13 +41,17 @@ Edit `.env` any time and `docker compose up -d` again — keys are read at runti
 The database starts empty. Pull Charlottesville's county data, score it, and build the digest:
 
 ```bash
-docker compose run --rm app lot refresh -- --market Charlottesville --distress --limit 20000
+docker compose run --rm app lot refresh -- --market Charlottesville --distress --no-history --limit 20000
 ```
 
-This hits the city's free ArcGIS open-data API (no key), takes several minutes for the full
-~12k parcels, and is safe to re-run (idempotent upserts). Use `--limit 500` for a quick taste.
-You don't strictly have to run it: opening the homepage triggers the same refresh in the
-background whenever the data is empty or more than a week old (Settings → Automatic updates).
+This hits the city's free ArcGIS open-data API (no key) and is safe to re-run (idempotent
+upserts). The full city is ~15.8k parcels and takes **about 20 minutes** (≈300 sequential county
+requests, then one bulk load — nothing appears until the end); ≈13k scored parcels then show on
+the map. `--no-history` pulls only the current assessed value — the fast path the app's own
+Update button uses; drop it to also load the 30-year assessment history (~30 rows per parcel,
+far slower). Use `--limit 500` for a quick taste (well under a minute). You don't strictly have to run it: opening the
+homepage triggers this same refresh in the background whenever the data is empty or more than a
+week old (Settings → Automatic updates).
 
 ### Day-to-day
 
@@ -82,13 +86,19 @@ Migrations run automatically on every boot; `/api/health` is the readiness probe
 - **Any Docker host / VM** —
   ```bash
   docker build -t lot .
-  docker run -d --name lot -p 3000:3000 --env-file .env -e SUPABASE_DB_URL=postgresql://… lot
+  docker run -d --init --name lot -p 3000:3000 --env-file .env -e SUPABASE_DB_URL=postgresql://… lot
   ```
 - **Bring your own database with Compose** (Supabase, RDS, Neon, …): put `SUPABASE_DB_URL` in
   `.env` and run `docker compose up --build --no-deps app` so the bundled Postgres stays off.
 
 `pgvector` is optional everywhere (it enables knowledge embeddings); the schema adapts if the
 extension isn't available.
+
+**Pointing it at a database you migrated by hand before this?** Boot recognises a fully-migrated
+database (it sees `action_log` from migration 0031) and records the history instead of re-running
+it. If your schema stopped somewhere earlier, boot refuses to guess and exits 1 — apply the missing
+files (`lot migrate -- 0030_….sql`) or, once you've confirmed the schema really is current, record
+it as such: `docker compose run --rm -e LOT_SKIP_MIGRATIONS=1 app lot migrate -- --baseline`.
 
 ## Configuration
 

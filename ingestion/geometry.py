@@ -10,9 +10,6 @@ fine for a map pin.
 """
 from __future__ import annotations
 
-import json
-import urllib.parse
-import urllib.request
 
 PARCEL_LAYER = ("https://gisweb.charlottesville.org/arcgis/rest/services/"
                 "NDS_parcel_relate/MapServer/0/query")
@@ -87,11 +84,9 @@ def fetch_parcel_centroids(gpins) -> dict:
         batch = safe[i:i + 200]
         params = {"where": "GPIN IN (%s)" % ",".join(str(g) for g in batch),
                   "returnGeometry": "true", "outSR": "4326", "outFields": "GPIN", "f": "json"}
-        # POST so a large GPIN IN (...) can't overflow the URL length limit (404)
-        body = urllib.parse.urlencode(params).encode("utf-8")
-        req = urllib.request.Request(PARCEL_LAYER, data=body, headers={
-            "User-Agent": "LOT-ingest/0.1", "Content-Type": "application/x-www-form-urlencoded"})
-        with urllib.request.urlopen(req, timeout=90) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        # POST (params → form body) so a large GPIN IN (...) can't overflow the URL length limit
+        # (404); cv._get carries the shared retry/backoff policy.
+        from ingestion import charlottesville as cv
+        data = cv._get(PARCEL_LAYER, params)
         out.update(parse_parcel_features(data))
     return out

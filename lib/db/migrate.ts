@@ -21,6 +21,9 @@ export interface MigrationState {
   trackingTableExists: boolean;
   /** BASELINE_MARKER.table exists in the database */
   markerTableExists: boolean;
+  /** operator override (`--baseline`): record EVERY file on disk as applied without running any —
+   * for a database migrated by hand / partway that the marker rule can't recognise */
+  forceBaseline?: boolean;
 }
 
 export interface MigrationPlan {
@@ -37,6 +40,9 @@ export function planMigrations(s: MigrationState): MigrationPlan {
   const applied = new Set(s.applied);
   const orphaned = s.applied.filter((f) => !files.includes(f)).sort();
 
+  if (s.forceBaseline) {
+    return { baseline: files.filter((f) => !applied.has(f)), apply: [], orphaned };
+  }
   if (!s.trackingTableExists && s.markerTableExists) {
     const baseline = files.filter((f) => f <= BASELINE_MARKER.file);
     const apply = files.filter((f) => f > BASELINE_MARKER.file);
