@@ -76,7 +76,10 @@ for the full list.
 
 LOT needs a **long-running container** (the UI spawns engine processes and the Python ingester)
 and a **Postgres 14+** database. It is not a serverless app — Vercel/Netlify won't work.
-Migrations run automatically on every boot; `/api/health` is the readiness probe.
+Migrations run automatically on every boot; `/api/health` is the readiness probe. If the database
+is unreachable at boot (wrong `SUPABASE_DB_URL`, a paused Supabase project) the container retries
+for a minute, then starts anyway so `/api/health` can tell you why (HTTP 503 + the error) — set
+`LOT_MIGRATE_STRICT=1` if you'd rather it refuse to start.
 
 - **Railway** — New Project → Deploy from GitHub repo (the `Dockerfile` + `railway.json` are picked
   up) → add a **Postgres** service → on the app set `SUPABASE_DB_URL` = `${{Postgres.DATABASE_URL}}`

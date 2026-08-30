@@ -23,7 +23,14 @@ if [ "${LOT_SKIP_MIGRATIONS:-}" != "1" ]; then
     set -e
     [ "$code" -eq 0 ] && break
     if [ "$code" -ne 2 ]; then echo "✗ migrations failed (exit $code)" >&2; exit "$code"; fi
-    if [ "$attempt" -ge 20 ]; then echo "✗ database never became reachable" >&2; exit 2; fi
+    if [ "$attempt" -ge 20 ]; then
+      # Unreachable after the budget is almost always a config problem (wrong URL, paused Supabase
+      # project). Start the app anyway so /api/health can SAY so (503 + the reason) instead of a
+      # crash-loop that hosts report as "deployed". LOT_MIGRATE_STRICT=1 restores the hard fail.
+      if [ "${LOT_MIGRATE_STRICT:-}" = "1" ]; then echo "✗ database never became reachable" >&2; exit 2; fi
+      echo "⚠ database unreachable after $attempt attempts — starting WITHOUT applying migrations; /api/health will report it. Fix SUPABASE_DB_URL and restart." >&2
+      break
+    fi
     echo "… database not reachable yet (attempt $attempt/20) — retrying in 3s"
     attempt=$((attempt + 1))
     sleep 3
