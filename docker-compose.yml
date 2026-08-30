@@ -1,0 +1,42 @@
+# LOT — self-hosted in one command:   cp .env.example .env && docker compose up --build
+# → http://localhost:3000   Postgres (with pgvector) is bundled and persisted in the `lot-db` volume.
+#
+# Bring your own database instead (Supabase, RDS, …): put SUPABASE_DB_URL in .env and run
+#   docker compose up --build --no-deps app
+name: lot
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: lot
+      POSTGRES_PASSWORD: lot
+      POSTGRES_DB: lot
+    volumes:
+      - lot-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lot -d lot"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    # Uncomment to reach the database from your machine (psql / TablePlus): postgresql://lot:lot@localhost:5432/lot
+    # ports:
+    #   - "5432:5432"
+
+  app:
+    build: .
+    env_file:
+      - path: .env
+        required: false      # zero-config first run works with no .env at all
+    environment:
+      # .env wins when it sets SUPABASE_DB_URL; otherwise the bundled Postgres above.
+      SUPABASE_DB_URL: ${SUPABASE_DB_URL:-postgresql://lot:lot@db:5432/lot}
+    ports:
+      - "${LOT_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  lot-db:

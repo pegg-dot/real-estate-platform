@@ -1,0 +1,8 @@
+#!/bin/sh
+# `lot <npm script> [-- args]` — run an engine command from anywhere (the container symlinks this to
+# /usr/local/bin/lot).  e.g.  lot refresh -- --market Charlottesville --distress --limit 20000
+#                              lot migrate -- --status
+#                              lot test
+set -e
+cd "$(dirname "$(readlink -f "$0")")/.."
+exec npm run --silent "$@"

@@ -58,7 +58,7 @@ export default function DevPage() {
 
       <Group title="First-time setup (already done — here for a fresh machine)">
         <Cmd c="npm install && (cd web && npm install)" d="Install dependencies (root engine + web app)." />
-        <Cmd c="npx tsx scripts/apply-migrations.ts" d="Apply all database migrations to Supabase." />
+        <Cmd c="npm run migrate" d="Apply pending database migrations (idempotent — the Docker image runs this on every boot)." />
         <Cmd c="npm run refresh -- --market Charlottesville --distress" d="First full county data pull + distress + scoring (also the 'Update everything' button)." />
       </Group>
 

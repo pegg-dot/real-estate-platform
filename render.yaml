@@ -1,0 +1,25 @@
+# Render Blueprint — Dashboard → New → Blueprint → pick this repo. Provisions the app (from the Dockerfile)
+# plus a managed Postgres, wires the connection string, and prompts you for the optional keys.
+# Migrations run automatically on every boot (docker-entrypoint.sh).
+services:
+  - type: web
+    name: lot
+    runtime: docker
+    plan: starter            # a full county refresh runs in-process; the free tier's 512 MB is too tight
+    healthCheckPath: /api/health
+    envVars:
+      - key: SUPABASE_DB_URL
+        fromDatabase:
+          name: lot-db
+          property: connectionString
+      - key: PUBLIC_BASE_URL
+        sync: false          # https://<your-service>.onrender.com — needed only for Google sign-in/connectors
+      - key: ANTHROPIC_API_KEY
+        sync: false          # optional: AI chat + agents
+      - key: NEXT_PUBLIC_MAPBOX_TOKEN
+        sync: false          # optional: the map
+
+databases:
+  - name: lot-db
+    plan: basic-256mb        # `free` also works but Render deletes free databases after 30 days
+    postgresMajorVersion: "16"

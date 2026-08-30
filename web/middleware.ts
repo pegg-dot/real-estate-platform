@@ -8,7 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE = "lot_session";
 // paths that must stay open so a signed-out user can actually sign in
-const OPEN = ["/login", "/api/auth/", "/api/connect/google/callback"];
+const OPEN = ["/login", "/api/auth/", "/api/connect/google/callback", "/api/health"];
 
 async function validSession(token: string | undefined, secret: string): Promise<boolean> {
   if (!token || !secret) return false;

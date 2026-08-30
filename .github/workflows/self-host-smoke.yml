@@ -1,0 +1,44 @@
+# Proves the self-host path stays alive: build the image, bring up the compose stack with NO .env
+# (the zero-config first run), wait for the container's own HEALTHCHECK, and confirm the app applied
+# every migration on boot. Runs on every push/PR — a broken Dockerfile or migration fails here, not on
+# someone's laptop.
+name: self-host-smoke
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build + start the stack (no .env → bundled Postgres, zero config)
+        run: docker compose up -d --build --wait --wait-timeout 420
+
+      - name: Health probe reports a reachable DB with every migration applied
+        run: |
+          curl -fsS http://localhost:3000/api/health | tee health.json; echo
+          expected=$(ls supabase/migrations/*.sql | wc -l | tr -d ' ')
+          got=$(jq -r '.migrations' health.json)
+          test "$(jq -r '.ok' health.json)" = "true"
+          test "$got" = "$expected" || { echo "expected $expected migrations recorded, got $got"; exit 1; }
+
+      - name: A second boot is a no-op (idempotent migrations)
+        run: |
+          docker compose restart app
+          docker compose up --wait --wait-timeout 180 app
+          docker compose logs app | grep -q "database is up to date"
+
+      - name: Logs
+        if: failure()
+        run: docker compose logs --no-color | tail -300
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
