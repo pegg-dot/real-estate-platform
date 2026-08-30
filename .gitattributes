@@ -1,0 +1,13 @@
+# Normalise line endings so a Windows checkout (core.autocrlf=true) can't turn the container's
+# entrypoint into "#!/bin/sh\r" — which makes Docker fail with "no such file or directory".
+* text=auto
+*.sh        text eol=lf
+scripts/lot text eol=lf
+Dockerfile  text eol=lf
+*.py        text eol=lf
+*.sql       text eol=lf
+
+# binaries
+*.jpg  binary
+*.png  binary
+*.webp binary
