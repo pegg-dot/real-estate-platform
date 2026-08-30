@@ -1,5 +1,5 @@
-# Keep the build context lean and secrets out of the image. Deps are reinstalled in-image via npm ci;
-# env comes from the host (Railway variables) at runtime, never baked in.
+# Keep the build context lean and secrets out of the image. Deps are reinstalled in-image (npm ci + a
+# fresh Python venv); env comes from the host at runtime (compose env_file / Railway / Render variables).
 .git
 node_modules
 web/node_modules
@@ -7,6 +7,10 @@ web/node_modules
 web/.next
 .env
 .env.*
-*.log
-ingestion
+!.env.example
+.venv
 **/__pycache__
+**/*.pyc
+*.log
+/data
+.DS_Store

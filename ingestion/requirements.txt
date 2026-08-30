@@ -1,8 +1,8 @@
-# Charlottesville ingestion uses only the Python standard library (urllib, json).
-# No third-party deps required to run charlottesville.py.
-#
-# Optional, for the richer pipeline (DB load, geo, validation) as we build it out:
-# psycopg[binary]>=3.1     # write to Supabase/Postgres
+# Runtime deps for the ingestion pipeline. The county pull itself (charlottesville.py) is stdlib-only;
+# writing to Postgres (load_supabase.py, distress.py — what `npm run refresh` runs) needs psycopg.
+psycopg[binary]>=3.2
+
+# Not needed yet (add when the richer pipeline lands):
 # pydantic>=2.7            # validate/normalize records into the unified schema
 # shapely>=2.0             # parcel geometry (when we add returnGeometry=true)
 # httpx>=0.27              # async paged fetches across many layers/markets

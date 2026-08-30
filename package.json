@@ -2,12 +2,16 @@
   "name": "lot",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.12"
+  },
   "type": "module",
   "description": "LOT — the judgment layer (scoring + creative-finance engines). The moat.",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "migrate": "tsx scripts/apply-migrations.ts",
     "refresh": "tsx scripts/refresh-market.ts",
     "dossier": "tsx scripts/refresh-market.ts --skip-ingest",
     "changes": "tsx scripts/refresh-market.ts --changes",

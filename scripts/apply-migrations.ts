@@ -1,34 +1,99 @@
 #!/usr/bin/env -S tsx
 /**
- * Apply the SQL migrations to the database in SUPABASE_DB_URL, in order. Idempotent-ish:
- * safe to run on a fresh DB; re-running a created schema will error (migrations run once).
- * Usage: SUPABASE_DB_URL=... npx tsx scripts/apply-migrations.ts
+ * Apply pending SQL migrations to the database in SUPABASE_DB_URL (or DATABASE_URL), in order.
+ * Idempotent: applied files are recorded in `schema_migrations`, so this is safe to run on every
+ * boot (the Docker entrypoint does). A database migrated by the old runner (no tracking table, but
+ * carrying the newest known artifact) is baselined instead of re-applied — see lib/db/migrate.ts.
+ *
+ * Usage:
+ *   npx tsx scripts/apply-migrations.ts              apply everything pending
+ *   npx tsx scripts/apply-migrations.ts --status     show the plan, change nothing
+ *   npx tsx scripts/apply-migrations.ts <file.sql>   apply just that one pending file
+ *   npx tsx scripts/apply-migrations.ts --baseline   record every file as applied WITHOUT running any
+ *       (recovery for a hand-migrated / partially-migrated database the marker rule can't recognise —
+ *        only after you've confirmed the schema really is current; in Docker run it with
+ *        LOT_SKIP_MIGRATIONS=1 so the entrypoint doesn't try (and fail) first)
+ *
+ * Exit codes: 0 ok · 1 a migration failed · 2 could not connect (the entrypoint retries only on 2).
  */
 import fs from "node:fs";
 import path from "node:path";
 import { getSql } from "../lib/db/client.js";
+import { BASELINE_MARKER, MIGRATIONS_DIR, TRACKING_TABLE, planMigrations } from "../lib/db/migrate.js";
+
+const args = process.argv.slice(2);
+const statusOnly = args.includes("--status");
+const forceBaseline = args.includes("--baseline");
+const only = args.find((a) => a.endsWith(".sql"));
 
 async function main() {
-  const dir = "supabase/migrations";
-  // optional arg: apply just one migration (e.g. when earlier ones are already applied)
-  const only = process.argv[2];
-  const files = (only ? [only] : fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort());
-  const sql = getSql();
+  const files = fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql"));
+  // migrations use `drop … if exists`; Postgres NOTICEs about the skips are noise on a fresh boot
+  const sql = getSql(undefined, { onnotice: () => {} });
   try {
-    // sanity: confirm we can talk to the DB before touching schema
-    await sql`select 1 as ok`;
+    try {
+      await sql`select 1 as ok`;
+    } catch (e) {
+      console.error(`✗ cannot connect to the database: ${(e as Error).message}`);
+      process.exit(2);
+    }
     console.log("✓ connected");
-    for (const f of files) {
-      // strip begin/commit so the pooled simple-query path accepts the script
-      const text = fs.readFileSync(path.join(dir, f), "utf8")
+
+    const tableExists = async (name: string): Promise<boolean> => {
+      const [r] = await sql<Array<{ ok: boolean }>>`select to_regclass(${name}) is not null as ok`;
+      return Boolean(r?.ok);
+    };
+    const trackingTableExists = await tableExists(TRACKING_TABLE);
+    const markerTableExists = await tableExists(BASELINE_MARKER.table);
+    const applied = trackingTableExists
+      ? (await sql<Array<{ filename: string }>>`select filename from schema_migrations`).map((r) => r.filename)
+      : [];
+
+    const plan = planMigrations({ files, applied, trackingTableExists, markerTableExists, forceBaseline });
+    if (only) {
+      if (!files.includes(only)) throw new Error(`no such migration file: ${only}`);
+      plan.apply = plan.apply.filter((f) => f === only);
+    }
+
+    for (const f of plan.orphaned) console.warn(`⚠ recorded as applied but missing on disk: ${f}`);
+    if (forceBaseline) {
+      console.log(`⚠ --baseline: recording ${plan.baseline.length} file(s) as applied WITHOUT running them (operator override)`);
+    } else if (plan.baseline.length) {
+      console.log(`ℹ existing database detected (${BASELINE_MARKER.table} present, no ${TRACKING_TABLE}) — ` +
+        `baselining ${plan.baseline.length} already-applied migrations through ${BASELINE_MARKER.file}`);
+    }
+    if (statusOnly) {
+      console.log(`plan: baseline ${plan.baseline.length} · apply ${plan.apply.length}` +
+        (plan.apply.length ? ` → ${plan.apply.join(", ")}` : "") + ` · applied ${applied.length}`);
+      return;
+    }
+
+    if (!trackingTableExists) {
+      await sql.unsafe(`create table ${TRACKING_TABLE} (
+        filename   text primary key,
+        applied_at timestamptz not null default now()
+      )`);
+    }
+    for (const f of plan.baseline) {
+      await sql`insert into schema_migrations (filename) values (${f}) on conflict (filename) do nothing`;
+    }
+    if (plan.baseline.length) console.log(`✓ baselined ${plan.baseline.length}`);
+
+    for (const f of plan.apply) {
+      // strip begin/commit — each file runs inside ONE transaction with its tracking row, so a failed
+      // migration rolls back fully and is retried next boot instead of being half-applied.
+      const text = fs.readFileSync(path.join(MIGRATIONS_DIR, f), "utf8")
         .replace(/^\s*(begin|commit)\s*;\s*$/gim, "");
-      await sql.unsafe(text);
+      await sql.begin(async (tx) => {
+        await tx.unsafe(text);
+        await tx`insert into schema_migrations (filename) values (${f})`;
+      });
       console.log(`✓ applied ${f}`);
     }
+    console.log(plan.apply.length ? `✓ ${plan.apply.length} migration(s) applied` : "✓ database is up to date");
   } finally {
     await sql.end();
   }
-  console.log("✓ all migrations applied");
 }
 
-main().catch((e) => { console.error("✗", e.message); process.exit(1); });
+main().catch((e) => { console.error("✗", (e as Error).message); process.exit(1); });

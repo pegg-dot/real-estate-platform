@@ -93,10 +93,19 @@ def build_query_params(layer, where: str = "1=1", offset: int = 0, count: int = 
     }
 
 
-def _get(url: str, params: dict | None = None, retries: int = 3, backoff: float = 2.0) -> dict:
-    """Fetch JSON from an ArcGIS endpoint with retry/backoff. When `params` is given they
-    are sent as a POST body (form-encoded) instead of a query string — this is REQUIRED for
-    large `... IN (...)` clauses, which overflow the server's URL length limit on GET (404)."""
+# A full city pull is ~300 sequential requests before a single row is written, and the county's
+# ArcGIS host (or the path to it) transiently refuses connections mid-run. One refusal must not
+# throw the whole run away: 6 attempts with 5/10/15/20/25 s backoff rides out ~75 s of outage.
+FETCH_RETRIES = 6
+FETCH_BACKOFF = 5.0
+
+
+def _get(url: str, params: dict | None = None, retries: int = FETCH_RETRIES, backoff: float = FETCH_BACKOFF) -> dict:
+    """Fetch JSON from an ArcGIS endpoint with retry/backoff — the ONE network path every
+    ingestion module uses (owner/geometry/distress route through here for the same policy). When
+    `params` is given they are sent as a POST body (form-encoded) instead of a query string — this
+    is REQUIRED for large `... IN (...)` clauses, which overflow the server's URL length limit on
+    GET (404)."""
     headers = {"User-Agent": "LOT-ingest/0.1"}
     data = None
     if params is not None:
@@ -110,7 +119,8 @@ def _get(url: str, params: dict | None = None, retries: int = 3, backoff: float 
                 return json.loads(resp.read().decode("utf-8"))
         except Exception as e:  # noqa: BLE001 - want broad retry here
             last_err = e
-            time.sleep(backoff * (attempt + 1))
+            if attempt < retries - 1:
+                time.sleep(backoff * (attempt + 1))
     raise RuntimeError(f"Failed to fetch {url}: {last_err}")
 
 

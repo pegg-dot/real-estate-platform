@@ -5,13 +5,14 @@ A Next.js + Mapbox app over the **live** Supabase data the engine produces. Deli
 happens via Claude design on top of this.
 
 ## Run it
+The easy way is the repo-root `docker compose up` (see the root README). For hands-on development:
 ```bash
 cd web
-npm install                       # first time only
-set -a && source ../.env && set +a   # SUPABASE_DB_URL + NEXT_PUBLIC_MAPBOX_TOKEN
+npm ci                            # first time only
 npm run dev                       # http://localhost:3000  (use -p 3939 if 3000 is busy)
 ```
-Needs `SUPABASE_DB_URL` and `NEXT_PUBLIC_MAPBOX_TOKEN` in the repo `.env` (both already there).
+`next.config.mjs` loads the repo-root `.env` automatically, so `SUPABASE_DB_URL` (and optionally
+`NEXT_PUBLIC_MAPBOX_TOKEN` / `ANTHROPIC_API_KEY`) live in one place for the engine CLIs and the app.
 
 ## What's here
 - **/** — the **deal map**: every scored parcel (≈12.3k) plotted, colored by thesis score
