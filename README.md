@@ -1,5 +1,7 @@
 # LOT — Land of Opportunity Terminal
 
+[![self-host smoke](https://github.com/pegg-dot/real-estate-platform/actions/workflows/self-host-smoke.yml/badge.svg)](https://github.com/pegg-dot/real-estate-platform/actions/workflows/self-host-smoke.yml)
+
 An AI-native real estate acquisition engine. It pulls every parcel in a city straight from the
 county's public data (no agents, no Zillow), scores each one against an investor thesis, and
 recommends *how to finance it* — cash, seller-finance, or subject-to — with the legal guardrails

@@ -1,6 +1,6 @@
 # LOT web — functional UI preview (spec 005)
 
-A Next.js + Mapbox app over the **live** Supabase data the engine produces. Deliberately
+A Next.js + Mapbox app over the **live** Postgres data the engine produces. Deliberately
 **functional-first** (plain styling) so the data + flows are visible; the visual design pass
 happens via Claude design on top of this.
 
