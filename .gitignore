@@ -2,6 +2,7 @@
 node_modules/
 .pnp/
 .venv/
+venv/
 __pycache__/
 *.pyc
 
@@ -9,8 +10,14 @@ __pycache__/
 .env
 .env.*
 !.env.example
+.envrc
+*.pem
 *.key
+*.p12
+*.pfx
+*.jks
 service-account*.json
+*credentials*.json
 
 # build / framework
 .next/
@@ -18,14 +25,24 @@ out/
 dist/
 build/
 .vercel/
+.turbo/
+*.tsbuildinfo
 
 # data (don't commit pulled county datasets / caches)
 /data/
 *.sqlite
 *.duckdb
+*.db
+
+# local backups / exports
+*.bak
+*.dump
+*.sql.gz
 
 # os / editor
 .DS_Store
 .idea/
 .vscode/
 *.log
+*.swp
+*.swo
