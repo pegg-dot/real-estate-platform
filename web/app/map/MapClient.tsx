@@ -1,265 +1,130 @@
 "use client";
-/* LOT — Map screen. Restyled to design/ui_kits/terminal/MapScreen.jsx (dark operational terminal:
-   left command rail + dark vector map + floating chrome + right deal drawer).
-   LOT-DECISION rule#1: the repo uses react-map-gl/Mapbox (data/behavior wins over the kit's Leaflet),
-   so we keep Mapbox + ALL wiring (lens, NL filter /api/filter, /api/parcels GeoJSON, DealPanel) and
-   restyle only the look. 3D (kit's Google Photorealistic Tiles) is NOT wired in this repo, so the
-   3D toggle is omitted rather than faked. */
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import Link from "next/link";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Map, { Source, Layer, type MapLayerMouseEvent, type MapRef } from "react-map-gl";
+import type { GeoJSONSource } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import Icon from "../components/Icon";
+import AsyncState from "../components/AsyncState";
+import { useWorkspace } from "../components/WorkspaceShell";
+import { useResource } from "../lib/useResource";
+import { displayParcels, humanize, median, lensLegend, LENSES, type ParcelCollection, type ParcelFeature, type ParcelSort, type QuickFilter } from "../lib/propertyPresentation";
+import { Score, tierOf, usd, pct } from "../ui";
 import DealPanel from "../DealPanel";
-import { Score, Tile, Chip, Toggle, tierOf, usd } from "../ui";
 
 const CENTER = { longitude: -78.5036, latitude: 38.0356, zoom: 12.4 };
-
-// design score ramp (colors_and_type.css): weak <50 · moderate 50–69 · strong ≥70
-const RAMP = { strong: "#6dab5f", moderate: "#d39a4e", weak: "#d4634a" };
-const colorByValue = ["step", ["get", "colorValue"], RAMP.weak, 50, RAMP.moderate, 70, RAMP.strong] as unknown as string;
-
-interface Feat {
-  type: "Feature";
-  geometry: { type: "Point"; coordinates: [number, number] };
-  properties: {
-    apn: string; address: string | null; score: number; colorValue: number; coc: number | null;
-    bestUseCoc: number | null; byRoom: boolean | null; gatePassed: boolean;
-    structure: string | null; use: string | null; distress: boolean; price?: number | null; zone?: string | null;
-  };
-}
-const EMPTY = { type: "FeatureCollection" as const, features: [] as Feat[] };
-
-const LENSES: Array<[string, string]> = [
-  ["best_use", "Best legal use (CoC)"], ["cash_flow", "Cash flow (best CoC)"],
-  ["appreciation", "Appreciation"], ["by_room", "By-the-room (CoC)"], ["score", "Thesis score"],
-];
+const PAGE_SIZE = 30;
+const RAMP = { strong: "#89bb9b", moderate: "#cba56b", weak: "#b87573" };
+const QUICK: Array<[QuickFilter, string]> = [["all", "All properties"], ["strong", "Strong fit"], ["affordable", "Value up to $500k"], ["byRoom", "By-room permitted"], ["distress", "Distress signals"], ["review", "Needs review"]];
+const EMPTY: ParcelFeature[] = [];
+type View = "split" | "list" | "map";
 
 export default function MapClient({ token }: { token: string | undefined }) {
-  const mapRef = useRef<MapRef | null>(null);
-  const [selectedApn, setSelectedApn] = useState<string | null>(null);
+  const { market } = useWorkspace();
+  const searchParams = useSearchParams();
+  const mapRef = useRef<MapRef>(null);
+  const [selection, setSelection] = useState<string | null | undefined>(undefined);
+  const selectedApn = selection === undefined ? searchParams.get("apn") : selection;
+  const [view, setView] = useState<View>(token ? "split" : "list");
   const [query, setQuery] = useState("");
+  const [quick, setQuick] = useState<QuickFilter>("all");
+  const [sort, setSort] = useState<ParcelSort>("score");
+  const [page, setPage] = useState(1);
+  const [lens, setLens] = useState("score");
+  const [developOnly, setDevelopOnly] = useState(false);
+  const [showGrowth, setShowGrowth] = useState(false);
+  const [layersOpen, setLayersOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
   const [filterQs, setFilterQs] = useState("");
-  const [lens, setLens] = useState("best_use");          // default = use-neutral (spec 021)
-  const [developOnly, setDevelopOnly] = useState(false); // the development-upside layer (spec 020)
   const [filterMsg, setFilterMsg] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [fc, setFc] = useState<typeof EMPTY>(EMPTY);
-  const [changes, setChanges] = useState<Array<{ change_type: string; severity: string; address: string | null; apn: string }>>([]);
-  const [showGrowth, setShowGrowth] = useState(false);     // path-of-progress overlay (spec 017)
-  const [growthFc, setGrowthFc] = useState<typeof EMPTY>(EMPTY);
+  const [filterBusy, setFilterBusy] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const [mapRevision, setMapRevision] = useState(0);
+  const dataUrl = `/api/parcels?lens=${lens}${filterQs ? `&${filterQs}` : ""}${developOnly ? "&developOnly=true" : ""}`;
+  const parcels = useResource<ParcelCollection>(dataUrl);
+  const growth = useResource<{ cells: Array<{ lat: number; lng: number; corridorScore: number }> }>(showGrowth ? "/api/growth" : null);
+  const features = parcels.data?.features ?? EMPTY;
+  const results = useMemo(() => displayParcels(features, query, quick, sort), [features, query, quick, sort]);
+  const fc = useMemo<ParcelCollection>(() => ({ type: "FeatureCollection", features: results }), [results]);
+  const growthFc = useMemo(() => ({ type: "FeatureCollection" as const, features: (growth.data?.cells ?? []).filter(c => Number.isFinite(c.lat) && Number.isFinite(c.lng)).map(c => ({ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [c.lng, c.lat] }, properties: { score: c.corridorScore } })) }), [growth.data]);
+  const pages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pages);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const shown = results.slice(start, start + PAGE_SIZE);
+  const medianReturn = useMemo(() => median(results.map(f => f.properties.bestUseCoc ?? f.properties.coc)), [results]);
+  const legend = lensLegend(lens);
 
-  const dataUrl = `/api/parcels?${filterQs ? filterQs + "&" : ""}lens=${lens}${developOnly ? "&developOnly=true" : ""}`;
-
-  // one shared fetch feeds BOTH the map source and the left rail (stats + top matches).
-  // AbortController so a fast lens/filter change can't let an earlier request paint stale data.
-  useEffect(() => {
-    const ac = new AbortController();
-    fetch(dataUrl, { signal: ac.signal })
-      .then((r) => r.json())
-      .then((j) => setFc(j?.features ? j : EMPTY))
-      .catch((e) => { if ((e as Error).name !== "AbortError") setFc(EMPTY); });
-    return () => ac.abort();
-  }, [dataUrl]);
-
-  // the weekly Scout diff for the rail's "what changed" feed (the change-feed rail from the kit)
-  useEffect(() => {
-    let live = true;
-    fetch("/api/changes").then((r) => r.json()).then((j) => { if (live) setChanges(j?.changes ?? []); }).catch(() => {});
-    return () => { live = false; };
-  }, []);
-
-  // growth-corridor cells, fetched once the overlay is first turned on (spec 017 — positioning signal)
-  useEffect(() => {
-    if (!showGrowth || growthFc.features.length) return;
-    fetch("/api/growth").then((r) => r.json()).then((j) => {
-      const features = (j?.cells ?? [])
-        .filter((c: { lat?: number; lng?: number }) => c.lat != null && c.lng != null)
-        .map((c: { lat: number; lng: number; corridorScore: number }) => ({
-          type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [c.lng, c.lat] },
-          properties: { score: c.corridorScore ?? 0 },
-        }));
-      setGrowthFc({ type: "FeatureCollection", features } as typeof EMPTY);
-    }).catch(() => {});
-  }, [showGrowth, growthFc.features.length]);
-
-  const onClick = useCallback((e: MapLayerMouseEvent) => {
-    const f = e.features?.[0];
-    if (f?.properties?.apn) setSelectedApn(String(f.properties.apn));
-  }, []);
-
-  async function applyFilter(e: React.FormEvent) {
-    e.preventDefault();
-    if (!query.trim()) return;
-    setBusy(true); setFilterMsg(null);
-    const r = await fetch("/api/filter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt: query }) }).then((x) => x.json());
-    setBusy(false);
-    if (!r.ok) { setFilterMsg(`⚠️ ${r.error}`); return; }
-    const f = r.filter as Record<string, unknown>;
-    const params = new URLSearchParams();
-    for (const [k, v] of Object.entries(f)) if (v != null) params.set(k, String(v));
-    setFilterQs(params.toString());
-    const applied = Object.entries(f).filter(([, v]) => v != null).map(([k, v]) => `${k}=${v}`);
-    setFilterMsg(applied.length ? `Filtered: ${applied.join(", ")}` : "No filters parsed from that.");
+  function select(feature: ParcelFeature) {
+    setSelection(feature.properties.apn);
+    mapRef.current?.flyTo({ center: feature.geometry.coordinates, zoom: Math.max(14, mapRef.current.getZoom()), duration: 500 });
   }
-  function clearFilter() { setFilterQs(""); setQuery(""); setFilterMsg(null); }
-
-  // rail stats + ranked list, derived from the live features (no mock data)
-  const { matches, medianCoc, byRoomCount, top } = useMemo(() => {
-    const feats = fc.features;
-    const cocs = feats.map((f) => f.properties.bestUseCoc ?? f.properties.coc).filter((c): c is number => c != null).sort((a, b) => a - b);
-    const med = cocs.length ? cocs[Math.floor(cocs.length / 2)] : null;
-    const sorted = [...feats].sort((a, b) => b.properties.score - a.properties.score).slice(0, 6);
-    return {
-      matches: feats.length,
-      medianCoc: med != null ? `${(med * 100).toFixed(1)}%` : "—",
-      byRoomCount: feats.filter((f) => f.properties.byRoom).length,
-      top: sorted,
-    };
-  }, [fc]);
-
-  const recenter = () => mapRef.current?.flyTo({ center: [CENTER.longitude, CENTER.latitude], zoom: CENTER.zoom, duration: 800 });
-
-  if (!token) {
-    return <div className="map-wrap"><div className="map-notice">
-      <i className="ti ti-map-off" style={{ fontSize: 28, color: "var(--accent-bright)" }} />
-      <div style={{ font: "var(--text-h2)", color: "var(--text-primary)" }}>Map needs a Mapbox token</div>
-      <p style={{ maxWidth: 360 }}>Set <code className="mono">NEXT_PUBLIC_MAPBOX_TOKEN</code> in your .env (a free public token from mapbox.com) and restart the app — no rebuild needed.</p>
-    </div></div>;
+  const onMapClick = useCallback((event: MapLayerMouseEvent) => {
+    const feature = event.features?.[0];
+    if (!feature) return;
+    if (feature.properties?.cluster_id != null && feature.geometry.type === "Point") {
+      const coordinates = feature.geometry.coordinates as [number, number];
+      const source = mapRef.current?.getSource("parcels-src") as GeoJSONSource | undefined;
+      source?.getClusterExpansionZoom(Number(feature.properties.cluster_id), (error, zoom) => {
+        if (!error && zoom != null) mapRef.current?.easeTo({ center: coordinates, zoom, duration: 450 });
+      });
+    } else if (feature.properties?.apn) setSelection(String(feature.properties.apn));
+  }, []);
+  function fitResults() {
+    if (!results.length) return;
+    const coordinates = results.map(f => f.geometry.coordinates);
+    const lngs = coordinates.map(c => c[0]), lats = coordinates.map(c => c[1]);
+    mapRef.current?.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 80, maxZoom: 15, duration: 600 });
   }
+  async function applyFilter(event: React.FormEvent) {
+    event.preventDefault();
+    if (!aiPrompt.trim() || filterBusy) return;
+    setFilterBusy(true); setFilterMsg(null);
+    try {
+      const response = await fetch("/api/filter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt: aiPrompt }), signal: AbortSignal.timeout(45000) });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error("filter unavailable");
+      const allowed = new Set(["minScore", "maxPrice", "minBeds", "maxDistanceMiles", "byRoomLegalOnly", "absenteeOnly", "distressOnly"]);
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(result.filter ?? {})) if (allowed.has(key) && value != null) params.set(key, String(value));
+      setFilterQs(params.toString()); setPage(1);
+      setFilterMsg(params.size ? `Applied: ${[...params.entries()].map(([key, value]) => `${key}: ${value}`).join("; ")}` : "No supported filters were found. Try a price, bed count, or absentee-owner requirement.");
+    } catch {
+      setFilterMsg("The AI filter could not complete. Check your AI connection in Settings, or use the address search and quick filters above. Your previous results have been kept.");
+    } finally { setFilterBusy(false); }
+  }
+  function clearFilters() { setQuery(""); setQuick("all"); setFilterQs(""); setAiPrompt(""); setFilterMsg(null); setDevelopOnly(false); setPage(1); }
+  const hasFilters = !!query || quick !== "all" || !!filterQs || developOnly;
+  const paging = <div className="results-pagination"><span>{results.length ? `${start + 1}-${Math.min(start + PAGE_SIZE, results.length)} of ${results.length.toLocaleString()}` : "0 properties"}</span><div><button className="icon-button" aria-label="Previous results" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}><Icon name="left" size={13} /></button><button className="icon-button" aria-label="Next results" disabled={currentPage >= pages} onClick={() => setPage(currentPage + 1)}><Icon name="right" size={13} /></button></div></div>;
+  const unavailable = parcels.loading ? <AsyncState loading title="Loading property data" description="Your list and map use the same scored records." /> : parcels.error ? <AsyncState error title="Properties could not be loaded" description={parcels.error} retry={parcels.reload} /> : !results.length ? <AsyncState title={hasFilters ? "No properties match these filters" : "Your market is ready for its first refresh"} description={hasFilters ? "Try a different address or remove a filter to widen your search." : "Load parcel data using the self-hosting quick start. No AI key is required to browse the results."} action={hasFilters ? undefined : { href: "/settings", label: "Open setup & data" }} retry={hasFilters ? clearFilters : undefined} /> : null;
 
-  return (
-    <div className="map-wrap">
-      {/* ---- left command rail ---- */}
-      <aside className="map-side">
-        <form className="search" onSubmit={applyFilter}>
-          <i className="ti ti-search" aria-hidden />
-          <input value={query} onChange={(e) => setQuery(e.target.value)}
-            aria-label="Filter parcels in plain English"
-            placeholder='plain-English filter — "by-room legal under $400k, neglected"' />
-          {busy ? <span className="kbd mono" style={{ fontSize: 10 }}>…</span>
-            : filterQs ? <button type="button" className="btn-ghost btn-sm" onClick={clearFilter}>clear</button>
-            : <span className="mono" style={{ fontSize: 10, color: "var(--text-tertiary)" }}>⏎</span>}
-        </form>
-        {filterMsg && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{filterMsg}</div>}
-        <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>
-          Want to <em>ask</em> instead of filter? Use <a href="/chat" style={{ color: "var(--accent-bright)" }}>Chat</a>.
-        </div>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          <Chip kind="info">thesis · UVA by-room</Chip>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Tile k="Matches" v={matches.toLocaleString()} />
-          <Tile k="Median CoC" v={medianCoc} />
-          <Tile k="By-room" v={byRoomCount.toLocaleString()} />
-        </div>
-
-        <div className="card">
-          <h3><i className="ti ti-palette" /> Color by</h3>
-          <select value={lens} onChange={(e) => setLens(e.target.value)}
-            style={{ width: "100%", background: "var(--bg-panel-2)", color: "var(--text-primary)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)", padding: "7px 9px", fontSize: 12, fontFamily: "var(--font-sans)" }}>
-            {LENSES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
-          </select>
-          <div style={{ marginTop: 4, fontSize: 10.5, color: "var(--text-tertiary)" }}>default = best legal use (use-neutral)</div>
-          <div className="lyr" style={{ marginTop: 8 }}>
-            <span className="lk"><span className="dotc" style={{ background: "var(--accent-bright)" }} /> Development upside only</span>
-            <Toggle on={developOnly} onClick={() => setDevelopOnly((v) => !v)} />
-          </div>
-          <div className="lyr" style={{ marginTop: 4 }}>
-            <span className="lk"><span className="dotc" style={{ background: "var(--landmark)" }} /> Growth corridors</span>
-            <Toggle on={showGrowth} onClick={() => setShowGrowth((v) => !v)} />
-          </div>
-          <div className="lyr dim"><span className="lk"><span className="dotc" style={{ background: "var(--positive)" }} /> By-room legal zone</span><span className="mono" style={{ fontSize: 10 }}>pending</span></div>
-        </div>
-
-        <div className="card">
-          <h3><i className="ti ti-rss" /> What changed</h3>
-          {changes.length === 0 && <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>No material changes since the last run.</div>}
-          {changes.slice(0, 4).map((c, i) => (
-            <div key={i} className="feed" style={i === 0 ? { borderTop: "none", paddingTop: 0 } : undefined}>
-              <i className="ti ti-point-filled" style={{ color: c.severity === "high" ? "var(--critical)" : c.severity === "notable" ? "var(--warn)" : "var(--text-tertiary)", marginTop: 1 }} />
-              <span>{(c.change_type ?? "").replace(/_/g, " ")} — {c.address ?? c.apn}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="card">
-          <h3><i className="ti ti-list" /> Top matches</h3>
-          {top.length === 0 && <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>No parcels match the current filters.</div>}
-          {top.map((f, i) => {
-            const p = f.properties;
-            return (
-              <div key={p.apn} className={`deal-row${selectedApn === p.apn ? " sel" : ""}`}
-                role="button" tabIndex={0} onClick={() => setSelectedApn(p.apn)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedApn(p.apn); } }}>
-                <span className="mono" style={{ fontSize: 11, color: "var(--text-tertiary)", width: 18 }}>#{i + 1}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.address ?? p.apn}</div>
-                  <div className="mono" style={{ fontSize: 10.5, color: "var(--text-secondary)" }}>
-                    {p.price != null ? `${usd(p.price)} · ` : ""}{p.coc != null ? `${(p.coc * 100).toFixed(1)}% · ` : ""}{(p.use ?? p.structure ?? "—").replace(/_/g, " ")}
-                  </div>
-                </div>
-                <Score value={p.score} tier={tierOf(p.score)} />
-              </div>
-            );
-          })}
-        </div>
-      </aside>
-
-      {/* ---- map ---- */}
-      <div className="map-main">
-        <div className="map-controls">
-          <button className="mc-btn" title="Recenter on UVA grounds" onClick={recenter}><i className="ti ti-current-location" /></button>
-        </div>
-        <div className="map-legend">
-          <div className="row"><span className="dotc" style={{ background: RAMP.strong }} /> strong ≥70</div>
-          <div className="row"><span className="dotc" style={{ background: RAMP.moderate }} /> moderate</div>
-          <div className="row"><span className="dotc" style={{ background: RAMP.weak }} /> weak &lt;50</div>
-          <div className="row" style={{ marginTop: 4, color: "var(--text-tertiary)", fontSize: 10 }}>real geocoded parcels · {LENSES.find(([v]) => v === lens)?.[1].toLowerCase()}</div>
-        </div>
-
-        <Map
-          ref={mapRef}
-          mapboxAccessToken={token}
-          initialViewState={CENTER}
-          mapStyle="mapbox://styles/mapbox/dark-v11"
-          interactiveLayerIds={["parcels"]}
-          onClick={onClick}
-          cursor="pointer"
-          attributionControl={false}
-        >
-          {/* growth-corridor "path of progress" heat layer (spec 017), under the parcels */}
-          {showGrowth && (
-            <Source id="growth-src" type="geojson" data={growthFc}>
-              <Layer id="growth-heat" type="heatmap" paint={{
-                "heatmap-weight": ["interpolate", ["linear"], ["get", "score"], 0, 0, 100, 1],
-                "heatmap-intensity": 0.9,
-                "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 11, 20, 15, 45],
-                "heatmap-opacity": 0.45,
-                "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"],
-                  0, "rgba(0,0,0,0)", 0.35, "#2c3e8c", 0.65, "#c8785c", 1, "#f0ede6"],
-              } as never} />
-            </Source>
-          )}
-          <Source id="parcels-src" type="geojson" data={fc}>
-            {/* soft glow halo beneath the dot */}
-            <Layer id="parcels-glow" type="circle" paint={{
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 6, 15, 16],
-              "circle-color": colorByValue, "circle-opacity": 0.18, "circle-blur": 1,
-            } as never} />
-            {/* the parcel dot, colored by the selected lens; gate-failures get a warn ring, selected gets an ivory ring */}
-            <Layer id="parcels" type="circle" paint={{
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3, 15, 7],
-              "circle-color": colorByValue,
-              "circle-opacity": 0.95,
-              "circle-stroke-width": ["case", ["==", ["get", "apn"], selectedApn ?? ""], 3, ["==", ["get", "gatePassed"], false], 1.5, 0],
-              "circle-stroke-color": ["case", ["==", ["get", "apn"], selectedApn ?? ""], "#f0ede6", "#d39a4e"],
-            } as never} />
-          </Source>
-        </Map>
-        <div className="map-attr">© Mapbox · © OpenStreetMap</div>
-      </div>
-
-      {selectedApn && <DealPanel apn={selectedApn} onClose={() => setSelectedApn(null)} />}
+  return <div className="explorer">
+    <div className="explorer-header"><div className="page-heading"><div><div className="page-eyebrow">{market} / Property research</div><h1>Find the properties worth a closer look.</h1><p>A shared view of thesis fit, estimated returns, and the constraints behind them.</p></div><Link href="/thesis" className="btn"><Icon name="target" size={14} />Investment thesis</Link></div>
+      <div className="explorer-toolbar"><label className="explorer-search"><Icon name="search" size={16} /><input type="search" aria-label="Search properties by address or parcel ID" placeholder="Search an address or parcel ID..." value={query} onChange={e => { setQuery(e.target.value); setPage(1); }} /></label><select className="explorer-select" aria-label="Sort properties" value={sort} onChange={e => { setSort(e.target.value as ParcelSort); setPage(1); }}><option value="score">Highest thesis fit</option><option value="return">Highest modeled return</option><option value="value">Lowest estimated value</option></select><div className="segmented" role="group" aria-label="Property view">{(["list", "split", "map"] as View[]).map(mode => <button key={mode} aria-pressed={view === mode} disabled={!token && mode !== "list"} title={!token && mode !== "list" ? "Connect Mapbox to enable this view" : undefined} onClick={() => setView(mode)}><Icon name={mode} size={13} />{humanize(mode)}</button>)}</div></div>
+      <div className="filter-strip">{QUICK.map(([key, label]) => <button className="filter-pill" key={key} aria-pressed={quick === key} onClick={() => { setQuick(key); setPage(1); }}>{key === "strong" && <Icon name="target" size={11} />}{label}</button>)}<button className="filter-pill" aria-pressed={developOnly} onClick={() => { setDevelopOnly(!developOnly); setPage(1); }}>Development upside</button><button className="filter-pill filter-ai" aria-expanded={aiOpen} aria-controls="ai-property-filter" onClick={() => setAiOpen(!aiOpen)}><Icon name="sparkles" size={12} />AI filter{filterQs ? " (active)" : ""}</button></div>
+      {aiOpen && <section id="ai-property-filter" className="ai-filter-panel"><form onSubmit={applyFilter}><input value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} aria-label="Describe an AI property filter" placeholder="For example: absentee owners under $400k with at least 3 beds" maxLength={1500} /><button className="btn-primary" disabled={filterBusy || !aiPrompt.trim()}>{filterBusy ? "Applying..." : "Apply filter"}</button>{filterQs && <button type="button" className="btn" onClick={() => { setFilterQs(""); setFilterMsg(null); setPage(1); }}>Remove AI filter</button>}</form><p>Uses your configured AI provider. Address search and the quick filters work without AI.</p>{filterMsg && <p className="filter-message" role="status">{filterMsg}</p>}</section>}
     </div>
-  );
+    {!token && <div className="explorer-notice"><div className="inline-notice"><Icon name="map" size={16} /><span><strong>The property list works without a map token.</strong> To add the map, set NEXT_PUBLIC_MAPBOX_TOKEN in your .env and restart. <Link href="/settings">Setup & data</Link></span></div></div>}
+    <div className="explorer-summary" aria-live="polite"><div className="summary-values"><span><strong>{parcels.loading ? "..." : parcels.error ? "Unavailable" : results.length.toLocaleString()}</strong> properties</span><span>Median modeled CoC <strong>{parcels.loading || parcels.error ? "-" : pct(medianReturn)}</strong></span><span>Sorted by {sort === "score" ? "thesis fit" : sort === "value" ? "estimated value" : "modeled return"}</span></div>{hasFilters && <button className="btn-ghost btn-sm" onClick={clearFilters}>Clear all filters<Icon name="close" size={11} /></button>}</div>
+    <div className={`explorer-body mode-${view}`}>
+      {view !== "map" && <section className={view === "split" ? "explorer-results" : "explorer-list-view"} aria-label="Property results" aria-busy={parcels.loading}>
+        {unavailable ?? (view === "split" ? <div className="results-list">{shown.map(feature => { const p = feature.properties; return <button key={p.apn} className="result-card" onClick={() => select(feature)} aria-pressed={selectedApn === p.apn}><div className="result-card-top"><h2>{p.address ?? "Address unavailable"}</h2><Score value={Math.round(p.score)} tier={tierOf(p.score)} /></div><div className="result-id">PARCEL {p.apn}</div><div className="result-card-metrics"><div><strong>{usd(p.price)}</strong><small>Estimated value</small></div><div><strong>{pct(p.bestUseCoc ?? p.coc)}</strong><small>Modeled CoC</small></div></div><div className="result-card-tags"><span>{humanize(p.use)}</span>{!p.gatePassed && <span className="needs-review">Constraint review</span>}{p.distress && <span>Distress signal</span>}</div></button>; })}</div> : <div className="tablewrap"><table><thead><tr><th>Property</th><th>Recommended use</th><th className="numeric">Estimated value</th><th className="numeric">Modeled CoC</th><th>Screening</th><th className="numeric">Thesis fit</th></tr></thead><tbody>{shown.map(feature => { const p = feature.properties; return <tr key={p.apn} className={selectedApn === p.apn ? "is-selected" : ""}><td><button className="property-link" onClick={() => select(feature)}>{p.address ?? "Address unavailable"}</button><span className="property-meta">{p.apn}</span></td><td>{humanize(p.use)}<span className="property-meta">{humanize(p.structure)}</span></td><td className="numeric">{usd(p.price)}</td><td className="numeric">{pct(p.bestUseCoc ?? p.coc)}</td><td><span className={`screening-label ${p.gatePassed ? "is-pass" : "is-review"}`}><Icon name={p.gatePassed ? "check" : "warning"} size={11} />{p.gatePassed ? "Passed gates" : "Needs review"}</span></td><td className="numeric"><Score value={Math.round(p.score)} tier={tierOf(p.score)} /></td></tr>; })}</tbody></table></div>)}
+        {!unavailable && paging}
+      </section>}
+      {view !== "list" && token && <section className="explorer-map" aria-label="Interactive property map">
+        {parcels.error || mapError ? <div className="map-error"><AsyncState error title={mapError ? "The basemap could not load" : "Property data is unavailable"} description={mapError ? "Check the Mapbox token and network connection. Your property list is still available." : "Retry your data connection or return to the list."} retry={() => { parcels.reload(); setMapError(false); setMapRevision(value => value + 1); }} /><button className="btn map-return-list" onClick={() => setView("list")}>Use property list</button></div> : <Map key={mapRevision} ref={mapRef} mapboxAccessToken={token} initialViewState={CENTER} mapStyle="mapbox://styles/mapbox/dark-v11" interactiveLayerIds={["parcels", "parcel-clusters"]} onClick={onMapClick} onError={() => setMapError(true)} cursor="pointer" style={{ width: "100%", height: "100%", minHeight: 520 }}>
+          {showGrowth && <Source id="growth-src" type="geojson" data={growthFc}><Layer id="growth-heat" type="heatmap" paint={{ "heatmap-weight": ["interpolate", ["linear"], ["get", "score"], 0, 0, 100, 1], "heatmap-intensity": .9, "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 11, 20, 15, 45], "heatmap-opacity": .4, "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", .35, "#253f44", .65, "#698b88", 1, "#d5e2b4"] }} /></Source>}
+          <Source id="parcels-src" type="geojson" data={fc} cluster clusterMaxZoom={13} clusterRadius={35}>
+            <Layer id="parcel-clusters" type="circle" filter={["has", "point_count"]} paint={{ "circle-color": "#25342d", "circle-stroke-color": "#789782", "circle-stroke-width": 1, "circle-radius": ["step", ["get", "point_count"], 17, 50, 22, 500, 28] }} />
+            <Layer id="parcel-cluster-count" type="symbol" filter={["has", "point_count"]} layout={{ "text-field": "{point_count_abbreviated}", "text-size": 11 }} paint={{ "text-color": "#e8efe8" }} />
+            <Layer id="parcels" type="circle" filter={["!", ["has", "point_count"]]} paint={{ "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3, 16, 6], "circle-color": ["step", ["get", "colorValue"], RAMP.weak, 50, RAMP.moderate, 70, RAMP.strong], "circle-opacity": .85, "circle-stroke-width": ["case", ["==", ["get", "apn"], selectedApn ?? ""], 3, ["==", ["get", "gatePassed"], false], 1.25, .5], "circle-stroke-color": ["case", ["==", ["get", "apn"], selectedApn ?? ""], "#f1f4ea", ["==", ["get", "gatePassed"], false], "#e7bd77", "#111714"] }} />
+          </Source>
+        </Map>}
+        {!mapError && !parcels.error && <><div className="map-tools"><label>COLOR BY<select aria-label="Map color metric" value={lens} onChange={e => setLens(e.target.value)}>{LENSES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><div className="map-tool-group"><button className="icon-button" aria-label="Fit all filtered properties" disabled={!results.length} onClick={fitResults} title="Fit filtered properties"><Icon name="location" size={16} /></button><button className="icon-button" aria-label="Map layers" aria-expanded={layersOpen} onClick={() => setLayersOpen(!layersOpen)}><Icon name="layers" size={16} /></button></div></div>{layersOpen && <div className="map-layers"><h3>Map layers</h3><label><input type="checkbox" checked={showGrowth} onChange={e => setShowGrowth(e.target.checked)} />Growth corridors</label><p>A positioning signal from the growth model, not a forecast of property value.</p>{growth.loading && <p role="status">Loading corridor data...</p>}{growth.error && <p role="alert">Corridor data unavailable. <button className="text-action" onClick={growth.reload}>Retry</button></p>}<p>Amber outlines flag failed screening gates. Open a property to read the constraint.</p></div>}<div className="map-legend"><strong>{legend.title}</strong><div className="row"><span className="dotc" style={{ background: RAMP.strong }} />{legend.strong}</div><div className="row"><span className="dotc" style={{ background: RAMP.moderate }} />{legend.moderate}</div><div className="row"><span className="dotc" style={{ background: RAMP.weak }} />{legend.weak}</div><div style={{ marginTop: 8 }}>{legend.unit}</div></div>{parcels.loading && <div className="map-loading" role="status">Updating property data...</div>}{!parcels.loading && !results.length && <div className="map-empty-notice">No properties match the current view. Try clearing the filters.</div>}</>}
+      </section>}
+    </div>
+    <div className="explorer-caveat">Estimated values are not asking prices. Returns and recommended uses are modeled screening outputs. Validate source records, zoning, and financing with qualified professionals.</div>
+    {selectedApn && <DealPanel key={selectedApn} apn={selectedApn} onClose={() => setSelection(null)} />}
+  </div>;
 }

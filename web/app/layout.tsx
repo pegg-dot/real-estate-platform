@@ -1,23 +1,14 @@
 import "./globals.css";
+import "./workspace.css";
 import type { ReactNode } from "react";
-import TopNav from "./TopNav";
+import WorkspaceShell from "./components/WorkspaceShell";
+import { MARKET } from "./lib/db";
 
 export const metadata = {
-  title: "LOT — Land of Opportunity Terminal",
-  description: "Find, score, and finance buy-and-hold rentals.",
+  title: { default: "LOT | Acquisition workspace", template: "%s | LOT" },
+  description: "A property acquisition workspace built by Nate Pegg. Research public parcel data, evaluate your investment thesis, and manage deal decisions.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        {/* Tabler icon webfont (design system uses `ti ti-*`). Fonts (Newsreader/Hanken) load via tokens.css. */}
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
-      </head>
-      <body>
-        <TopNav />
-        {children}
-      </body>
-    </html>
-  );
+  return <html lang="en"><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" /></head><body><WorkspaceShell market={MARKET}>{children}</WorkspaceShell></body></html>;
 }

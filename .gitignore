@@ -46,3 +46,6 @@ build/
 *.log
 *.swp
 *.swo
+
+# Local visual regression output
+/artifacts/
