@@ -1,0 +1,74 @@
+name: interface-verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lot-interface-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      LOT_UI_HARNESS: 'true'
+      LOT_UI_BASE: http://127.0.0.1:3000
+      LOT_UI_ARTIFACTS: artifacts/ui
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Install locked application and browser test dependencies
+        run: |
+          npm ci --no-fund
+          npm ci --prefix web --no-fund
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Render server-fed components with disposable fixture routes
+        run: python tests/browser/prepare-fixtures.py
+      - name: Build the real production application
+        run: npm run build --prefix web
+      - name: Start the production application
+        run: |
+          mkdir -p artifacts/ui
+          npm run start --prefix web > artifacts/ui/server.log 2>&1 &
+          echo $! > /tmp/lot-ui-server.pid
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat artifacts/ui/server.log
+          exit 1
+      - name: Verify navigation, analysis, failure recovery, and mobile layouts
+        run: python tests/browser/workspace.spec.py
+      - name: Remove fixture routes and check tracked source is unchanged
+        if: always()
+        run: |
+          rm -rf web/app/ui-qa
+          git diff --exit-code
+          test ! -d web/app/ui-qa
+          if test -f /tmp/lot-ui-server.pid; then kill "$(cat /tmp/lot-ui-server.pid)" || true; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: interface-evidence
+          path: artifacts/ui
+          retention-days: 7
+          if-no-files-found: warn

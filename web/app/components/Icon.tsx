@@ -1,0 +1,62 @@
+import type { SVGProps } from "react";
+
+// Small, dependency-free SVG set. Essential controls never depend on an icon CDN.
+const paths: Record<string, string> = {
+  overview: "M3 3h7v7H3z M14 3h7v4h-7z M14 11h7v10h-7z M3 14h7v7H3z",
+  map: "m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z M9 3v15 M15 6v15",
+  building: "M4 21V7l8-4v18 M12 9h8v12 M2 21h20 M7 8v1 M7 12v1 M7 16v1 M16 12v1 M16 16v1",
+  chat: "M21 11a8 8 0 0 1-8 8H7l-4 3V5a2 2 0 0 1 2-2h8a8 8 0 0 1 8 8Z M7 8h9 M7 12h6",
+  brief: "M7 3h10v4H7z M7 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2 M7 11h10 M7 15h7",
+  leads: "M3 3h18v18H3z M3 14h5l2 3h4l2-3h5 M8 7h8 M8 10h5",
+  pipeline: "M4 4h16v16H4z M9 4v16 M15 4v16 M6.5 8h0 M12 8h0 M17.5 8h0 M6.5 11h0 M12 11h0",
+  target: "M21 12a9 9 0 1 1-9-9 M17 12a5 5 0 1 1-5-5 M12 12l9-9 M16 3h5v5",
+  book: "M12 5c-3-2-7-2-10 0v15c3-2 7-2 10 0 3-2 7-2 10 0V5c-3-2-7-2-10 0Z M12 5v15",
+  changes: "M3 12h4l3-8 4 16 3-8h4",
+  radar: "M20.5 8.5a9 9 0 1 1-5-5 M16 9a5 5 0 1 1-5-2 M12 12l9-9 M12 12h.01",
+  sparkles: "m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z",
+  coin: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M15 8h-4a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H9 M12 6v12",
+  mail: "M3 5h18v14H3z m0 1 9 7 9-7",
+  calendar: "M4 5h16v16H4z M4 10h16 M8 3v4 M16 3v4 M8 14h2 M14 14h2 M8 17h2",
+  activity: "M4 3h16v18H4z M8 7h8 M8 11h5 M8 15h8 M8 18h5",
+  settings: "m10 3-.7 3-2.6 1-2.6-1.1L2 9l2.1 2v3L2 16l2.1 3.1L6.7 18l2.6 1 .7 3h4l.7-3 2.6-1 2.6 1.1L22 16l-2.1-2v-3L22 9l-2.1-3.1L17.3 7l-2.6-1-.7-3z M15.5 12.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0",
+  search: "M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0 m-2 5 6 6",
+  menu: "M4 6h16 M4 12h16 M4 18h16",
+  close: "m6 6 12 12 M18 6 6 18",
+  right: "M4 12h16 m-6-6 6 6-6 6",
+  diagonal: "M5 19 19 5 M5 5h14v14",
+  chevron: "m9 5 7 7-7 7",
+  down: "m6 9 6 6 6-6",
+  left: "M20 12H4 m6-6-6 6 6 6",
+  plus: "M12 5v14 M5 12h14",
+  minus: "M5 12h14",
+  check: "m5 12 4 4L19 6",
+  warning: "m12 3 10 18H2Z M12 9v5 M12 17h.01",
+  info: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M12 11v6 M12 7h.01",
+  refresh: "M20 8a9 9 0 0 0-15-3L2 8 m0-5v5h5 M4 16a9 9 0 0 0 15 3l3-3 m0 5v-5h-5",
+  location: "M12 3v3 M12 18v3 M3 12h3 M18 12h3 M18 12a6 6 0 1 1-12 0 6 6 0 0 1 12 0 M12 12h.01",
+  filter: "M4 6h16 M7 12h10 M10 18h4",
+  layers: "m12 3 10 5-10 5L2 8z M2 12l10 5 10-5 M2 16l10 5 10-5",
+  list: "M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01",
+  split: "M3 4h18v16H3z M10 4v16",
+  shield: "m12 3 9 4v6c0 4-5 7-9 9-4-2-9-5-9-9V7z m-4 9 3 3 5-6",
+  database: "M21 5c0 2-4 3-9 3S3 7 3 5s4-3 9-3 9 1 9 3 M3 5v14c0 2 4 3 9 3s9-1 9-3V5 M3 12c0 2 4 3 9 3s9-1 9-3",
+  user: "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M4 21v-2a8 8 0 0 1 16 0v2",
+  logout: "M9 3H3v18h6 M10 12h11 m-5-5 5 5-5 5",
+  clock: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M12 7v5l3 2",
+  copy: "M9 9h12v12H9z M5 15H3V3h12v2",
+  home: "m2 10 10-8 10 8 M4 9v12h6v-7h4v7h6V9",
+  eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12 M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0",
+  more: "M5 12h.01 M12 12h.01 M19 12h.01",
+  trash: "M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7",
+  pin: "M19 9c0 5-7 12-7 12S5 14 5 9a7 7 0 0 1 14 0 M14 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0",
+  command: "M9 9h6v6H9z M9 9H6a3 3 0 1 1 3-3v3 m6 0V6a3 3 0 1 1 3 3h-3 m0 6h3a3 3 0 1 1-3 3v-3 m-6 0v3a3 3 0 1 1-3-3h3",
+  external: "M14 3h7v7 M21 3l-11 11 M10 3H3v18h18v-7",
+  bolt: "m13 2-9 12h7l-1 8 10-12h-7z",
+};
+const aliases: Record<string, string> = {
+  "map-2": "map", "map-off": "map", "building-community": "building", "building-estate": "building", "message-2": "chat", "message-circle": "chat", "messages": "chat", "news": "brief", "inbox": "leads", "layout-kanban": "pipeline", "chart-dots-3": "changes", "chart-bar": "changes", "chart-line": "changes", "current-location": "location", "palette": "layers", "rss": "changes", "point-filled": "more", "user-circle": "user", "brand-google": "external", "bulb": "info", "brain": "sparkles", "chevron-right": "chevron", "arrow-right": "right", "arrow-up-right": "diagonal", "refresh": "refresh", "file-text": "activity", "adjustments": "filter", "check": "check", "alert-triangle": "warning", "shield-check": "shield", "link": "external", "x": "close", "coin": "coin", "mail": "mail", "map-pin": "pin", "book": "book", "book-2": "book", "send": "diagonal", "loader": "refresh", "robot": "chat", "search": "search", "microphone": "chat", "swords": "target", "school": "book", "calendar-event": "calendar", "list-check": "brief", "tool": "settings", "terminal-2": "command", "arrow-back": "left", "player-play": "right", "circle-check": "check", "dots": "more",
+};
+
+export default function Icon({ name, size = 18, className = "", ...props }: SVGProps<SVGSVGElement> & { name: string; size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" className={`lot-icon ${className}`} {...props}><path d={paths[aliases[name] ?? name] ?? paths.overview} /></svg>;
+}
