@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       model: anthropic("claude-haiku-4-5-20251001"),
       system: SYSTEM,
       messages: messages.slice(-12),
-      maxTokens: 700,
+      maxOutputTokens: 700,
     });
     return Response.json({ ok: true, reply: text });
   } catch (e) {
