@@ -1,27 +1,53 @@
-# Proves the self-host path stays alive: build the image, bring up the compose stack with NO .env
-# (the zero-config first run), wait for the container's own HEALTHCHECK, and confirm the app applied
-# every migration on boot. Runs on every push/PR — a broken Dockerfile or migration fails here, not on
-# someone's laptop.
-name: self-host-smoke
+name: self-host-verification
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: lot-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compose:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
-      - name: Build + start the stack (no .env → bundled Postgres, zero config)
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+
+      - name: Install and verify root toolchain
+        run: |
+          npm ci
+          npm audit --audit-level=high
+          npm run typecheck
+          npm test
+
+      - name: Install and verify web application
+        working-directory: web
+        run: |
+          npm ci
+          npm audit --audit-level=high
+          npm run lint
+          npm run build
+
+      - name: Build and start the zero-config stack
         run: docker compose up -d --build --wait --wait-timeout 420
 
-      - name: Health probe reports a reachable DB with every migration applied
+      - name: Verify database health and migration state
         run: |
           curl -fsS http://localhost:3000/api/health | tee health.json; echo
           expected=$(ls supabase/migrations/*.sql | wc -l | tr -d ' ')
@@ -29,7 +55,7 @@ jobs:
           test "$(jq -r '.ok' health.json)" = "true"
           test "$got" = "$expected" || { echo "expected $expected migrations recorded, got $got"; exit 1; }
 
-      - name: A second boot is a no-op (idempotent migrations)
+      - name: Verify migrations are idempotent after restart
         run: |
           docker compose restart app
           docker compose up --wait --wait-timeout 180 app

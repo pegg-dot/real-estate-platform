@@ -1,4 +1,6 @@
 "use client";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const SECTIONS = [
@@ -21,6 +23,7 @@ const SECTIONS = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [autoMsg, setAutoMsg] = useState<string | null>(null);
 
@@ -35,7 +38,10 @@ export default function Home() {
 
   function ask(e: React.FormEvent) {
     e.preventDefault();
-    if (q.trim()) { sessionStorage.setItem("lot_ask", q.trim()); window.location.href = "/chat"; }
+    const question = q.trim();
+    if (!question) return;
+    sessionStorage.setItem("lot_ask", question);
+    router.push("/chat");
   }
   return (
     <div className="page" style={{ maxWidth: 920 }}>
@@ -61,17 +67,17 @@ export default function Home() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 12 }}>
         {SECTIONS.map((s) => (
-          <a key={s.href} href={s.href} className="card" style={{ display: "block", transition: "border-color .15s, background .15s" }}
+          <Link key={s.href} href={s.href} className="card" style={{ display: "block", transition: "border-color .15s, background .15s" }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--bg-panel-2)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-soft)"; e.currentTarget.style.background = "var(--bg-panel)"; }}>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{s.icon} {s.name}</div>
             <div className="muted" style={{ fontSize: 13, lineHeight: 1.45 }}>{s.desc}</div>
-          </a>
+          </Link>
         ))}
       </div>
 
       <p className="muted" style={{ fontSize: 12, marginTop: 20, textAlign: "center" }}>
-        New to creative financing? Start with the <a href="/playbook">Playbook</a>. Everything is informational, not legal or financial advice.
+        New to creative financing? Start with the <Link href="/playbook">Playbook</Link>. Everything is informational, not legal or financial advice.
       </p>
     </div>
   );

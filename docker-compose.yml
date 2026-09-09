@@ -21,7 +21,7 @@ services:
       retries: 30
     # Uncomment to reach the database from your machine (psql / TablePlus): postgresql://lot:lot@localhost:5432/lot
     # ports:
-    #   - "5432:5432"
+    #   - "127.0.0.1:5432:5432"
 
   app:
     build: .
@@ -33,7 +33,9 @@ services:
       # .env wins when it sets SUPABASE_DB_URL; otherwise the bundled Postgres above.
       SUPABASE_DB_URL: ${SUPABASE_DB_URL:-postgresql://lot:lot@db:5432/lot}
     ports:
-      - "${LOT_PORT:-3000}:3000"
+      # Safe default: localhost only. A deliberate shared/public deployment can set
+      # LOT_BIND_HOST=0.0.0.0 after authentication and HTTPS are configured.
+      - "${LOT_BIND_HOST:-127.0.0.1}:${LOT_PORT:-3000}:3000"
     depends_on:
       db:
         condition: service_healthy
