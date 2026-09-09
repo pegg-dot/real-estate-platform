@@ -1,8 +1,4 @@
-# Proves the self-host path stays alive: build the image, bring up the compose stack with NO .env
-# (the zero-config first run), wait for the container's own HEALTHCHECK, and confirm the app applied
-# every migration on boot. Runs on every push/PR — a broken Dockerfile or migration fails here, not on
-# someone's laptop.
-name: self-host-smoke
+name: self-host-verification
 
 on:
   push:
@@ -11,17 +7,30 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: lot-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compose:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
-      - name: Build + start the stack (no .env → bundled Postgres, zero config)
+      - name: Audit root Node dependency lockfile
+        run: npm audit --package-lock-only --audit-level=high
+
+      - name: Audit web dependency lockfile
+        working-directory: web
+        run: npm audit --package-lock-only --audit-level=high
+
+      - name: Build and start the zero-config stack
         run: docker compose up -d --build --wait --wait-timeout 420
 
-      - name: Health probe reports a reachable DB with every migration applied
+      - name: Verify database health and migration state
         run: |
           curl -fsS http://localhost:3000/api/health | tee health.json; echo
           expected=$(ls supabase/migrations/*.sql | wc -l | tr -d ' ')
@@ -29,7 +38,7 @@ jobs:
           test "$(jq -r '.ok' health.json)" = "true"
           test "$got" = "$expected" || { echo "expected $expected migrations recorded, got $got"; exit 1; }
 
-      - name: A second boot is a no-op (idempotent migrations)
+      - name: Verify migrations are idempotent after restart
         run: |
           docker compose restart app
           docker compose up --wait --wait-timeout 180 app
