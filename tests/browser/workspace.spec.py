@@ -130,6 +130,7 @@ def run_checks(page, fixture, errors):
     if os.environ.get("LOT_UI_HARNESS") == "true":
         page.goto(BASE + "/ui-qa/pipeline", wait_until="networkidle")
         expect(page.get_by_role("heading", name="Keep the next decision in sight.")).to_be_visible()
+        expect(page.get_by_role("searchbox", name="Search pipeline")).to_have_css("border-top-width", "0px")
         screenshot(page, "pipeline-desktop.png")
         page.get_by_role("checkbox", name="Include exited & passed").check()
         expect(page.get_by_role("heading", name="Passed", exact=True)).to_be_visible()
@@ -143,6 +144,7 @@ def run_checks(page, fixture, errors):
         assert any(p == "/api/actions" and body and '"reason":"great_cash_flow"' in body for p,m,body in fixture.calls)
         page.goto(BASE + "/ui-qa/leads", wait_until="networkidle")
         expect(page.get_by_role("heading", name="Start a better conversation.")).to_be_visible()
+        expect(page.get_by_role("searchbox", name="Search leads")).to_have_css("border-top-width", "0px")
         screenshot(page, "leads-desktop.png")
         lead = page.get_by_role("row").filter(has_text="Example Owner 1")
         fixture.action_failure = True
@@ -175,8 +177,16 @@ def run_checks(page, fixture, errors):
     page.get_by_role("navigation", name="Mobile navigation").get_by_role("link", name="Properties", exact=True).click()
     expect(page.get_by_role("dialog", name="Navigation", exact=True)).not_to_be_visible()
     page.wait_for_load_state("networkidle")
+    expect(page.get_by_role("button", name="101 Example Street", exact=True)).to_be_visible()
     screenshot(page, "properties-mobile.png")
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "Property page overflows mobile viewport"
+    page.get_by_role("button", name="101 Example Street", exact=True).click()
+    expect(page.get_by_role("dialog", name="101 Example Street")).to_be_visible()
+    page.get_by_role("tab", name="Underwriting", exact=True).click()
+    expect(page.get_by_text("2 screening constraints to review")).to_be_visible()
+    screenshot(page, "dossier-mobile.png")
+    assert page.evaluate("document.querySelector('dialog.slideover').scrollWidth <= window.innerWidth"), "Dossier overflows mobile viewport"
+    page.get_by_role("button", name="Close property dossier").click()
     if os.environ.get("LOT_UI_HARNESS") == "true":
         for route, filename in [("/ui-qa/pipeline", "pipeline-mobile.png"), ("/ui-qa/leads", "leads-mobile.png"), ("/settings", "settings-mobile.png")]:
             page.goto(BASE + route, wait_until="networkidle")
