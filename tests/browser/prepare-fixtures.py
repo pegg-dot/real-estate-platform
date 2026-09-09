@@ -1,9 +1,12 @@
 """Create test-only render routes for server-fed components; never ship these routes.
-The CI job deletes __ui-qa immediately after testing and asserts a clean worktree.
+The CI job deletes ui-qa immediately after testing and asserts a clean worktree.
 """
 from pathlib import Path
 import json
+import os
 import runpy
+if os.environ.get("LOT_UI_HARNESS") != "true":
+    raise SystemExit("Fixture routes require explicit LOT_UI_HARNESS=true in an isolated test checkout.")
 module = runpy.run_path(str(Path(__file__).with_name("workspace.spec.py")), run_name="fixtures")
 properties = [feature["properties"] for feature in module["FEATURES"]]
 stages = ["watch", "analyzing", "analyzing", "offer", "under_contract", "owned", "passed", "exited"]
@@ -13,6 +16,6 @@ for name, component, source, props in [
     ("pipeline", "PipelineBoard", "deals/PipelineBoard", f"deals={{{json.dumps(deals)}}}"),
     ("leads", "LeadsTable", "leads/LeadsTable", f"leads={{{json.dumps(leads)}}} counts={{{{leads: 6, mailed: 2, closes: 0}}}}"),
 ]:
-    target=Path("web/app/__ui-qa")/name/"page.tsx"
+    target=Path("web/app/ui-qa")/name/"page.tsx"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(f'import {component} from "../../{source}";\nexport default function FixturePage() {{ return <{component} {props} />; }}\n')
