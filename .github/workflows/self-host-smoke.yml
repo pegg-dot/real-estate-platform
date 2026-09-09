@@ -14,18 +14,34 @@ concurrency:
 jobs:
   compose:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
 
-      - name: Audit root Node dependency lockfile
-        run: npm audit --package-lock-only --audit-level=high
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
 
-      - name: Audit web dependency lockfile
+      - name: Install and verify root toolchain
+        run: |
+          npm ci
+          npm audit --audit-level=high
+          npm run typecheck
+          npm test
+
+      - name: Install and verify web application
         working-directory: web
-        run: npm audit --package-lock-only --audit-level=high
+        run: |
+          npm ci
+          npm audit --audit-level=high
+          npm run lint
+          npm run build
 
       - name: Build and start the zero-config stack
         run: docker compose up -d --build --wait --wait-timeout 420
