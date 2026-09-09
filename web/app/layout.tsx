@@ -1,5 +1,6 @@
 import "./globals.css";
 import "./workspace.css";
+import "./mobile.css";
 import type { ReactNode } from "react";
 import WorkspaceShell from "./components/WorkspaceShell";
 import { MARKET } from "./lib/db";
