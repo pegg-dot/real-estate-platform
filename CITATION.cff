@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use or build on LOT, please cite this repository and retain the MIT license notice."
+title: "LOT — Land of Opportunity Terminal"
+type: software
+authors:
+  - family-names: Pegg
+    given-names: Nathaniel
+    alias: Nate Pegg
+repository-code: "https://github.com/pegg-dot/real-estate-platform"
+license: MIT
+abstract: >-
+  LOT is an explainable real-estate acquisition workspace that combines public parcel evidence,
+  thesis-specific property scoring, underwriting context, owner research, financing scenarios,
+  a decision pipeline, and a self-hosted web interface.
+keywords:
+  - real estate
+  - property research
+  - underwriting
+  - investment analysis
+  - public records
+  - self-hosted
+  - Next.js
+  - PostgreSQL
