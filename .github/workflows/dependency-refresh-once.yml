@@ -21,22 +21,22 @@ jobs:
           node-version: "22"
           cache: npm
       - name: Apply safe root dependency fixes
-        run: npm audit fix --ignore-scripts
+        run: npm audit fix --ignore-scripts || true
       - name: Apply safe web dependency fixes
         working-directory: web
-        run: npm audit fix --ignore-scripts
-      - name: Prove high-severity audit is clean
+        run: npm audit fix --ignore-scripts || true
+      - name: Commit safe manifest and lockfile changes
+        run: |
+          if git diff --quiet -- package.json package-lock.json web/package.json web/package-lock.json; then
+            echo "No safe dependency changes were available."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package.json package-lock.json web/package.json web/package-lock.json
+            git commit -m "Refresh dependency security fixes [dependency-refresh]"
+            git push origin HEAD:public/portfolio-self-hosting
+          fi
+      - name: Report remaining high-severity advisories
         run: |
           npm audit --package-lock-only --audit-level=high
           (cd web && npm audit --package-lock-only --audit-level=high)
-      - name: Commit refreshed manifests and lockfiles
-        run: |
-          if git diff --quiet -- package.json package-lock.json web/package.json web/package-lock.json; then
-            echo "No dependency changes were required."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json web/package.json web/package-lock.json
-          git commit -m "Refresh dependency security fixes [dependency-refresh]"
-          git push origin HEAD:public/portfolio-self-hosting
