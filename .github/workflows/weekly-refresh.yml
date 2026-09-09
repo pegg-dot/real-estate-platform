@@ -1,24 +1,9 @@
-# Weekly market refresh (spec 006, Phase 3 — the autonomous loop).
-#
-# Why GitHub Actions and not Supabase Cron: the refresh is a Node + Python pipeline
-# (TS scoring engines + Python county-API ingestion), so it can't run *inside* Postgres
-# cron (SQL only) or a Deno Edge Function. Actions checks out the repo, runs the real
-# pipeline against live Supabase, and the Scout/Radar steps emit the "what changed" digest
-# into the run log. A SQL-only re-score path could later move to Supabase pg_cron.
-#
-# TO ENABLE (your click, not mine):
-#   1. Repo → Settings → Secrets and variables → Actions → New repository secret:
-#        SUPABASE_DB_URL   = your pooler connection string
-#        ANTHROPIC_API_KEY = (optional) only if a step needs conversational thesis intake
-#   2. Repo → Actions tab → enable workflows.
-#   The job is gated: with no SUPABASE_DB_URL secret it exits cleanly (no failure noise).
-
 name: weekly-refresh
 
 on:
   schedule:
-    - cron: "0 11 * * 1"   # Mondays 11:00 UTC (~7am ET) — weekly full refresh
-  workflow_dispatch:        # manual "Run workflow" button
+    - cron: "0 11 * * 1"
+  workflow_dispatch:
     inputs:
       market:
         description: "Market name"
@@ -30,30 +15,41 @@ on:
 permissions:
   contents: read
 
+# A live refresh writes to one configured database. Queue overlapping runs instead of allowing
+# two schedulers to mutate the same market state at the same time.
+concurrency:
+  group: lot-weekly-refresh
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
-      - name: Guard — skip cleanly if secrets are not configured
+      - name: Guard optional live refresh
         id: guard
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
-            echo "SUPABASE_DB_URL not set — skipping (configure the secret to enable)."
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "SUPABASE_DB_URL is not configured; skipping the optional live refresh."
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: steps.guard.outputs.enabled == 'true'
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         if: steps.guard.outputs.enabled == 'true'
         with:
           node-version: "22"
-          cache: "npm"
+          cache: npm
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         if: steps.guard.outputs.enabled == 'true'
         with:
           python-version: "3.12"
@@ -62,15 +58,31 @@ jobs:
         if: steps.guard.outputs.enabled == 'true'
         run: |
           npm ci
-          pip install -r ingestion/requirements.txt
+          pip install --disable-pip-version-check -r ingestion/requirements.txt
 
-      - name: Run market refresh (SENSE → REASON → SHOW → SCOUT → RADAR)
+      - name: Validate dispatch inputs
+        if: steps.guard.outputs.enabled == 'true'
+        env:
+          MARKET: ${{ github.event.inputs.market || 'Charlottesville' }}
+          LIMIT: ${{ github.event.inputs.limit || '20000' }}
+        run: |
+          case "$LIMIT" in
+            ''|*[!0-9]*) echo "limit must be an integer"; exit 1 ;;
+          esac
+          if [ "$LIMIT" -lt 1 ] || [ "$LIMIT" -gt 50000 ]; then
+            echo "limit must be between 1 and 50000"
+            exit 1
+          fi
+          if [ -z "$MARKET" ] || [ "${#MARKET}" -gt 80 ]; then
+            echo "market is invalid"
+            exit 1
+          fi
+
+      - name: Run market refresh
         if: steps.guard.outputs.enabled == 'true'
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # pass untrusted dispatch inputs via env (never interpolate into the run: script)
           MARKET: ${{ github.event.inputs.market || 'Charlottesville' }}
           LIMIT: ${{ github.event.inputs.limit || '20000' }}
-        run: |
-          npm run refresh -- --market "$MARKET" --limit "$LIMIT" --no-history
+        run: npm run refresh -- --market "$MARKET" --limit "$LIMIT" --no-history
