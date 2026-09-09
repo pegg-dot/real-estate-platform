@@ -64,9 +64,9 @@ export async function POST(req: Request) {
     try {
       const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
       // a plain text stream the client reads token-by-token
-      const result = await streamText({
+      const result = streamText({
         model: anthropic("claude-haiku-4-5-20251001"),
-        system: EXPLAINER_SYSTEM, messages: safe, maxTokens: 800,
+        system: EXPLAINER_SYSTEM, messages: safe, maxOutputTokens: 800,
       });
       return result.toTextStreamResponse({ headers: { "cache-control": "no-store", "x-lot-stream": "1" } });
     } catch (e) {
