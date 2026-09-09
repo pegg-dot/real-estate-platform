@@ -2,6 +2,7 @@
 /* LOT top chrome (ported from design/ui_kits/terminal/App.jsx topbar): brand mark, tab nav with
    active state, LIVE pulse. Every existing route is kept — LOT-DECISION: rule#1 don't drop wiring,
    just restyle. Active tab derived from the pathname. */
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -36,18 +37,18 @@ export default function TopNav() {
   if (path === "/login") return null;   // login is a standalone full-screen entry — no app chrome
   return (
     <nav className="topbar">
-      <a href="/" className="brand" aria-label="LOT home">
+      <Link href="/" className="brand" aria-label="LOT home">
         <span className="logo">L</span>
         <span className="name">LOT</span>
-      </a>
+      </Link>
       {PRIMARY.map((t) => (
-        <a key={t.href} href={t.href} className={isActive(t.href) ? "active" : ""}>
+        <Link key={t.href} href={t.href} className={isActive(t.href) ? "active" : ""}>
           <i className={`ti ti-${t.icon}`} aria-hidden /> {t.label}
-        </a>
+        </Link>
       ))}
       <span style={{ width: 1, height: 18, background: "var(--border-soft)", margin: "0 2px" }} />
       {SECONDARY.map((t) => (
-        <a key={t.href} href={t.href} className={isActive(t.href) ? "active" : ""}>{t.label}</a>
+        <Link key={t.href} href={t.href} className={isActive(t.href) ? "active" : ""}>{t.label}</Link>
       ))}
       <span className="live"><span className="dot" /> live</span>
       <span className="loc">Charlottesville · preview</span>
