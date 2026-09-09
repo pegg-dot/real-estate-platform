@@ -16,13 +16,15 @@ docker compose up -d --build                # rebuild after code changes / git p
 docker compose down -v                      # stop AND delete the bundled database volume
 ```
 
-By default the application is available at `http://localhost:3000`. To use another host port:
+By default the application is available only on the local machine at `http://localhost:3000`. To use another local port:
 
 ```bash
 LOT_PORT=3210 docker compose up -d
 ```
 
 Then open `http://localhost:3210`.
+
+The default Compose binding is `127.0.0.1`, so another device on the network cannot reach the unauthenticated local app by accident.
 
 ## Data refresh
 
@@ -80,12 +82,14 @@ Important groups:
 - `SUPABASE_DB_URL` or `DATABASE_URL` for an external PostgreSQL database
 - `AUTH_*`, `GOOGLE_*`, and `CONNECTOR_SECRET` for shared/public authentication and Google connectors
 - `PUBLIC_BASE_URL` for a stable externally reachable origin
+- `LOT_PORT` to change the local host port
+- `LOT_BIND_HOST` to deliberately change the network interface the container publishes on
 
 Do not commit `.env` or production credentials.
 
 ## Security when exposing LOT beyond localhost
 
-The default configuration is intentionally convenient for a single-user local machine and has **no login**. That is not an internet-facing security boundary.
+The default configuration is intentionally convenient for a single-user local machine and has **no login**. Docker publishes it to `127.0.0.1` only. That safe default should not be changed until a real shared/public security boundary is configured.
 
 Before exposing LOT on a public hostname:
 
@@ -97,6 +101,7 @@ Before exposing LOT on a public hostname:
 6. set `PUBLIC_BASE_URL` to the exact HTTPS origin
 7. keep database/API/OAuth secrets in the hosting provider's encrypted environment settings
 8. place the app behind HTTPS and normal network/firewall controls
+9. only then set `LOT_BIND_HOST=0.0.0.0` if your container host actually requires the app to listen on every interface
 
 Do not reuse `AUTH_SECRET` as `CONNECTOR_SECRET` or as a third-party API credential.
 
@@ -127,6 +132,7 @@ At minimum, configure:
 - `PUBLIC_BASE_URL`
 - authentication before public exposure
 - any optional provider keys needed by the features you enable
+- `LOT_BIND_HOST=0.0.0.0` only when the platform requires a publicly bound container port
 
 The `/api/health` endpoint is the readiness signal for the application/database boundary.
 
@@ -155,6 +161,6 @@ This development path is intentionally secondary to the Docker quick start becau
 
 ## Verification
 
-The repository's self-host workflow builds the Docker image, starts the Compose stack without a private `.env`, waits for the health check, verifies every migration is recorded, restarts the app, and confirms migrations remain idempotent.
+The repository's self-host workflow audits dependencies, runs the root typecheck/test suite, builds the production web application, builds the Docker image, starts the Compose stack without a private `.env`, waits for the health check, verifies every migration is recorded, restarts the app, and confirms migrations remain idempotent.
 
 That CI path is meant to catch a broken first-run experience before a new user discovers it locally.
