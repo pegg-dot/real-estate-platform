@@ -6,7 +6,7 @@
     "node": ">=20.12"
   },
   "type": "module",
-  "description": "LOT — the judgment layer (scoring + creative-finance engines). The moat.",
+  "description": "LOT — self-hosted parcel intelligence, underwriting, and real-estate acquisition analysis.",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
