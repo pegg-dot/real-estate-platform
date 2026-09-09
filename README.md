@@ -1,215 +1,149 @@
 # LOT — Land of Opportunity Terminal
 
-[![self-host smoke](https://github.com/pegg-dot/real-estate-platform/actions/workflows/self-host-smoke.yml/badge.svg)](https://github.com/pegg-dot/real-estate-platform/actions/workflows/self-host-smoke.yml)
+[![self-host verification](https://github.com/pegg-dot/real-estate-platform/actions/workflows/self-host-smoke.yml/badge.svg)](https://github.com/pegg-dot/real-estate-platform/actions/workflows/self-host-smoke.yml)
 
-An AI-native real estate acquisition engine. It pulls every parcel in a city straight from the
-county's public data (no agents, no Zillow), scores each one against an investor thesis, and
-recommends *how to finance it* — cash, seller-finance, or subject-to — with the legal guardrails
-built in. Built for college-town buy-and-hold rentals, starting with **Charlottesville (UVA)**.
+**An AI-native real-estate acquisition engine that turns public parcel data into ranked, explainable investment opportunities.**
+
+LOT pulls county property data directly from public sources, scores parcels against an investor thesis, surfaces motivated-owner signals, and evaluates financing structures including cash, seller financing, and subject-to scenarios with explicit legal guardrails.
+
+I built it around college-town buy-and-hold investing, starting with **Charlottesville and UVA**.
 
 ![LOT map with a scored parcel's deal panel open](docs/screenshots/map-deal-panel.jpg)
 
-**Jump to:** [Run it on your computer](#run-it-on-your-computer) ·
-[Troubleshooting](#troubleshooting) · [Configuration](#configuration) ·
-[Deploy to a server](#deploy-to-a-server) · [Develop without Docker](#develop-without-docker) ·
-[What's inside](#whats-inside)
+## What it does
 
-## Run it on your computer
+LOT is designed around a simple loop:
 
-Works on macOS, Windows, and Linux. Postgres is bundled; **no accounts or API keys are required
-to start.** Budget ~5 minutes for the first build, then ~90 seconds to see your first scored map.
+**SENSE → REASON → SHOW**
 
-**1. Install two things** (skip what you have)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — open it once so it's running.
-- [Git](https://git-scm.com/downloads) — or use GitHub's green **Code → Download ZIP** button and
-  unzip it.
+- **Sense:** collect parcel, zoning, assessment, ownership, flood, and market data from public or configured data sources.
+- **Reason:** normalize the data, score each property against an investment thesis, flag modeled inputs, and rank financing structures.
+- **Show:** turn the results into a map, deal panels, leads, pipeline views, briefs, and cited deal dossiers.
 
-**2. Get the code**
+The system is not a Zillow wrapper. The core dataset begins with county/public records, then optional data providers and AI features can enrich the experience.
+
+## Quick start
+
+LOT is intentionally self-hosted. The easiest path uses Docker and includes PostgreSQL, so you do not need to install or configure a database separately.
+
+### You need
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [Git](https://git-scm.com/downloads)
+
+### 1. Clone the project
+
 ```bash
 git clone https://github.com/pegg-dot/real-estate-platform.git
 cd real-estate-platform
-cp .env.example .env          # Windows cmd.exe: copy .env.example .env   (PowerShell: cp works)
 ```
 
-**3. (Recommended, 1 minute) Give the map a token.** The map screen needs a free Mapbox
-token: sign up at [mapbox.com](https://account.mapbox.com), open **Tokens**, copy the
-*Default public token* (starts with `pk.`), and paste it into `.env`:
+### 2. Start LOT and load a sample
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+docker compose run --rm app lot refresh -- --market Charlottesville --distress --no-history --limit 500
 ```
+
+The first Docker build can take a few minutes. The 500-parcel sample is intended as a quick first look and usually finishes much faster than a full-city refresh.
+
+### 3. Open the app
+
+Go to **http://localhost:3000**.
+
+That is enough to run the core system. No paid API key is required for parcel ingestion, scoring, financing analysis, leads, pipeline, or the brief.
+
+### Recommended: enable the map
+
+The interactive map uses a public Mapbox token. Add a free token to `.env`:
+
+```text
 NEXT_PUBLIC_MAPBOX_TOKEN=pk.your-token-here
 ```
-Skip this and everything except the map still works — you can add it any time.
 
-**4. Start it**
+Then restart the app:
+
 ```bash
-docker compose up --build
+docker compose up -d
 ```
-The first build takes a few minutes (it's downloading Node, Python and Postgres). When you see
-`✓ Ready`, open **http://localhost:3000**.
 
-**5. Load a city.** The database starts empty. In a second terminal, in the same folder:
+Without a Mapbox token, the rest of the application still works.
+
+## What you will see
+
+- **Map:** scored parcels, filters, thesis fit, deal details, and financing options
+- **Leads:** properties and owners surfaced by sourcing signals
+- **Pipeline:** deals you are actively evaluating
+- **Brief:** a prioritized view of what needs attention
+- **Thesis:** the investment criteria that drive ranking and underwriting
+- **Playbook:** context around financing structures and decision rules
+- **Settings:** maintenance and data-refresh controls
+
+## Optional capabilities
+
+The base product is deterministic and works without an AI key. Optional integrations expand it:
+
+| Capability | Configuration |
+|---|---|
+| Interactive map | `NEXT_PUBLIC_MAPBOX_TOKEN` |
+| Conversational thesis input, chat, deal interrogation, coaching, agent workflows | `ANTHROPIC_API_KEY` |
+| Real rent comps instead of modeled rent assumptions | `RENTCAST_API_KEY` |
+| Google sign-in and Gmail/Calendar connectors | `AUTH_*`, `GOOGLE_*`, `CONNECTOR_SECRET` |
+| Additional enrichment sources | provider-specific keys documented in `.env.example` |
+
+All supported variables and safe defaults are documented in [`.env.example`](.env.example).
+
+## Run a full Charlottesville refresh
+
+Once the sample is working, load the broader market:
+
 ```bash
-# a 90-second taste: 500 parcels
-docker compose run --rm app lot refresh -- --market Charlottesville --distress --no-history --limit 500
-
-# the whole city: ~15,800 parcels, about 20 minutes (run this whenever you want fresh data)
 docker compose run --rm app lot refresh -- --market Charlottesville --distress --no-history --limit 20000
 ```
-Reload the **Map** tab: every parcel plotted red→green by how well it fits the thesis. Click a dot
-for its score breakdown, snapshot, and ranked financing options.
 
-> **What you'll see, by section:** **Map** (every parcel, plain-English filters), **Leads**
-> (motivated, by-the-room-legal owners), **Pipeline** (deals you're pursuing), **Brief** (your weekly
-> to-do), **Thesis** (describe what you want; the map re-ranks), **Playbook** (the creative-finance
-> plays explained), **Settings** (every maintenance command as a button).
+The full pull is intentionally slower because it is collecting, normalizing, scoring, and writing substantially more public-record data.
 
-### Optional extras
-| To get… | Put in `.env` | Where |
-|---|---|---|
-| **Chat + the four agents**, deal interrogation, negotiation coach, plain-English thesis intake | `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) (paid API) |
-| Real rent comps instead of modeled rents | `RENTCAST_API_KEY` | [rentcast.io/api](https://www.rentcast.io/api) (free tier) |
-| Google sign-in, multi-user, Gmail send, Calendar sync | `AUTH_*`, `GOOGLE_*`, `CONNECTOR_SECRET` | see `.env.example` |
+## Security note for self-hosting
 
-After editing `.env`: `docker compose up -d` — keys are read at runtime, no rebuild.
+**The default local configuration has no login. Do not expose the default Docker port directly to the public internet.**
 
-### Day-to-day
-```bash
-docker compose up -d                        # start in the background
-docker compose logs -f app                  # watch it
-docker compose down                         # stop (your data stays in the `lot-db` volume)
-docker compose up -d --build                # after `git pull`
-docker compose down -v                      # stop AND wipe the database
-```
-`lot <script>` runs any engine command inside the container — `lot refresh`, `lot leads -- --generate`,
-`lot migrate -- --status`, `lot test`; the full list is `scripts` in `package.json`.
-The app also refreshes itself: opening the homepage kicks off the full-city pull in the background
-whenever the data is empty or more than a week old (Settings → Automatic updates).
+For a public or shared deployment, enable authentication and configure an allowlist before exposing the application. Keep database credentials, AI keys, Google credentials, connector encryption secrets, and other private values in the host's secret/environment system rather than in Git.
 
-## Troubleshooting
+See [`SECURITY.md`](SECURITY.md) for the security boundary and [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) for advanced deployment and troubleshooting.
 
-| Symptom | Fix |
-|---|---|
-| `port is already allocated` / `address already in use` on 3000 | Something else uses port 3000. `LOT_PORT=3210 docker compose up` → http://localhost:3210 |
-| `Cannot connect to the Docker daemon` | Docker Desktop isn't running — open it and retry. |
-| "Map needs a Mapbox token" | Step 3 above; then `docker compose up -d`. |
-| The map is empty | Step 5 hasn't run yet (or is still running — the full city takes ~20 min and shows nothing until it finishes). |
-| `docker compose` errors mentioning `env_file` | Docker Compose is older than v2.24. Update Docker Desktop. |
-| Container exits with `/app/docker-entrypoint.sh: no such file or directory` | Windows line endings got into the entrypoint. `git config core.autocrlf false`, delete the folder, clone again. |
-| `docker compose run … lot refresh` dies with `Connection refused` | The county's map server hiccupped. It retries for ~75 s on its own; if it still fails, just run it again — the load is safe to repeat. |
-| `/api/health` says `"db":"unreachable"` | The app started but can't reach Postgres. With the bundled DB: `docker compose down && docker compose up`. With your own: check `SUPABASE_DB_URL`. |
+## Technical surface
 
-## Configuration
+LOT is a mixed TypeScript/Python system rather than a single frontend application:
 
-Every variable is documented in [`.env.example`](.env.example). The ones that matter:
+- **Next.js** for the web interface
+- **TypeScript** for underwriting, scoring, financing, orchestration, and application logic
+- **Python** for county/public-data ingestion
+- **PostgreSQL** for the durable data model and scored read models
+- **Docker Compose** for the supported local/self-hosted environment
+- optional **Anthropic**, **Mapbox**, Google, and market-data integrations
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `SUPABASE_DB_URL` (alias `DATABASE_URL`) | no — defaults to the bundled Postgres | any Postgres 14+ connection string (Supabase, RDS, Neon…) |
-| `NEXT_PUBLIC_MAPBOX_TOKEN` | for the map | free public token |
-| `ANTHROPIC_API_KEY` | for chat/agents | paid API |
-| `LOT_PORT` | no | host port Compose publishes (default 3000) |
-| `PUBLIC_BASE_URL` | on a public server | trusted origin for OAuth redirect URIs |
-| `AUTH_ENABLED`, `AUTH_SECRET`, `AUTH_ALLOWLIST`, `GOOGLE_CLIENT_ID/SECRET`, `CONNECTOR_SECRET` | no | Google sign-in, multi-user, Gmail/Calendar connectors |
-| `OUTREACH_SENDER_ADDRESS` | before sending email | CAN-SPAM physical address |
-| `RENTCAST_API_KEY`, `BATCHDATA_API_KEY`, `ENDATO_NAME/KEY`, `HUD_API_TOKEN` | no | data vendors |
+The repository includes migrations, ingestion adapters, deterministic scoring and financing logic, health checks, tests, and a Docker smoke test that boots a clean stack and verifies database readiness and migration idempotence.
 
-> **Exposing it beyond your machine?** With `AUTH_ENABLED` unset there is no login — anyone who
-> can reach the port has full access. Keep it on a private network, or turn on Google sign-in
-> (`AUTH_ENABLED=true` + `AUTH_SECRET` + `AUTH_ALLOWLIST` + a Google OAuth client — steps in
-> `.env.example`).
+## Current scope
 
-## Deploy to a server
+Charlottesville is the first fully wired county market adapter. Some inputs, such as rent and insurance assumptions, can be modeled when a configured real-data provider is unavailable; modeled values are intended to stay visibly distinguishable from sourced observations.
 
-Optional — only if you want it running 24/7 instead of on your laptop. LOT needs a
-**long-running container** (the UI spawns engine processes and the Python ingester) and a
-**Postgres 14+** database; it is not a serverless app (Vercel/Netlify won't work). Migrations run
-on every boot; `/api/health` is the readiness probe (503 + the reason if the DB is unreachable).
+Creative-finance output is analytical software, not legal advice. Real transactions can involve lender restrictions, due-on-sale provisions, securities, tax, title, disclosure, fair-housing, licensing, and state-specific legal issues. Use qualified professionals before acting on a financing structure.
 
-- **Railway** — New Project → Deploy from GitHub repo (`Dockerfile` + `railway.json` are picked
-  up) → add a **Postgres** service → on the app set `SUPABASE_DB_URL` = `${{Postgres.DATABASE_URL}}`
-  and `PUBLIC_BASE_URL` = your Railway domain.
-- **Render** — New → **Blueprint** → pick this repo; `render.yaml` provisions the web service and a
-  managed Postgres and prompts for the optional keys.
-- **Any Docker host / VM** —
-  ```bash
-  docker build -t lot .
-  docker run -d --init --name lot -p 3000:3000 --env-file .env -e SUPABASE_DB_URL=postgresql://… lot
-  ```
-- **Your own database with Compose** (Supabase, RDS, Neon…): put `SUPABASE_DB_URL` in `.env` and
-  `docker compose up --build --no-deps app` so the bundled Postgres stays off.
+## Deeper documentation
 
-`pgvector` is optional everywhere (it enables knowledge embeddings). A database that was migrated
-before the tracking table existed is recognised and recorded on first boot; if the schema stopped
-partway, boot refuses to guess — `lot migrate -- --status` shows the plan, and
-`docker compose run --rm -e LOT_SKIP_MIGRATIONS=1 app lot migrate -- --baseline` records a schema
-you've confirmed is current.
+- [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) — troubleshooting, public deployment, configuration, and Docker-free development
+- [`docs/architecture.md`](docs/architecture.md) — system architecture
+- [`docs/data-model.md`](docs/data-model.md) — data model and provenance
+- [`docs/financing-engine-design.md`](docs/financing-engine-design.md) — financing-engine design
 
-## Develop without Docker
+## License
 
-Node **22+** (≥ 20.12 works) and Python **3.10+**. Point `SUPABASE_DB_URL` in `.env` at any
-Postgres — the bundled one is fine: uncomment `ports` in `docker-compose.yml`, run
-`docker compose up -d db`, and use `postgresql://lot:lot@localhost:5432/lot`.
+LOT is released under the **MIT License**. Use, modification, and redistribution are allowed under those terms; the copyright and permission notice must remain with copies or substantial portions of the software.
 
-```bash
-npm ci && (cd web && npm ci)                                  # engine + web deps
-python3 -m venv .venv && .venv/bin/pip install -r ingestion/requirements-dev.txt
-cp .env.example .env                                          # set SUPABASE_DB_URL
+See [`LICENSE`](LICENSE) for the exact terms.
 
-set -a; source .env; set +a                                   # engine CLIs read the environment
-npm run migrate                                               # create / update the schema
-npm run refresh -- --market Charlottesville --no-history --limit 500   # ingest + score + digest a slice
-npm run dossier -- --market Charlottesville --dossier 040049000        # one cited deal dossier
+---
 
-cd web && npm run dev                                         # http://localhost:3000 (loads ../.env itself)
-```
-
-Tests: `npm test && npm run typecheck` (TypeScript engines, Vitest) and `.venv/bin/pytest`
-(Python ingestion). DB-integration tests run only when `TEST_DATABASE_URL` points at a throwaway
-Postgres. CI (`.github/workflows/self-host-smoke.yml`) builds the image, boots the Compose stack
-with no `.env`, and checks `/api/health` reports every migration applied — so the run-it-yourself
-path can't silently rot.
-
-## What's inside
-
-The full **SENSE → REASON → SHOW** loop runs end-to-end against Postgres:
-
-- **SENSE** (`/ingestion`, Python) — pulls real Charlottesville county data (parcels, zoning,
-  assessed value + history, real bed counts, owner + absentee + entity type, parcel centroids,
-  FEMA flood zones). Idempotent, provenance-tagged (real vs modeled), injection-safe, retried.
-- **REASON** (`/lib`, TypeScript — the moat) — `scoreMarket` underwrites per-bedroom **and**
-  whole-house, scores against the thesis, and recommends a creative-finance structure with a
-  **structurally-enforced legal guardrail** (the engine refuses to emit a creative structure without
-  its guardrail + attorney trigger). Reproduces the hand-run dossiers to the dollar.
-- **SHOW** (`/web`, Next.js) — map, deal panel, leads, pipeline, brief, chat; plus a cited markdown
-  **dossier** (`lot dossier`) and a ranked **digest** (`lot refresh`).
-
-Results land in `property_score` + the `deal_genome` view (the read model the map consumes).
-**Modeled inputs (rents) are flagged as modeled everywhere — never presented as real.**
-
-Why it's built this way: `docs/knowledge-base/STRATEGY-REFRAMES.md` and `PRODUCT-SPEC-v1-to-v10.md`.
-The moat is the **judgment layer** (scoring + creative-finance), not the data.
-
-### Build status (honest)
-- ✅ **002 ingest**, **003 scoring**, **004 financing**, **005 map UI** — built + tested + live.
-- ✅ **001 Thesis Compiler** — a sensible default thesis is seeded on the first refresh; author
-  your own from the CLI (`lot thesis -- --guided …` / `--generic`) or in plain English on the
-  Thesis page (that path needs `ANTHROPIC_API_KEY`).
-- ⚠️ **006 agent swarm / weekly loop** — the `refresh` orchestrator, scout ("what changed"),
-  regulatory radar, sourcing/outreach drafting, and the LEARN loop exist; scheduling is the in-app
-  stale-data trigger or the gated GitHub Action (`.github/workflows/weekly-refresh.yml`).
-- ⚠️ **Markets** — only Charlottesville has a county adapter. Adding a market means writing an
-  ingestion adapter (see `docs/TODO-nate.md`, "multi-market").
-- Modeled (not yet real): per-bedroom **rents** without `RENTCAST_API_KEY`, **insurance $**.
-
-### Layout
-- `CLAUDE.md` — agent operating manual (read first if you're building with Claude Code).
-- `/web` — the Next.js app (own `package.json`; shells out to the engine CLIs).
-- `/ingestion` — Python county pipelines (Charlottesville live; Miami-Dade next).
-- `/lib` — the TypeScript judgment layer: `scoring/`, `financing/`, `pipeline/` (the
-  DB↔engine bridge), `dossier/`, `db/`, `config/`, `agent/`, `knowledge/`, …
-- `/scripts` — `refresh-market.ts` (the loop), `apply-migrations.ts`, the other CLIs, `lot`.
-- `/supabase/migrations` — plain SQL, applied in order, tracked in `schema_migrations`.
-- `/config` — thesis, per-market assumptions, zoning rules, knowledge-rule seed.
-- `/specs` — one spec per feature (each carries its own implementation-status note).
-- `/docs` — data model, architecture, financing-engine design, the knowledge base.
-- `Dockerfile`, `docker-compose.yml`, `docker-entrypoint.sh`, `render.yaml`, `railway.json` — self-hosting.
-- `.claude/` — skills, subagents (code-reviewer, underwriter, zoning-analyst).
+**Built by Nate Pegg.**
