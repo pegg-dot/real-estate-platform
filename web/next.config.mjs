@@ -12,5 +12,10 @@ if (existsSync(rootEnv) && typeof process.loadEnvFile === "function") {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  turbopack: {
+    // The repository intentionally has separate root and web lockfiles. Tell Next which package is
+    // the application root instead of letting it infer the monorepo boundary from the first lockfile.
+    root: process.cwd(),
+  },
 };
 export default nextConfig;
